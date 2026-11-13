@@ -354,6 +354,121 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0 if check.ok else 1
 
 
+def cmd_wikinews_dump(args: argparse.Namespace) -> int:
+    import json
+    from collections import Counter
+    from datetime import datetime, timezone
+
+    from commonswire.backfill import save_once
+    from commonswire.http import make_client
+    from commonswire.licensing import license_on
+    from commonswire.schema import make_article
+    from commonswire.sources import load_sources, render_credit
+    from commonswire.validate import validate_file
+    from commonswire.wikidump import (
+        DUMP_NAME,
+        DUMP_URL,
+        MD5_URL,
+        expected_md5,
+        md5_of,
+        open_dump,
+        read_dump,
+    )
+
+    root = Path(args.root)
+    folder = root / "data" / "raw" / "backfill" / "wikinews_en" / args.run
+    dump = folder / DUMP_NAME
+    if args.download and not dump.exists():
+        if not (root / "data" / "raw").exists():
+            print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+            return 2
+        client = make_client(root, byte_budget=80 * 1024 * 1024)
+        sums = client.get(MD5_URL, accept="text/plain", note="backfill:wikinews_en")
+        save_once(folder / "md5sums.txt", sums.body)
+        resp = client.get(
+            DUMP_URL, accept="*/*", max_bytes=80 * 1024 * 1024, note="backfill:wikinews_en"
+        )
+        if resp.status != 200 or resp.truncated:
+            print(f"the dump answered HTTP {resp.status} (truncated: {resp.truncated})")
+            return 1
+        save_once(dump, resp.body)
+    if not dump.exists():
+        print(f"no dump at {dump}; run with --download first", file=sys.stderr)
+        return 2
+    sums_path = folder / "md5sums.txt"
+    want = expected_md5(sums_path.read_text()) if sums_path.exists() else None
+    got = md5_of(dump)
+    if want and want != got:
+        print(f"the dump's md5 {got} differs from the published {want}", file=sys.stderr)
+        return 1
+    registry = load_sources(Path(args.sources))
+    src = registry["wikinews_en"]
+    retrieved = datetime.fromtimestamp(dump.stat().st_mtime, timezone.utc).replace(microsecond=0)
+    skipped: Counter[str] = Counter()
+    out = root / "data" / "interim" / "rows" / "wikinews_en.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    kept = 0
+    seen: set[str] = set()
+    first = last = ""
+    with open_dump(dump) as stream, out.open("w", encoding="utf-8") as fh:
+        for art in read_dump(stream, skipped):
+            if art.url in seen:
+                skipped["duplicate_url"] += 1
+                continue
+            seen.add(art.url)
+            lic = license_on("wikinews_en", art.published_at, src.license)
+            credit = render_credit(
+                src.credit_line,
+                title=art.title,
+                authors=(),
+                source=src.name,
+                url=art.url,
+                license=lic,
+            )
+            try:
+                row = make_article(
+                    source_id="wikinews_en",
+                    url=art.url,
+                    title=art.title,
+                    text=art.text,
+                    published_at=art.published_at,
+                    updated_at=art.last_edit,
+                    retrieved_at=max(retrieved, art.published_at),
+                    language="en",
+                    license=lic,
+                    credit_line=credit,
+                )
+            except ValueError:
+                skipped["invalid"] += 1
+                continue
+            fh.write(row.model_dump_json() + "\n")
+            kept += 1
+            day = art.published_at.date().isoformat()
+            first, last = min(first or day, day), max(last or day, day)
+    check = validate_file(out, registry)
+    info = {
+        "source_id": "wikinews_en",
+        "run": args.run,
+        "dump_md5": got,
+        "md5_checked": bool(want),
+        "dump_bytes": dump.stat().st_size,
+        "kept": kept,
+        "skipped": dict(sorted(skipped.items())),
+        "first": first,
+        "last": last,
+        "rows_bytes": out.stat().st_size,
+        "validate_errors": len(check.errors),
+        "validate_warnings": len(check.warnings),
+    }
+    path = root / "data" / "evidence" / "backfill" / "wikinews_en.build.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"wikinews_en: kept {kept}; skipped {dict(skipped)}; validate: {len(check.errors)} errors"
+    )
+    return 0 if check.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -435,6 +550,12 @@ def build_parser() -> argparse.ArgumentParser:
     bd.add_argument("--run", default=_today())
     bd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     bd.set_defaults(func=cmd_build)
+
+    wd = sub.add_parser("wikinews-dump", help="read the Wikinews dump into rows")
+    wd.add_argument("--run", default=_today())
+    wd.add_argument("--download", action="store_true", help="download the dump once first")
+    wd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    wd.set_defaults(func=cmd_wikinews_dump)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
