@@ -1,0 +1,19 @@
+{
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 11,
+    "third_party:republication_note": 5,
+    "third_party:wire_byline": 1
+  },
+  "first": "2014-06-04",
+  "kept": 880,
+  "last": "2026-11-13",
+  "raw_bytes": 9396584,
+  "raw_files": 10,
+  "releasable": 0,
+  "rows_bytes": 6797254,
+  "run": "2026-11-13",
+  "seen": 897,
+  "source_id": "balkandiskurs",
+  "validate_errors": 0,
+  "validate_warnings": 1
+}

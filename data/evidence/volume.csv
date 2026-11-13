@@ -13,3 +13,6 @@ checked_on,source_id,method,requests,dates_seen,window_days,est_articles_per_day
 2026-11-13,azmirror,wordpress,1,0,,,,,,refused: HTTP 403
 2026-11-13,marylandmatters,wordpress,1,0,,,,,,refused: HTTP 403
 2026-11-13,stateline,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,scidevnet,wordpress,2,0,,,0,,,
+2026-11-13,scidevnet,wordpress,2,0,,,0,,,
+2026-11-13,altnews,wordpress,2,100,87.39,1.1,5821,2016-04-10,2026-11-13,

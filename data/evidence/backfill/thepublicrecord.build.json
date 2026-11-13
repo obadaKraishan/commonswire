@@ -1,0 +1,18 @@
+{
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 1,
+    "third_party:republication_note": 19
+  },
+  "first": "2013-06-28",
+  "kept": 2749,
+  "last": "2026-11-13",
+  "raw_bytes": 15119029,
+  "raw_files": 29,
+  "releasable": 0,
+  "rows_bytes": 10751435,
+  "run": "2026-11-13",
+  "seen": 2769,
+  "source_id": "thepublicrecord",
+  "validate_errors": 0,
+  "validate_warnings": 79
+}

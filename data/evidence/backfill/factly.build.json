@@ -1,0 +1,19 @@
+{
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 36,
+    "invalid:Value error, text still holds HTML tags; give plain text": 3,
+    "third_party:republication_note": 10
+  },
+  "first": "2014-12-14",
+  "kept": 15111,
+  "last": "2026-11-13",
+  "raw_bytes": 190587048,
+  "raw_files": 155,
+  "releasable": 15111,
+  "rows_bytes": 85965524,
+  "run": "2026-11-13",
+  "seen": 15160,
+  "source_id": "factly",
+  "validate_errors": 0,
+  "validate_warnings": 62
+}

@@ -1,0 +1,18 @@
+{
+  "dropped": {
+    "invalid:Value error, text still holds HTML tags; give plain text": 1,
+    "third_party:republication_note": 14
+  },
+  "first": "2021-11-22",
+  "kept": 2410,
+  "last": "2026-11-12",
+  "raw_bytes": 23029659,
+  "raw_files": 26,
+  "releasable": 1847,
+  "rows_bytes": 17127989,
+  "run": "2026-11-13",
+  "seen": 2425,
+  "source_id": "360info",
+  "validate_errors": 0,
+  "validate_warnings": 5
+}
