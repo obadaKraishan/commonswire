@@ -1,0 +1,55 @@
+{
+  "archive_from": "2004-10-27",
+  "articles_per_day_in_sample": 1.54,
+  "backfill": {
+    "archive_articles": 104477,
+    "est_jsonl_gb": 0.79,
+    "est_rows_after_third_party_drop": 87761,
+    "mean_record_bytes": 8997
+  },
+  "dropped": {
+    "third_party:republication_note": 32
+  },
+  "kept": 168,
+  "languages": {
+    "en": 168
+  },
+  "length_chars": {
+    "max": 19231,
+    "mean": 7986.1,
+    "min": 2416,
+    "p10": 4545,
+    "p25": 6284,
+    "p50": 7906,
+    "p75": 9576,
+    "p90": 11038
+  },
+  "length_words": {
+    "max": 3109,
+    "mean": 1225.3,
+    "min": 340,
+    "p10": 715,
+    "p25": 960,
+    "p50": 1198,
+    "p75": 1449,
+    "p90": 1705
+  },
+  "licenses": {
+    "CC-BY-3.0": 168
+  },
+  "missing": {
+    "authors": 168,
+    "section": 0,
+    "updated_at": 79
+  },
+  "sample_bytes": 1511568,
+  "sample_window": {
+    "days": 108.8,
+    "newest": "2026-11-13",
+    "oldest": "2026-07-27"
+  },
+  "seen": 200,
+  "share_with_byline": 0.0,
+  "source_id": "globalvoices",
+  "third_party_share": 0.16
+}

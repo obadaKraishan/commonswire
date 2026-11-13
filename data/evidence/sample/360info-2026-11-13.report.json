@@ -1,0 +1,55 @@
+{
+  "archive_from": "2021-11-22",
+  "articles_per_day_in_sample": 0.45,
+  "backfill": {
+    "archive_articles": 2425,
+    "est_jsonl_gb": 0.02,
+    "est_rows_after_third_party_drop": 2352,
+    "mean_record_bytes": 8605
+  },
+  "dropped": {
+    "third_party:republication_note": 6
+  },
+  "kept": 194,
+  "languages": {
+    "en": 194
+  },
+  "length_chars": {
+    "max": 14533,
+    "mean": 7699.0,
+    "min": 4614,
+    "p10": 6053,
+    "p25": 6801,
+    "p50": 7667,
+    "p75": 8340,
+    "p90": 9177
+  },
+  "length_words": {
+    "max": 2207,
+    "mean": 1134.2,
+    "min": 679,
+    "p10": 907,
+    "p25": 1020,
+    "p50": 1130,
+    "p75": 1217,
+    "p90": 1334
+  },
+  "licenses": {
+    "CC-BY-4.0": 194
+  },
+  "missing": {
+    "authors": 0,
+    "section": 0,
+    "updated_at": 5
+  },
+  "sample_bytes": 1669421,
+  "sample_window": {
+    "days": 432.1,
+    "newest": "2026-11-12",
+    "oldest": "2025-09-06"
+  },
+  "seen": 200,
+  "share_with_byline": 1.0,
+  "source_id": "360info",
+  "third_party_share": 0.03
+}

@@ -1,0 +1,16 @@
+{
+  "api_totals": {
+    "archive_from": "2004-10-27",
+    "total_posts": 104477
+  },
+  "checked_on": "2026-11-13",
+  "dropped": {
+    "third_party:republication_note": 32
+  },
+  "jsonl_sha256": "67182447c7922d7a54c558f71e60d54b614a756208c2b95df32d39773f108228",
+  "kept": 168,
+  "raw_bytes": 5153639,
+  "raw_files": 3,
+  "seen": 200,
+  "source_id": "globalvoices"
+}

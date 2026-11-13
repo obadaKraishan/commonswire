@@ -1,0 +1,16 @@
+{
+  "api_totals": {
+    "archive_from": "2021-11-22",
+    "total_posts": 2425
+  },
+  "checked_on": "2026-11-13",
+  "dropped": {
+    "third_party:republication_note": 6
+  },
+  "jsonl_sha256": "6473adf709436b60f52888832daf59b809eccd31cbbecfcc472c6ed50aff2845",
+  "kept": 194,
+  "raw_bytes": 10786143,
+  "raw_files": 3,
+  "seen": 200,
+  "source_id": "360info"
+}
