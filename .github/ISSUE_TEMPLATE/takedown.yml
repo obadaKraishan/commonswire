@@ -1,0 +1,51 @@
+name: Takedown or correction request
+description: Ask for an article to be removed from CommonsWire, or for a correction to be applied.
+title: "Takedown request: "
+labels: ["takedown"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to ask for an article to be removed from CommonsWire, for example if you
+        are its publisher or writer, a person named in it, or if the article was withdrawn or
+        corrected at its source. Removed articles are marked in the next release and their
+        text is dropped. Requests are answered within 14 days.
+
+        **This issue is public.** Do not include private information, such as an email
+        address, a phone number or details about a private person. If your request involves
+        private information, say so below without giving it, and the maintainer will reply
+        here with a private way to continue.
+  - type: input
+    id: article
+    attributes:
+      label: Which article?
+      description: The CommonsWire article id or the article's URL at its source.
+      placeholder: https://example.org/2026/11/13/story
+    validations:
+      required: true
+  - type: dropdown
+    id: requester
+    attributes:
+      label: Who is asking?
+      options:
+        - The publisher of the article
+        - The writer of the article
+        - A person or organization named in the article
+        - Someone acting for one of the above
+        - Someone else
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why should the article be removed or changed?
+      description: For example, it was withdrawn or corrected at its source, or it names a private person.
+    validations:
+      required: true
+  - type: checkboxes
+    id: public
+    attributes:
+      label: Public issue
+      options:
+        - label: I understand that this issue is public and I have not included private information.
+          required: true

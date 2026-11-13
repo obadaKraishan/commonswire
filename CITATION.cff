@@ -1,0 +1,24 @@
+# DRAFT: nothing has been released yet. The version, date and DOI are filled in at release.
+cff-version: 1.2.0
+message: "If you use CommonsWire, please cite it as below, and credit the newsrooms as each row asks."
+type: software
+title: "CommonsWire: a living, full-text corpus of openly licensed news"
+abstract: >-
+  CommonsWire collects the full text of news articles whose publishers allow redistribution
+  (public domain and Creative Commons licenses), checks each source's rights on its own pages,
+  and keeps every article's license and credit line with it. It is updated every day and adds
+  validated coded variables (topic, frame, types of sources quoted, tone) for communication and
+  journalism research.
+authors:
+  - family-names: Kraishan
+    given-names: Obada
+    affiliation: "College of Media and Communication, Texas Tech University"
+license: Apache-2.0
+repository-code: "https://github.com/obadaKraishan/commonswire"
+keywords:
+  - news
+  - corpus
+  - journalism
+  - communication research
+  - creative commons
+  - content analysis

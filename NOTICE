@@ -1,0 +1,10 @@
+CommonsWire
+Copyright 2026 Obada Kraishan
+
+The CommonsWire software (everything under src/ and tests/) and the reference tables in data/
+are licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The news articles that CommonsWire collects belong to the newsrooms and writers who published
+them, under each source's own license. No article text is in this repository. Each article
+row carries its license and the credit line its source asks for; docs/licenses.md says what
+users must do.
