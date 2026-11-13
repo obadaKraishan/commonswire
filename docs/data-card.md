@@ -14,10 +14,10 @@ tone) with their provenance. New articles are added daily.
 - **Configurations:** `pd`, `by`, `by-sa` (and `nc-nd`, empty until a source allows it); see
   `docs/release-layout.md`.
 - **Languages:** English only in version 1.
-- **Size (working copy, 2026-11-13, before Global Voices):** 47,587 rows from six sources
-  (43,395 releasable; 4,192 held until their bylines are found), 22.6 million words, 2004-11-13 to
-  2026-11-13; 0.21 GB of rows, 0.36 GB of raw API answers. By configuration: `by` 42,884,
-  `by-sa` 2,749, `pd` 1,954.
+- **Size (working copy, 2026-11-13, before Global Voices):** 47,595 rows from six sources
+  (47,495 releasable; 100 held because the article names no person as its author), 22.7 million
+  words, 2004-11-13 to 2026-11-13; 0.21 GB of rows, 0.36 GB of raw API answers and 0.59 GB of
+  article pages read for bylines. By configuration: `by` 42,892, `by-sa` 2,749, `pd` 1,954.
 - **Living flow:** about 4.7 new articles a day over the last 90 days (Factly 2.3, Alt News 1.2,
   The Public Record 0.5, 360info 0.5, Balkan Diskurs 0.2; Wikinews is closed). Global Voices would
   add about 1.5 a day once it can be collected.
@@ -62,6 +62,15 @@ tone) with their provenance. New articles are added daily.
   seconds apart, robots.txt and crawl-delays honored, a user agent that names the project.
 - The body text is taken from the source's API, with only whitespace normalized inside each
   paragraph; no words are changed. Photos, captions and embeds are removed.
+- Wikinews text comes from each article's wikitext in the Wikimedia dump. The markup is removed
+  by rule; templates that show words in the sentence (such as `{{w|...}}`, a link to Wikipedia)
+  keep those words, and files, categories, tables, infoboxes and map data are dropped.
+- Bylines come from the source's API. Where the API gives none and the source asks for the
+  author's name (The Public Record, Balkan Diskurs, some 360info rows), the article's page is
+  fetched once and the name is read from the page's own byline block; when a page has no byline
+  block, from its JSON-LD or meta tags, except for Balkan Diskurs, whose JSON-LD names the
+  account that posted the article. Names are never taken from the body text. A row whose page
+  names no person is held, not released.
 - Third-party material dropped in the working copy: 65 posts (partner republications, wire
   bylines, rights notes); 39 exact text duplicates dropped; near-duplicates across sources are
   flagged at character 5-gram Jaccard 0.6 (none so far).
@@ -92,10 +101,15 @@ tone) with their provenance. New articles are added daily.
   be read as describing "the news" in general.
 - Wikinews closed on 2026-05-04 and contributes a back-catalogue only. Voice of America's English
   output looked sharply reduced on 2026-11-13 (and VOA is excluded on its own terms).
-- Global Voices could not be reached on 2026-11-13 (connection refused); its API gives no author
-  names, and its attribution policy asks for the author's name.
-- The Public Record and Balkan Diskurs ask for the author's name but their API gives none; their
-  rows are held until bylines are found. Some 360info rows (563) are held for the same reason.
+- Global Voices could not be reached on 2026-11-13 (connection refused on every try); its API
+  gives no author names, and its attribution policy asks for the author's name.
+- The Public Record and Balkan Diskurs ask for the author's name but their API gives none, so
+  their bylines come from their article pages, as do those of 563 360info rows. 100 rows are
+  held: 90 Balkan Diskurs pages credit Balkan Diskurs itself, one has an empty byline, and nine
+  360info pages name no author.
+- Wikinews text is converted from wiki markup by rule. About 60 of its 20,651 articles keep a
+  stray bar, bracket or brace, mostly where the wikitext itself has a slip; a bar can also be a
+  separator the editors wrote on purpose.
 - Fact-check sites quote and describe social-media posts; embedded posts are removed, but the
   quoted claims stay in the text.
 - Coded variables are model output, validated as described in `docs/method.md`; their error
