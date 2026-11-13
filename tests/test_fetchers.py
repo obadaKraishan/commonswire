@@ -415,3 +415,24 @@ def test_360info_sign_off_with_a_license_version(tmp_path):
     item = f.item_from_post(wp_post(1, body=body))
     assert f.third_party_reason(item) is None
     assert f.build(item, item.published_at).text == "Invented analysis."
+
+
+def test_license_classes_and_urls():
+    import pytest as _pytest
+
+    from commonswire.licensing import license_class, license_url
+
+    assert license_class("public-domain") == "pd" and license_class("CC0-1.0") == "pd"
+    assert license_class("CC-BY-2.5") == "by" and license_class("CC-BY-SA-4.0") == "by-sa"
+    assert license_class("CC-BY-NC-ND-4.0") == "nc-nd" and license_class("CC-BY-ND-4.0") == "nc-nd"
+    with _pytest.raises(ValueError, match="no release class"):
+        license_class("NOASSERTION")
+    assert license_url("CC-BY-4.0") == "https://creativecommons.org/licenses/by/4.0/"
+    assert license_url("CC-BY-SA-3.0") == "https://creativecommons.org/licenses/by-sa/3.0/"
+    assert (
+        license_url("CC-BY-NC-ND-3.0-US") == "https://creativecommons.org/licenses/by-nc-nd/3.0/us/"
+    )
+    assert license_url("public-domain").endswith("/publicdomain/mark/1.0/")
+    assert license_url("CC0-1.0").endswith("/publicdomain/zero/1.0/")
+    with _pytest.raises(ValueError, match="no license URL"):
+        license_url("MIT")

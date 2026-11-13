@@ -559,6 +559,53 @@ def cmd_daily(args: argparse.Namespace) -> int:
     return 0
 
 
+def _kinds(sources_path: str) -> dict[str, str]:
+    from commonswire.sources import load_sources
+
+    return {k: v.kind for k, v in load_sources(Path(sources_path)).items()}
+
+
+def cmd_corpus_report(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.corpus import corpus_report
+
+    root = Path(args.root)
+    report = corpus_report(root, _kinds(args.sources), args.threshold)
+    path = root / "data" / "evidence" / "corpus" / "report.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    for source, v in report["sources"].items():
+        print(
+            f"{source}: {v['rows_kept']} rows ({v['releasable_rows']} releasable), "
+            f"{v['first']} to {v['last']}, median {v['words_median']} words, "
+            f"{v['per_day_last_90_days']} a day lately"
+        )
+    t = report["total"]
+    print(
+        f"total: {t['rows_kept']} rows, {t['releasable_rows']} releasable, "
+        f"{t['per_day_last_90_days']} a day over the last 90 days"
+    )
+    return 0
+
+
+def cmd_store(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.corpus import write_parquet
+
+    root = Path(args.root)
+    counts = write_parquet(root, _kinds(args.sources), args.threshold)
+    path = root / "data" / "evidence" / "corpus" / "parquet_counts.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(counts, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"wrote Parquet for {len(counts)} sources, "
+        f"{sum(sum(v.values()) for v in counts.values())} rows"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -656,6 +703,15 @@ def build_parser() -> argparse.ArgumentParser:
     dl.add_argument("--max-mb", type=int, default=50, help="stop a source after this many MB")
     dl.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     dl.set_defaults(func=cmd_daily)
+
+    cr = sub.add_parser("corpus-report", help="aggregate the corpus (counts only, no text)")
+    cr.add_argument("--threshold", type=float, default=0.8)
+    cr.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    cr.set_defaults(func=cmd_corpus_report)
+    st = sub.add_parser("store", help="write Parquet by source and year")
+    st.add_argument("--threshold", type=float, default=0.8)
+    st.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    st.set_defaults(func=cmd_store)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
