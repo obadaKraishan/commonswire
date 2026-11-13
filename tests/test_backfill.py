@@ -141,3 +141,49 @@ def test_source_classes_and_embeds_and_rights_notes(tmp_path):
         assert art.text == "Invented claim check.\n\nInvented verdict." and art.releasable
         held = f.item_from_post(wp_post(2, body="<p>Invented text.</p><p>All rights reserved.</p>"))
         assert f.third_party_reason(held) == "rights_reserved_note"
+
+
+def test_cli_bylines_from_an_open_users_endpoint(tmp_path, monkeypatch, capsys):
+    import csv
+
+    from commonswire.cli import main
+    from commonswire.sources import SOURCE_FIELDS
+
+    reg = tmp_path / "sources.csv"
+    with reg.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=SOURCE_FIELDS)
+        w.writeheader()
+        w.writerow(
+            row(
+                source_id="altnews",
+                name="Alt News",
+                homepage="https://www.altnews.in/",
+                credit_line="{title}, by {authors}, {source} ({url}), {license}",
+            )
+        )
+    base = "https://www.altnews.in"
+    t = FakeTransport().add(f"{base}/robots.txt", (404, ""))
+    t.add(
+        f"{base}/wp-json/wp/v2/users?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 7, "name": "A. Writer"}, {"id": 8, "name": ""}])),
+    )
+
+    def fake_make_client(root, *, byte_budget=None, transport=None):
+        client, _ = make_test_client(root / "data", t, byte_budget=byte_budget)
+        return client
+
+    monkeypatch.setattr("commonswire.http.make_client", fake_make_client)
+    assert (
+        main(["--root", str(tmp_path), "bylines", "altnews", "--run", "r", "--sources", str(reg)])
+        == 0
+    )
+    out = json.loads((tmp_path / "data" / "interim" / "bylines" / "altnews.json").read_text())
+    assert out == {"7": ["A. Writer"]}
+    t.routes[f"{base}/wp-json/wp/v2/users?per_page=100&page=1&_fields=id%2Cname"] = [(403, "no")]
+    (
+        tmp_path / "data" / "raw" / "backfill" / "altnews" / "r" / "users" / "users-p001.json"
+    ).unlink()
+    assert (
+        main(["--root", str(tmp_path), "bylines", "altnews", "--run", "r", "--sources", str(reg)])
+        == 1
+    )

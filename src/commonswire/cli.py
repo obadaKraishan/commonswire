@@ -606,6 +606,48 @@ def cmd_store(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bylines(args: argparse.Namespace) -> int:
+    """Author names from a WordPress users endpoint, when the site leaves it open."""
+    import json
+    from urllib.parse import urlencode
+
+    from commonswire.backfill import save_once
+    from commonswire.http import Blocked, Disallowed, FetchError
+
+    root = Path(args.root)
+    fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
+    client.byte_budget = 20 * 1024 * 1024
+    raw = root / "data" / "raw" / "backfill" / args.source_id / args.run / "users"
+    names: dict[str, list[str]] = {}
+    for page in range(1, 51):
+        path = raw / f"users-p{page:03d}.json"
+        if not path.exists():
+            q = urlencode({"per_page": "100", "page": str(page), "_fields": "id,name"})
+            try:
+                resp = client.get(
+                    f"{fetcher.api_base}/wp-json/wp/v2/users?{q}",
+                    accept="application/json",
+                    note=f"bylines:{args.source_id}",
+                )
+            except (Blocked, Disallowed, FetchError) as exc:
+                print(f"{args.source_id}: the users endpoint was refused or failed: {exc}")
+                return 1
+            if resp.status != 200:
+                break
+            save_once(path, resp.body)
+        data = json.loads(path.read_bytes())
+        for u in data:
+            if u.get("name"):
+                names[str(u["id"])] = [u["name"]]
+        if len(data) < 100:
+            break
+    out = root / "data" / "interim" / "bylines" / f"{args.source_id}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(names, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"{args.source_id}: {len(names)} author names from the users endpoint")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -695,7 +737,7 @@ def build_parser() -> argparse.ArgumentParser:
     wd.set_defaults(func=cmd_wikinews_dump)
 
     dd = sub.add_parser("dedup", help="drop exact duplicates and flag near-duplicates")
-    dd.add_argument("--threshold", type=float, default=0.8, help="Jaccard for a flag")
+    dd.add_argument("--threshold", type=float, default=0.6, help="Jaccard for a flag")
     dd.set_defaults(func=cmd_dedup)
 
     dl = sub.add_parser("daily", help="new, changed and removed articles since the last run")
@@ -705,13 +747,19 @@ def build_parser() -> argparse.ArgumentParser:
     dl.set_defaults(func=cmd_daily)
 
     cr = sub.add_parser("corpus-report", help="aggregate the corpus (counts only, no text)")
-    cr.add_argument("--threshold", type=float, default=0.8)
+    cr.add_argument("--threshold", type=float, default=0.6)
     cr.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     cr.set_defaults(func=cmd_corpus_report)
     st = sub.add_parser("store", help="write Parquet by source and year")
-    st.add_argument("--threshold", type=float, default=0.8)
+    st.add_argument("--threshold", type=float, default=0.6)
     st.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     st.set_defaults(func=cmd_store)
+
+    by = sub.add_parser("bylines", help="author names from a WordPress users endpoint")
+    by.add_argument("source_id")
+    by.add_argument("--run", default=_today())
+    by.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    by.set_defaults(func=cmd_bylines)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")

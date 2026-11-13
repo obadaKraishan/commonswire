@@ -256,6 +256,7 @@ class ThreeSixtyInfoFetcher(WordPressFetcher):
     Third-party material is noted with the content; such posts are dropped."""
 
     source_id = "360info"
+    requires_byline = True
     api_base = "https://360info.org"
     language = "en"
     own_notes = (
@@ -277,6 +278,7 @@ class BalkanDiskursFetcher(WordPressFetcher):
     """Balkan Diskurs, English edition only (its own WordPress site under ``/en/``): CC BY 3.0."""
 
     source_id = "balkandiskurs"
+    requires_byline = True
     api_base = "https://balkandiskurs.com/en"
     language = "en"
     drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
@@ -306,6 +308,7 @@ class PublicRecordFetcher(WordPressFetcher):
     stated; work used from other sites keeps its own license and is dropped."""
 
     source_id = "thepublicrecord"
+    requires_byline = True
     api_base = "https://thepublicrecord.ca"
     language = "en"
     drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
