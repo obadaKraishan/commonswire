@@ -18,22 +18,34 @@ its license, the prompt version, the time it was coded, and whether a person che
 (`Coding` in `schema.py`). Published coded values use Apache-2.0 or MIT models.
 
 ### 2.1 Topic
-- **Scheme:** the Comparative Agendas Project (CAP) major topics, Master Topics Codebook
-  version 1.1 (2022-08-09): 1 Macroeconomics, 2 Civil Rights, 3 Health, 4 Agriculture, 5 Labor,
-  6 Education, 7 Environment, 8 Energy, 9 Immigration, 10 Transportation, 12 Law and Crime,
-  13 Social Welfare, 14 Housing, 15 Domestic Commerce, 16 Defense, 17 Technology, 18 Foreign
-  Trade, 19 International Affairs, 20 Government Operations, 21 Public Lands, 23 Culture.
-- **Additions for news,** following the CAP media datasets (for example the US New York Times
-  Index codebook): arts and entertainment, sports and recreation, weather and natural
-  disasters, religion, and "other or human interest", plus "no policy content".
-- **Coding:** one primary topic per article, and up to two secondary topics.
-- **Terms (to settle):** the CAP page says "Datasets and codebooks available on this site are ©
-  Comparative Agendas Project 2015" and that the "topic code variables as well as other
-  Project-generated variables" are under CC BY-NC-SA 4.0
-  (<https://comparativeagendas.net/pages/Copyright-and-Legal>). Whether coding new texts with
-  the topic list counts as reuse of those variables is not stated. The plan is to use the codes
-  and names with the requested citation, write CommonsWire's own short definitions, and ask CAP
-  before release whether CommonsWire's topic labels may be released under CC BY 4.0.
+- **Scheme: IPTC Media Topics**, the news industry's own subject taxonomy, maintained by the
+  International Press Telecommunications Council (IPTC). IPTC describes it as its "primary
+  subject taxonomy since 2010, with a focus on classification of text", and says "Media Topics
+  describe the subject of a news item."
+- **License:** CC BY 4.0. The vocabulary file carries `"licenceLink":
+  "http://creativecommons.org/licenses/by/4.0/"`, and IPTC's NewsCodes Guidelines say "All
+  NewsCodes vocabularies are copyright IPTC and licenced under the Creative Commons Attribution
+  4.0 licence." IPTC asks users to "give IPTC credit somewhere on your website"; the data card
+  will credit "IPTC Media Topics, © IPTC, International Press Telecommunications Council, CC BY
+  4.0". CommonsWire's own labels can then be CC BY 4.0 without the question the CAP terms raise.
+- **Structure** (release of 2026-09-30, the `dateReleased` that a coding run pins): 17 top-level
+  topics (arts, culture, entertainment and media; crime, law and justice; disaster, accident and
+  emergency incident; economy, business and finance; education; environment; health; human
+  interest; labour; lifestyle and leisure; politics and government; religion; science and
+  technology; society; sport; conflict, war and peace; weather), 1,059 active concepts on up to
+  six levels, with mappings to IPTC's older Subject Codes and to Wikidata.
+- **Coding:** one primary top-level topic and up to two secondary ones per article, plus the
+  second level (120 active concepts) where the model is confident; the codes are stored as
+  qcodes (`medtop:11000000`), with the release date in the codebook version.
+- **CAP as an optional internal crosswalk.** No published IPTC-to-CAP mapping exists. A
+  crosswalk from IPTC's second level to the CAP major topics may be built for internal
+  comparison with CAP-coded data; CAP codes are not published (their "topic code variables"
+  are CC BY-NC-SA 4.0).
+- **Gold data for topic:** MN-DS (Petukhova and Fachada, Data 2023; Zenodo 10.5281/zenodo.7394851),
+  10,917 news articles from 2019 labeled by hand with IPTC Media Topics (levels 1 and 2), CC BY
+  4.0. Its article texts come from many outlets, so it is used for internal checks only, with
+  aggregate metrics published. EMMediaTopic 1.0 (21,000 texts) is labeled by a model, not by
+  people, and is not gold.
 
 ### 2.2 Frame
 - **Scheme:** the Policy Frames Codebook (Boydstun, Card, Gross, Resnik and Smith, updated July
@@ -81,7 +93,8 @@ its license, the prompt version, the time it was coded, and whether a person che
 ### 3.1 Existing public gold data
 | Gold set | What it labels | License and access | Use in CommonsWire |
 |---|---|---|---|
-| CAP media datasets (Pennsylvania newspaper headlines and abstracts 1979 to 2015; The Times front-page headlines 1960 to 2008; New York Times Index descriptions 1946 to 2016) | CAP major topics | CC BY-NC-SA 4.0 for the codes; the source texts keep their copyright | Topic check on short texts, internal only; publish aggregate metrics, never the texts |
+| MN-DS (2019 news, 10,917 articles) | IPTC Media Topics, levels 1 and 2, by hand | CC BY 4.0 (texts from many outlets) | The topic gold set, internal only; aggregate metrics published |
+| CAP media datasets (Pennsylvania newspaper headlines and abstracts 1979 to 2015; The Times front-page headlines 1960 to 2008; New York Times Index descriptions 1946 to 2016) | CAP major topics | CC BY-NC-SA 4.0 for the codes; the source texts keep their copyright | Only through the optional crosswalk, internal only |
 | Media Frames Corpus (Card et al. 2015), v2 | 15 frames, primary frame, tone | Annotations GPL-3.0; the article texts need Lexis-Nexis; the retrieval tool is deprecated and drives a browser | Not usable as gold; reference for label distributions and agreement figures |
 | Gun Violence Frame Corpus (Liu et al. 2019) | 9 frames on 2,990 headlines (1,300 relevant) | No license stated; "please cite" | Only with the authors' permission |
 | SemEval-2023 Task 3 | 14 frames, 9 languages | "It may only be used in the context of this shared task"; "Any other use is explicitly prohibited" | Only with written permission from the organizers |
@@ -133,6 +146,9 @@ human-human alpha.
 - Card, D., Boydstun, A. E., Gross, J. H., Resnik, P., and Smith, N. A. (2015). The Media
   Frames Corpus: Annotations of frames across issues. ACL-IJCNLP.
 - Comparative Agendas Project (2022). Master Topics Codebook, version 1.1.
+- IPTC (2026). Media Topics NewsCodes, release of 2026-09-30. http://cv.iptc.org/newscodes/mediatopic/
+- Petukhova, A., and Fachada, N. (2023). MN-DS: A multilabeled news dataset for news articles
+  hierarchical classification. Data 8(5), 74.
 - Gilardi, F., Alizadeh, M., and Kubli, M. (2023). ChatGPT outperforms crowd workers for
   text-annotation tasks. PNAS 120(30).
 - Hamborg, F., and Donnay, K. (2021). NewsMTSC: A dataset for (multi-)target-dependent

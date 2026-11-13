@@ -11,21 +11,29 @@ tone) with their provenance. New articles are added daily.
 - **Curated by:** Obada Kraishan, College of Media and Communication, Texas Tech University.
 - **License:** per row (see `docs/licenses.md`); the coded variables are CC BY 4.0; the code is
   Apache-2.0.
-- **Configurations:** `pd`, `by`, `by-sa` (and `nc-nd`, empty until a source allows it).
-- **Languages:** TODO (English only, or every language of the included sources).
-- **Size:** TODO.
+- **Configurations:** `pd`, `by`, `by-sa` (and `nc-nd`, empty until a source allows it); see
+  `docs/release-layout.md`.
+- **Languages:** English only in version 1.
+- **Size (working copy, 2026-11-13, before Global Voices):** 47,587 rows from six sources
+  (43,395 releasable; 4,192 held until their bylines are found), 22.6 million words, 2004-11-13 to
+  2026-11-13; 0.21 GB of rows, 0.36 GB of raw API answers. By configuration: `by` 42,884,
+  `by-sa` 2,749, `pd` 1,954.
+- **Living flow:** about 4.7 new articles a day over the last 90 days (Factly 2.3, Alt News 1.2,
+  The Public Record 0.5, 360info 0.5, Balkan Diskurs 0.2; Wikinews is closed). Global Voices would
+  add about 1.5 a day once it can be collected.
 - **Versions:** daily commits on Hugging Face, weekly Kaggle versions, quarterly Zenodo
   snapshots with a DOI.
 
 ## Sources
 - **How sources are admitted:** the clean-source rule (`docs/sources.md`). The evidence for
   each source is in `data/sources.csv`: the pages read, the date and the exact words.
-- **Included sources (2026-11-13, not yet accepted):** Global Voices (CC BY 3.0), Wikinews in
-  English (public domain, CC BY 2.5 or CC BY 4.0 by date; closed since 2026-05-04), 360info
-  (CC BY 4.0), EFF Deeplinks (CC BY 4.0), NIH News Releases (public domain), Africa Is a
-  Country (CC BY 4.0), Freedom of the Press Foundation (CC BY 4.0), The Public Record (CC BY-SA
-  4.0) and Balkan Diskurs (CC BY 3.0). 35 more sources are pending a question and 14 are
-  excluded (`docs/sources.md`).
+- **Included sources (registry of 2026-11-13):** 12 sources are `include`: Global Voices (CC BY
+  3.0), Wikinews in English (public domain, CC BY 2.5 or CC BY 4.0 by date; closed since
+  2026-05-04), 360info (CC BY 4.0), The Public Record (CC BY-SA 4.0), Balkan Diskurs (CC BY 3.0,
+  English edition), Africa Is a Country (CC BY 4.0), SciDev.Net (CC BY 2.0), Alt News (CC BY 3.0,
+  fact-check), Factly (CC BY 4.0, fact-check), EFF Deeplinks and the Freedom of the Press
+  Foundation (CC BY 4.0, advocacy) and NIH News Releases (public domain, official). The working
+  copy holds six of them; the others are not collected yet (`docs/sources.md`).
 - **What is left out:** third-party material in every source (wire copy, partner stories,
   syndicated pieces), photos, captions, video, audio and embeds. The number of third-party
   items dropped is reported per source and per release.
@@ -54,7 +62,11 @@ tone) with their provenance. New articles are added daily.
   seconds apart, robots.txt and crawl-delays honored, a user agent that names the project.
 - The body text is taken from the source's API, with only whitespace normalized inside each
   paragraph; no words are changed. Photos, captions and embeds are removed.
-- Coding: `docs/method.md` (DRAFT). TODO: the models, prompts and reliability figures.
+- Third-party material dropped in the working copy: 65 posts (partner republications, wire
+  bylines, rights notes); 39 exact text duplicates dropped; near-duplicates across sources are
+  flagged at character 5-gram Jaccard 0.6 (none so far).
+- Coding: `docs/method.md` (DRAFT; topics from IPTC Media Topics). TODO: the models, prompts and
+  reliability figures.
 
 ## Ethics
 - **Text only.** No photos, video, audio or embeds are collected or redistributed.
@@ -80,8 +92,12 @@ tone) with their provenance. New articles are added daily.
   be read as describing "the news" in general.
 - Wikinews closed on 2026-05-04 and contributes a back-catalogue only. Voice of America's English
   output looked sharply reduced on 2026-11-13 (and VOA is excluded on its own terms).
-- Global Voices' API gives no author names; its rows wait until bylines are collected, because its
-  attribution policy asks for the author's name.
+- Global Voices could not be reached on 2026-11-13 (connection refused); its API gives no author
+  names, and its attribution policy asks for the author's name.
+- The Public Record and Balkan Diskurs ask for the author's name but their API gives none; their
+  rows are held until bylines are found. Some 360info rows (563) are held for the same reason.
+- Fact-check sites quote and describe social-media posts; embedded posts are removed, but the
+  quoted claims stay in the text.
 - Coded variables are model output, validated as described in `docs/method.md`; their error
   rates are reported per variable.
 

@@ -68,10 +68,10 @@ republishers to pick stories one at a time and not to republish automatically.
    in the next release; please drop them from your copies too.
 
 ## 5. Codebooks and gold data used for the coded variables
-- **CAP topics:** "Datasets and codebooks available on this site are © Comparative Agendas
-  Project 2015"; the "topic code variables" are under CC BY-NC-SA 4.0. CommonsWire cites the
-  codebook, writes its own definitions, and will ask CAP before release whether its own topic
-  labels may be CC BY 4.0 (`docs/method.md` §2.1).
+- **IPTC Media Topics** (the topic scheme): CC BY 4.0 ("All NewsCodes vocabularies are copyright
+  IPTC and licenced under the Creative Commons Attribution 4.0 licence"); credited in the data
+  card. CAP codes are used only as an optional internal crosswalk and are not published (their
+  "topic code variables" are CC BY-NC-SA 4.0).
 - **Policy Frames Codebook:** no license stated; "We encourage the free, attributed use of the
   data collected using the Policy Frames Codebook for publications, instructional use, policy
   analysis, and other non-commercial purposes." Cited as the codebook asks.
