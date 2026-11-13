@@ -64,6 +64,7 @@ def test_render_groups_by_status_and_quotes_the_evidence():
     assert "| c_news | <https://c.example.org/x> | HTTP 403 |" in text
     assert "| c_news | <https://c.example.org/y> | error |" in text
     assert "**Notes:** robots shuts out CCBot" in text
+    assert "(no terms of use page found)" in text
     closed = parse_row(
         row(
             license="LicenseRef-all-rights-reserved",

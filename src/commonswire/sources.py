@@ -321,8 +321,6 @@ def rule_problems(src: Source, today: date | None = None) -> list[str]:
                 out.append(str(exc))
         if not src.access:
             out.append("status is include: say how articles are collected in access")
-        if not src.terms_url:
-            out.append("status is include: give terms_url (the terms of use that were read)")
     elif src.status == "exclude":
         if not src.reason:
             out.append("status is exclude: say why in reason")

@@ -196,11 +196,12 @@ def test_restricted_license_that_allows_bulk_can_be_included():
     assert out == []
 
 
-def test_include_needs_credit_line_access_and_terms_url():
+def test_include_needs_credit_line_and_access_but_a_site_may_have_no_terms_page():
     out = problems(credit_line="", access="", terms_url="")
     assert any("credit_line" in p for p in out)
     assert any("access" in p for p in out)
-    assert any("terms_url" in p for p in out)
+    assert not any("terms_url" in p for p in out)
+    assert any("unknown placeholder" in p for p in problems(credit_line="{byline}"))
 
 
 def test_exclude_needs_a_reason_and_a_failed_point():

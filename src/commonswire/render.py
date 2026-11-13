@@ -65,6 +65,8 @@ def paragraph(src: Source) -> str:
     terms = f"- **Automated collection:** robots.txt {src.robots}; terms {src.terms_automation}"
     if src.terms_url:
         terms += f" (<{src.terms_url}>)"
+    else:
+        terms += " (no terms of use page found)"
     if src.quote_terms:
         terms += f'; "{src.quote_terms}"'
     lines.append(terms)
