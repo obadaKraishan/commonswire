@@ -75,7 +75,15 @@ def gv_site(posts_p1, posts_p2=(), total=None, per_page=3):
 
 
 def test_registry_of_fetchers():
-    assert set(FETCHERS) == {"globalvoices", "wikinews_en", "360info"}
+    assert set(FETCHERS) == {
+        "globalvoices",
+        "wikinews_en",
+        "360info",
+        "thepublicrecord",
+        "balkandiskurs",
+        "factly",
+        "altnews",
+    }
     assert FETCHERS["360info"].api_base == "https://360info.org"
 
 

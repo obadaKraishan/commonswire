@@ -150,6 +150,10 @@ class Article(BaseModel):
     third_party: bool = False
     content_hash: str
     status: ArticleStatus = "live"
+    #: False when a row may be stored but not released, with the reason (for example a missing
+    #: byline that the source's attribution policy requires).
+    releasable: bool = True
+    hold_reason: str = ""
     codings: tuple[Coding, ...] = ()
 
     @field_validator("published_at", "updated_at", "retrieved_at")
@@ -203,6 +207,10 @@ class Article(BaseModel):
                 raise ValueError("text is empty; only a removed article may have no text")
             if has_markup(self.text):
                 raise ValueError("text still holds HTML tags; give plain text")
+        if not self.releasable and not self.hold_reason.strip():
+            raise ValueError("a row that is not releasable needs its hold_reason")
+        if self.releasable and self.hold_reason:
+            raise ValueError("hold_reason is only for rows that are not releasable")
         if self.updated_at is not None and self.updated_at < self.published_at:
             raise ValueError("updated_at is earlier than published_at")
         if self.retrieved_at + CLOCK_SKEW < self.published_at:
@@ -231,6 +239,8 @@ def make_article(
     updated_at: datetime | None = None,
     section: str = "",
     third_party: bool = False,
+    releasable: bool = True,
+    hold_reason: str = "",
 ) -> Article:
     """Build an article row, computing its id and content hash."""
     return Article(
@@ -250,4 +260,6 @@ def make_article(
         third_party=third_party,
         content_hash=text_hash(text),
         status="live",
+        releasable=releasable,
+        hold_reason=hold_reason,
     )

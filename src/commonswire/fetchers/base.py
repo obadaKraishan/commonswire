@@ -122,6 +122,22 @@ class Fetcher(ABC):
     #: Commons by ..."): removed from the text as boilerplate, and never taken as a sign of
     #: third-party material.
     own_notes: tuple[str, ...] = ()
+    #: True when the source's attribution policy asks for the author's name: a row without a
+    #: byline is stored but marked not releasable.
+    requires_byline: bool = False
+    #: Classes of embedded third-party posts and players, always removed from the text.
+    embed_classes: tuple[str, ...] = (
+        "twitter-tweet",
+        "twitter-video",
+        "instagram-media",
+        "tiktok-embed",
+        "fb-post",
+        "fb-video",
+        "wp-block-embed",
+        "wp-embedded-content",
+        "embed-youtube",
+        "jetpack-video-wrapper",
+    )
 
     def strip_own_notes(self, text: str) -> str:
         """The text without the source's own sign-off lines, and without paragraphs they emptied."""
@@ -166,7 +182,7 @@ class Fetcher(ABC):
         text = (
             item.body_text
             if item.body_text is not None
-            else article_text(item.body_html, self.drop_classes)
+            else article_text(item.body_html, self.drop_classes + self.embed_classes)
         )
         if self.own_notes:
             text = self.strip_own_notes(text)
@@ -179,7 +195,12 @@ class Fetcher(ABC):
             url=item.url,
             license=lic,
         )
+        hold = ""
+        if self.requires_byline and not item.authors:
+            hold = f"no byline: {self.source.name} asks for the author's name"
         return make_article(
+            releasable=not hold,
+            hold_reason=hold,
             source_id=self.source_id,
             url=item.url,
             title=item.title,

@@ -275,6 +275,85 @@ def cmd_sources_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _wordpress_fetcher(root: Path, source_id: str, sources_path: str):  # type: ignore[no-untyped-def]
+    from commonswire.fetchers import WORDPRESS
+    from commonswire.fetchers.base import ReplayStore
+    from commonswire.http import make_client
+    from commonswire.sources import load_sources
+
+    if source_id not in WORDPRESS:
+        raise SystemExit(
+            f"no WordPress backfill for {source_id}; there are: {', '.join(WORDPRESS)}"
+        )
+    registry = load_sources(Path(sources_path))
+    if source_id not in registry:
+        raise SystemExit(f"{source_id} is not in the registry")
+    client = make_client(root)
+    folder = root / "data" / "raw" / "backfill" / source_id
+    return WORDPRESS[source_id](client, registry[source_id], ReplayStore(folder)), client
+
+
+def cmd_backfill(args: argparse.Namespace) -> int:
+    from commonswire.backfill import backfill_wordpress
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
+    client.byte_budget = args.max_mb * 1024 * 1024
+    folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+    progress = backfill_wordpress(
+        fetcher,
+        client,
+        folder,
+        run=args.run,
+        max_pages=args.max_pages,
+        say=lambda m: print(m, flush=True),
+    )
+    print(
+        f"{args.source_id}: {progress.pages_saved} of {progress.total_pages or '?'} pages saved "
+        f"({progress.total_posts or '?'} posts); {progress.requests_this_run} requests and "
+        f"{progress.bytes_this_run:,} bytes this run; "
+        + ("finished" if progress.finished else f"not finished: {progress.stopped or 'stopped'}")
+    )
+    return 0 if progress.finished or progress.stopped.startswith("stopped after") else 1
+
+
+def cmd_build(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.backfill import build_rows
+    from commonswire.sources import load_sources
+    from commonswire.validate import validate_file
+
+    root = Path(args.root)
+    fetcher, _ = _wordpress_fetcher(root, args.source_id, args.sources)
+    bylines = root / "data" / "interim" / "bylines" / f"{args.source_id}.json"
+    if bylines.exists():
+        data = json.loads(bylines.read_text())
+        fetcher.byline_map = {int(k): tuple(v) for k, v in data.items() if v}
+    folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+    out = root / "data" / "interim" / "rows" / f"{args.source_id}.jsonl"
+    result = build_rows(fetcher, folder, out)
+    check = validate_file(out, load_sources(Path(args.sources)))
+    info = result.summary()
+    info.update(
+        run=args.run, validate_errors=len(check.errors), validate_warnings=len(check.warnings)
+    )
+    path = root / "data" / "evidence" / "backfill" / f"{args.source_id}.build.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"{args.source_id}: seen {result.seen}, kept {result.kept} ({result.releasable} "
+        f"releasable), dropped {sum(result.dropped.values())}; validate: {len(check.errors)} "
+        f"errors, {len(check.warnings)} warnings"
+    )
+    for msg in check.errors[:5]:
+        print(f"  error: {msg}")
+    return 0 if check.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -342,6 +421,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="rebuild the rows from the saved raw answers (no requests)",
     )
     sample.set_defaults(func=cmd_sample)
+
+    bf = sub.add_parser("backfill", help="save a source's whole archive (resumable)")
+    bf.add_argument("source_id")
+    bf.add_argument("--run", default=_today(), help="the run's name (default: today)")
+    bf.add_argument("--max-mb", type=int, default=300, help="stop after this many megabytes")
+    bf.add_argument("--max-pages", type=int, help="stop after this many new pages")
+    bf.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bf.set_defaults(func=cmd_backfill)
+
+    bd = sub.add_parser("build", help="build rows from a saved backfill (no requests)")
+    bd.add_argument("source_id")
+    bd.add_argument("--run", default=_today())
+    bd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bd.set_defaults(func=cmd_build)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")

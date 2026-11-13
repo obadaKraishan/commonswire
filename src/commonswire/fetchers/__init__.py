@@ -4,10 +4,30 @@ from __future__ import annotations
 
 from commonswire.fetchers.base import Fetcher
 from commonswire.fetchers.wikinews import WikinewsFetcher
-from commonswire.fetchers.wordpress import GlobalVoicesFetcher, ThreeSixtyInfoFetcher
+from commonswire.fetchers.wordpress import (
+    AltNewsFetcher,
+    BalkanDiskursFetcher,
+    FactlyFetcher,
+    GlobalVoicesFetcher,
+    PublicRecordFetcher,
+    ThreeSixtyInfoFetcher,
+    WordPressFetcher,
+)
 
 FETCHERS: dict[str, type[Fetcher]] = {
-    GlobalVoicesFetcher.source_id: GlobalVoicesFetcher,
-    WikinewsFetcher.source_id: WikinewsFetcher,
-    ThreeSixtyInfoFetcher.source_id: ThreeSixtyInfoFetcher,
+    cls.source_id: cls
+    for cls in (
+        GlobalVoicesFetcher,
+        WikinewsFetcher,
+        ThreeSixtyInfoFetcher,
+        PublicRecordFetcher,
+        BalkanDiskursFetcher,
+        FactlyFetcher,
+        AltNewsFetcher,
+    )
+}
+
+#: The sources collected through the WordPress REST API.
+WORDPRESS: dict[str, type[WordPressFetcher]] = {
+    k: v for k, v in FETCHERS.items() if issubclass(v, WordPressFetcher)
 }

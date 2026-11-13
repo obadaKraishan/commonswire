@@ -155,3 +155,12 @@ def test_license_label_and_credit_rendering():
     assert render_credit("{authors}", authors=[], **kw) == "Example News"
     with pytest.raises(ValueError, match="unknown placeholder"):
         render_credit("{byline}", authors=[], **kw)
+
+
+def test_releasable_rows_and_hold_reasons():
+    held = art(releasable=False, hold_reason="no byline; the source asks for the author's name")
+    assert not held.releasable
+    with pytest.raises(ValueError, match="needs its hold_reason"):
+        Article.model_validate(as_dict(art(), releasable=False))
+    with pytest.raises(ValueError, match="only for rows that are not releasable"):
+        Article.model_validate(as_dict(art(), hold_reason="x"))

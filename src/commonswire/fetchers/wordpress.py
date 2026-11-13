@@ -25,6 +25,10 @@ REPUBLISHED = re.compile(
     r"reprinted with permission|published (here )?with permission)",
     re.I,
 )
+#: A note that the text is under someone else's rights.
+RIGHTS_NOTE = re.compile(
+    r"all rights reserved|\u00a9\s*(the )?(associated press|reuters|afp)", re.I
+)
 #: Wire agencies, looked for in bylines and in a dateline at the very start of the body.
 WIRE = re.compile(r"\b(Associated Press|Reuters|Agence France-Presse|AFP)\b|\(AP\)", re.I)
 
@@ -62,6 +66,33 @@ class WordPressFetcher(Fetcher):
 
     api_base: str = ""
     language: str = "en"
+    #: Fields asked for in a backfill (``_fields``), so answers carry only what rows need.
+    backfill_fields = (
+        "id,date_gmt,modified_gmt,link,title,content,author,categories,type,"
+        "yoast_head_json.author,yoast_head_json.twitter_misc"
+    )
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        #: category id -> name, for answers without embedded terms (backfills).
+        self.category_names: dict[int, str] = {}
+        #: author id -> byline, for sites whose API gives no author names.
+        self.byline_map: dict[int, tuple[str, ...]] = {}
+
+    def backfill_url(self, page: int, per_page: int = PER_PAGE) -> str:
+        """Oldest first, so posts published during a backfill do not shift the pages."""
+        params = {
+            "per_page": str(per_page),
+            "page": str(page),
+            "orderby": "date",
+            "order": "asc",
+            "_fields": self.backfill_fields,
+        }
+        return f"{self.api_base}/wp-json/wp/v2/posts?{urlencode(params)}"
+
+    def categories_url(self, page: int) -> str:
+        params = {"per_page": "100", "page": str(page), "_fields": "id,name"}
+        return f"{self.api_base}/wp-json/wp/v2/categories?{urlencode(params)}"
 
     def _posts_url(self, page: int, per_page: int = PER_PAGE, **extra: str) -> str:
         params = {
@@ -119,10 +150,18 @@ class WordPressFetcher(Fetcher):
         )
         if not authors:
             authors = byline_from_yoast(post.get("yoast_head_json"))
+        if not authors and isinstance(post.get("author"), int):
+            authors = self.byline_map.get(post["author"], ())
         terms = [t for group in embedded.get("wp:term", []) for t in group if isinstance(t, dict)]
         categories = [
             strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "category"
         ]
+        if not categories and self.category_names:
+            categories = [
+                strip_tags(self.category_names[c])
+                for c in post.get("categories", [])
+                if c in self.category_names
+            ]
         tags = [strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "post_tag"]
         published = _gmt(post.get("date_gmt"))
         if published is None:
@@ -155,6 +194,8 @@ class WordPressFetcher(Fetcher):
             text = self.strip_own_notes(text)
         if REPUBLISHED.search(text[:400]) or REPUBLISHED.search(text[-600:]):
             return "republication_note"
+        if RIGHTS_NOTE.search(text[:400]) or RIGHTS_NOTE.search(text[-600:]):
+            return "rights_reserved_note"
         if any(WIRE.search(a) for a in item.authors) or WIRE.search(text[:80]):
             return "wire_byline"
         return None
@@ -167,6 +208,7 @@ class GlobalVoicesFetcher(WordPressFetcher):
     source_id = "globalvoices"
     api_base = "https://globalvoices.org"
     language = "en"
+    requires_byline = True
     drop_classes = (
         "sharedaddy",
         "jp-relatedposts",
@@ -198,3 +240,41 @@ class ThreeSixtyInfoFetcher(WordPressFetcher):
         "wp-caption",
         "related",
     )
+
+
+class BalkanDiskursFetcher(WordPressFetcher):
+    """Balkan Diskurs, English edition only (its own WordPress site under ``/en/``): CC BY 3.0."""
+
+    source_id = "balkandiskurs"
+    api_base = "https://balkandiskurs.com/en"
+    language = "en"
+    drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
+
+
+class FactlyFetcher(WordPressFetcher):
+    """Factly (English): CC BY 4.0 except videos; embedded social posts are removed."""
+
+    source_id = "factly"
+    api_base = "https://factly.in"
+    language = "en"
+    drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
+
+
+class AltNewsFetcher(WordPressFetcher):
+    """Alt News (English; the Hindi edition is a separate site): CC BY 3.0; embedded social
+    posts are removed."""
+
+    source_id = "altnews"
+    api_base = "https://www.altnews.in"
+    language = "en"
+    drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
+
+
+class PublicRecordFetcher(WordPressFetcher):
+    """The Public Record (Hamilton, Ontario): original content CC BY-SA 4.0 unless otherwise
+    stated; work used from other sites keeps its own license and is dropped."""
+
+    source_id = "thepublicrecord"
+    api_base = "https://thepublicrecord.ca"
+    language = "en"
+    drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
