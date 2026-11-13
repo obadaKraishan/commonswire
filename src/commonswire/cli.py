@@ -247,10 +247,16 @@ def blocked_pages(root: Path) -> list[dict[str, str]]:
     for row in read_rows(root / "data" / "evidence" / "pages.csv"):
         if row["outcome"] not in ("blocked", "disallowed"):
             continue
+        state = robots.get(row["source_id"], {}).get("state")
         if row["outcome"] == "blocked":
-            answer = f"HTTP {row['status']}" if row["status"] else "a bot check page"
-        elif robots.get(row["source_id"], {}).get("state") == "blocked":
+            if row["status"] and row["status"] != "200":
+                answer = f"HTTP {row['status']}"
+            else:
+                answer = "a bot check page"
+        elif state == "blocked":
             answer = f"robots.txt answered HTTP {robots[row['source_id']]['robots_status']}"
+        elif state == "unreachable":
+            answer = "robots.txt could not be reached"
         else:
             answer = "robots.txt disallows the CommonsWire user agent"
         out.append({**row, "answer": answer})

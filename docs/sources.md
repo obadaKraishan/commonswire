@@ -784,15 +784,15 @@ by a person.
 | dodnews | <https://www.defense.gov/News/> | robots.txt answered HTTP 403 |
 | stategov | <https://www.state.gov/> | robots.txt answered HTTP 403 |
 | stategov | <https://www.state.gov/copyright-information/> | robots.txt answered HTTP 403 |
-| the19th | <https://19thnews.org/> | HTTP 200 |
+| the19th | <https://19thnews.org/> | a bot check page |
 | mississippitoday | <https://mississippitoday.org/topic/mississippi-midterms/> | HTTP 403 |
 | mississippitoday | <https://mississippitoday.org/terms-of-service/> | HTTP 403 |
 | marshallproject | <https://www.themarshallproject.org/> | HTTP 403 |
 | inn | <https://inn.org/> | robots.txt answered HTTP 403 |
 | mekongeye | <https://www.mekongeye.com/> | HTTP 403 |
 | newcanadianmedia | <https://www.newcanadianmedia.ca/> | robots.txt answered HTTP 403 |
-| tasnim | <https://www.tasnimnews.com/en> | robots.txt disallows the CommonsWire user agent |
+| tasnim | <https://www.tasnimnews.com/en> | robots.txt could not be reached |
 | mekongeye | <https://www.mekongeye.com/about> | HTTP 403 |
-| the19th | <https://19thnews.org/republishing-guidelines/> | HTTP 200 |
+| the19th | <https://19thnews.org/republishing-guidelines/> | a bot check page |
 | mississippitoday | <https://mississippitoday.org/about/republication/> | HTTP 403 |
 | marshallproject | <https://www.themarshallproject.org/2026/10/16/911-book-policing-mental-health/republication> | HTTP 403 |
