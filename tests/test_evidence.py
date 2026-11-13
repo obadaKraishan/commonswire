@@ -95,6 +95,12 @@ def test_policy_links_rank_republish_first_and_stay_on_site():
     ]
 
 
+def test_policy_words_match_whole_words_only():
+    html = '<a href="/wiki/Court_rules_eviction_illegally_done">Eviction illegally done</a>'
+    html += '<a href="/legal">Legal</a>'
+    assert policy_links(html, HOME, HOME) == ["https://news.example.org/legal"]
+
+
 def test_link_helpers():
     assert normalize_link("mailto:a@b.org", HOME) is None
     assert normalize_link("", HOME) is None

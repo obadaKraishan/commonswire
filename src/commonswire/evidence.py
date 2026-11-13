@@ -59,7 +59,7 @@ LICENSE_LINK_FIELDS = ["checked_on", "source_id", "page_url", "license_url", "li
 POLICY_PATTERNS: list[tuple[int, re.Pattern[str]]] = [
     (0, re.compile(r"republish|re-publish|reprint|steal[- ]our|syndicat|share our|use our", re.I)),
     (1, re.compile(r"licen[cs]|copyright|creative ?commons|reuse|re-use|permission", re.I)),
-    (2, re.compile(r"terms|legal|conditions|policies|editorial[- ]polic", re.I)),
+    (2, re.compile(r"\bterms\b|\blegal\b|\bconditions\b|\bpolicies\b|editorial[- ]polic", re.I)),
 ]
 _SOCIAL = re.compile(
     r"facebook\.com|twitter\.com|x\.com/|linkedin\.com|instagram\.com|whatsapp|t\.me/|"
