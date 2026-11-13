@@ -20,7 +20,12 @@ tone) with their provenance. New articles are added daily.
 ## Sources
 - **How sources are admitted:** the clean-source rule (`docs/sources.md`). The evidence for
   each source is in `data/sources.csv`: the pages read, the date and the exact words.
-- **Included sources:** TODO (from `data/sources.csv`, status `include`).
+- **Included sources (2026-11-13, not yet accepted):** Global Voices (CC BY 3.0), Wikinews in
+  English (public domain, CC BY 2.5 or CC BY 4.0 by date; closed since 2026-05-04), 360info
+  (CC BY 4.0), EFF Deeplinks (CC BY 4.0), NIH News Releases (public domain), Africa Is a
+  Country (CC BY 4.0), Freedom of the Press Foundation (CC BY 4.0), The Public Record (CC BY-SA
+  4.0) and Balkan Diskurs (CC BY 3.0). 35 more sources are pending a question and 14 are
+  excluded (`docs/sources.md`).
 - **What is left out:** third-party material in every source (wire copy, partner stories,
   syndicated pieces), photos, captions, video, audio and embeds. The number of third-party
   items dropped is reported per source and per release.
@@ -73,8 +78,10 @@ tone) with their provenance. New articles are added daily.
 - The corpus covers only sources that allow redistribution; it is not a sample of the news. Its
   mix of outlets, countries and topics differs from mainstream coverage, and results should not
   be read as describing "the news" in general.
-- Wikinews closed on 2026-05-04 and contributes a back-catalogue only. TODO: the other closed or
-  paused sources.
+- Wikinews closed on 2026-05-04 and contributes a back-catalogue only. Voice of America's English
+  output looked sharply reduced on 2026-11-13 (and VOA is excluded on its own terms).
+- Global Voices' API gives no author names; its rows wait until bylines are collected, because its
+  attribution policy asks for the author's name.
 - Coded variables are model output, validated as described in `docs/method.md`; their error
   rates are reported per variable.
 

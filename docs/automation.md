@@ -49,8 +49,22 @@ values); the Claude Batch API codes a stratified sample as the second coder for 
 (about 1,000 articles a quarter, under $6 at Sonnet 5.5 batch prices), after the spend is
 approved.
 
-**Tokens per day:** TODO from the sample: the included sources' articles per day times about
-4,300 tokens.
+**Tokens per day, from the sample of 2026-11-13.** The median article is 1,198 words at Global
+Voices and 1,130 at 360info (about 1,500 to 1,600 tokens), which matches the assumption above.
+The nine included sources publish about 5 to 10 articles a day in all (Global Voices 1.5, The
+Public Record 0.6, 360info 0.45, Balkan Diskurs 0.3, Wikinews 0 since its closure; EFF, NIH,
+Africa Is a Country and the Freedom of the Press Foundation not yet measured). That is about
+20,000 to 45,000 tokens a day, which every option above handles; the cost question is the
+backfill, not the daily run.
+
+| Workload | Articles | Tokens | Haiku 5.5 batch | Sonnet 5.5 batch | Kaggle |
+|---|---|---|---|---|---|
+| Daily, included sources | 5 to 10 | 20,000 to 45,000 | under $0.01 | about $0.05 | minutes |
+| Backfill of the measured included sources (Global Voices, 360info, The Public Record, Balkan Diskurs) | about 93,000 after the third-party drop | about 400 million | about $26 | about $510 | to be measured; tens of GPU hours |
+
+If the pending sources with explicit bulk permission are accepted (KFF Health News at 2.3 a day,
+the States Newsroom outlets), the daily volume grows several times over; it stays small next to
+the backfill.
 
 ## 3. Release cadence
 | Where | Cadence | What |
