@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Iterator
@@ -67,6 +68,38 @@ class RawStore:
         self.files.append(name)
 
 
+class ReplayStore(RawStore):
+    """Stands in for :class:`RawStore` when a sample is rebuilt from saved raw answers: it
+    writes nothing and keeps the names of the files it replays."""
+
+    def __post_init__(self) -> None:
+        self.count = 0
+
+    def save(self, resp: Response, label: str) -> None:
+        self.count += 1
+        self.files.append(f"{self.count:03d}-{label}.json")
+
+
+class ReplayTransport:
+    """Answers a fetcher's requests from saved raw files, in the order they were saved.
+    robots.txt answers 404 (the live run already honored it). No request leaves the machine."""
+
+    def __init__(self, files: list[Path]) -> None:
+        self.files = list(files)
+        self.served = 0
+
+    def __call__(self, url: str, headers: object, timeout: float, max_bytes: int) -> object:
+        from commonswire.http import RawResponse
+
+        if url.endswith("/robots.txt"):
+            return RawResponse(url=url, status=404, headers={}, body=b"")
+        if self.served >= len(self.files):
+            raise RuntimeError(f"no saved answer left to replay for {url}")
+        body = self.files[self.served].read_bytes()
+        self.served += 1
+        return RawResponse(url=url, status=200, headers={}, body=body)
+
+
 @dataclass
 class SampleResult:
     source_id: str
@@ -85,6 +118,17 @@ class Fetcher(ABC):
     source_id: str = ""
     #: Classes and ids of boilerplate blocks inside the body (share boxes, newsletter forms).
     drop_classes: tuple[str, ...] = ()
+    #: The source's own sign-off lines (for example "Originally published under Creative
+    #: Commons by ..."): removed from the text as boilerplate, and never taken as a sign of
+    #: third-party material.
+    own_notes: tuple[str, ...] = ()
+
+    def strip_own_notes(self, text: str) -> str:
+        """The text without the source's own sign-off lines, and without paragraphs they emptied."""
+        for pattern in self.own_notes:
+            text = re.sub(pattern, "", text, flags=re.I)
+        paragraphs = [re.sub(r"[ \t]{2,}", " ", p).strip() for p in text.split("\n\n")]
+        return "\n\n".join(p for p in paragraphs if p)
 
     def __init__(self, client: PoliteClient, source: Source, raw: RawStore) -> None:
         if source.source_id != self.source_id:
@@ -124,6 +168,8 @@ class Fetcher(ABC):
             if item.body_text is not None
             else article_text(item.body_html, self.drop_classes)
         )
+        if self.own_notes:
+            text = self.strip_own_notes(text)
         lic = self.license_for(item)
         credit = render_credit(
             self.source.credit_line,
@@ -187,11 +233,12 @@ def _short(exc: Exception) -> str:
 
 
 def write_sample(result: SampleResult, path: Path) -> str:
-    """Write the kept articles as JSON Lines (once); return the file's SHA-256."""
+    """Write the kept articles as JSON Lines; return the file's SHA-256."""
     path.parent.mkdir(parents=True, exist_ok=True)
     data = "".join(a.model_dump_json() + "\n" for a in result.kept).encode("utf-8")
-    with path.open("xb") as fh:
-        fh.write(data)
+    # Built rows are working data (data/interim), rebuilt from the raw answers when the code
+    # changes; the raw answers themselves are never overwritten.
+    path.write_bytes(data)
     return hashlib.sha256(data).hexdigest()
 
 

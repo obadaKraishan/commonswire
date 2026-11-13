@@ -36,6 +36,19 @@ def _gmt(value: str | None) -> datetime | None:
     return dt.replace(tzinfo=timezone.utc)
 
 
+def byline_from_yoast(meta: object) -> tuple[str, ...]:
+    """The byline a Yoast SEO block gives (``author``, or ``twitter_misc["Written by"]``),
+    for sites whose WordPress user endpoint is closed. Names are split on commas and "and"."""
+    if not isinstance(meta, dict):
+        return ()
+    misc = meta.get("twitter_misc") if isinstance(meta.get("twitter_misc"), dict) else {}
+    name = meta.get("author") or misc.get("Written by") or ""
+    if not isinstance(name, str):
+        return ()
+    parts = re.split(r",\s*|\s+and\s+|\s*&\s*", strip_tags(name))
+    return tuple(p.strip() for p in parts if p.strip())
+
+
 def _header(headers: object, name: str) -> str:
     for key, value in getattr(headers, "items", lambda: [])():
         if key.lower() == name.lower():
@@ -104,6 +117,8 @@ class WordPressFetcher(Fetcher):
             for a in embedded.get("author", [])
             if isinstance(a, dict) and a.get("name")
         )
+        if not authors:
+            authors = byline_from_yoast(post.get("yoast_head_json"))
         terms = [t for group in embedded.get("wp:term", []) for t in group if isinstance(t, dict)]
         categories = [
             strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "category"
@@ -112,12 +127,16 @@ class WordPressFetcher(Fetcher):
         published = _gmt(post.get("date_gmt"))
         if published is None:
             raise ValueError("a post has no date_gmt")
+        updated = _gmt(post.get("modified_gmt"))
+        if updated is not None and updated < published:
+            # A scheduled post was last edited before it went live; it has no later update.
+            updated = None
         return Item(
             url=post.get("link", ""),
             title=strip_tags((post.get("title") or {}).get("rendered", "")),
             body_html=(post.get("content") or {}).get("rendered", ""),
             published_at=published,
-            updated_at=_gmt(post.get("modified_gmt")),
+            updated_at=updated,
             language=self.language,
             authors=authors,
             section=categories[0] if categories else "",
@@ -132,6 +151,8 @@ class WordPressFetcher(Fetcher):
         # Look for a republication note at the start or the end of the body only, where
         # sources put them; the middle of a story may quote other outlets.
         text = strip_tags(item.body_html)
+        if self.own_notes:
+            text = self.strip_own_notes(text)
         if REPUBLISHED.search(text[:400]) or REPUBLISHED.search(text[-600:]):
             return "republication_note"
         if any(WIRE.search(a) for a in item.authors) or WIRE.search(text[:80]):
@@ -164,6 +185,10 @@ class ThreeSixtyInfoFetcher(WordPressFetcher):
     source_id = "360info"
     api_base = "https://360info.org"
     language = "en"
+    own_notes = (
+        r"Originally published under Creative Commons(?: (?:CC )?BY(?: 4\.0)?| by)?"
+        r"(?: by)? 360info(?:\u2122|TM)?\.?",
+    )
     drop_classes = (
         "sharedaddy",
         "jp-relatedposts",

@@ -148,14 +148,44 @@ def cmd_sample(args: argparse.Namespace) -> int:
     if source is None:
         print(f"{args.source_id} is not in the registry", file=sys.stderr)
         return 2
-    client = make_client(root, byte_budget=args.max_mb * 1024 * 1024)
-    raw = RawStore(root / "data" / "raw" / "sample" / args.source_id / args.date)
+    raw_dir = root / "data" / "raw" / "sample" / args.source_id / args.date
+    summary_path = (
+        root / "data" / "evidence" / "sample" / f"{args.source_id}-{args.date}.summary.json"
+    )
+    earlier_totals: dict[str, object] = {}
+    if args.replay:
+        import json as _json
+
+        from commonswire.fetchers.base import ReplayStore, ReplayTransport
+        from commonswire.http import Pacer, PoliteClient, UsageLog
+
+        files = sorted(raw_dir.glob("*.json"))
+        if not files:
+            print(f"no saved raw answers in {raw_dir}", file=sys.stderr)
+            return 2
+        interim = root / "data" / "interim"
+        client = PoliteClient(
+            usage_log=UsageLog(interim / "replay_log.csv"),
+            pacer=Pacer(interim / "replay.lock", 0.0),
+            transport=ReplayTransport(files),
+        )
+        raw = ReplayStore(raw_dir)
+        if summary_path.exists():
+            earlier_totals = _json.loads(summary_path.read_text()).get("api_totals", {})
+    else:
+        client = make_client(root, byte_budget=args.max_mb * 1024 * 1024)
+        raw = RawStore(raw_dir)
     fetcher = FETCHERS[args.source_id](client, source, raw)
     result = run_sample(fetcher, limit=args.max)
     if hasattr(fetcher, "archive_start"):
         fetcher.archive_start()
         result.api_totals = dict(fetcher.api_totals)
         result.raw_files = list(raw.files)
+    for key, value in earlier_totals.items():
+        if result.api_totals.get(key) is None:
+            result.api_totals[key] = value
+    if args.replay:
+        result.raw_bytes = sum(f.stat().st_size for f in sorted(raw_dir.glob("*.json")))
     out = root / "data" / "interim" / "sample" / f"{args.source_id}-{args.date}.jsonl"
     digest = write_sample(result, out)
     info = summary(result)
@@ -169,7 +199,8 @@ def cmd_sample(args: argparse.Namespace) -> int:
     check = validate_file(out, registry)
     print(
         f"{args.source_id}: saw {result.seen}, kept {len(result.kept)}, dropped "
-        f"{sum(result.dropped.values())} {dict(result.dropped)}; {client.bytes_used:,} bytes; "
+        f"{sum(result.dropped.values())} {dict(result.dropped)}; "
+        f"{'no requests (replayed)' if args.replay else f'{client.bytes_used:,} bytes'}; "
         f"validate: {len(check.errors)} errors, {len(check.warnings)} warnings"
     )
     return 0 if check.ok else 1
@@ -292,6 +323,11 @@ def build_parser() -> argparse.ArgumentParser:
     sample.add_argument("--date", default=_today())
     sample.add_argument("--max-mb", type=int, default=300, help="stop after this many megabytes")
     sample.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    sample.add_argument(
+        "--replay",
+        action="store_true",
+        help="rebuild the rows from the saved raw answers (no requests)",
+    )
     sample.set_defaults(func=cmd_sample)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")

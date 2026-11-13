@@ -329,3 +329,45 @@ def test_wikinews_license_schedule_and_validation(tmp_path):
     (tmp_path / "bad.jsonl").write_text(wrong.model_dump_json() + "\n")
     errors = validate_file(tmp_path / "bad.jsonl", {"wikinews_en": wn_source()}).errors
     assert any("the source's license then was CC-BY-4.0" in e for e in errors)
+
+
+def test_360info_own_sign_off_is_boilerplate_not_third_party(tmp_path):
+    from commonswire.fetchers.wordpress import ThreeSixtyInfoFetcher
+
+    src = parse_row(
+        row(
+            source_id="360info",
+            name="360info",
+            homepage="https://360info.org/",
+            credit_line="{title}, by {authors}, {source} ({url}), {license}",
+        )
+    )
+    own = "<p>Invented analysis paragraph.</p><p>An invented author is a researcher. "
+    own += "Originally published under Creative Commons by 360info\u2122.</p>"
+    copub = "<p>Invented text.</p><p>This article was first published in Invented Daily "
+    copub += "and 360info.org.</p>"
+    client, _ = make_test_client(tmp_path, FakeTransport())
+    fetcher = ThreeSixtyInfoFetcher(client, src, RawStore(tmp_path / "raw"))
+    mine = fetcher.item_from_post(wp_post(1, body=own))
+    other = fetcher.item_from_post(wp_post(2, body=copub))
+    assert fetcher.third_party_reason(mine) is None
+    assert fetcher.third_party_reason(other) == "republication_note"
+    art = fetcher.build(mine, datetime(2026, 11, 13, tzinfo=timezone.utc))
+    assert art.text == "Invented analysis paragraph.\n\nAn invented author is a researcher."
+
+
+def test_byline_from_yoast_when_the_user_endpoint_is_closed(tmp_path):
+    from commonswire.fetchers.wordpress import byline_from_yoast
+
+    assert byline_from_yoast({"author": "A. Writer and B. Writer"}) == ("A. Writer", "B. Writer")
+    assert byline_from_yoast({"twitter_misc": {"Written by": "C. Writer, D. Writer"}}) == (
+        "C. Writer",
+        "D. Writer",
+    )
+    assert byline_from_yoast(None) == () and byline_from_yoast({"author": 5}) == ()
+    post = wp_post(1, authors=())
+    post["_embedded"]["author"] = [{"code": "rest_cannot_access"}]
+    post["yoast_head_json"] = {"author": "E. Writer"}
+    client, _ = make_test_client(tmp_path, FakeTransport())
+    fetcher = GlobalVoicesFetcher(client, gv_source(), RawStore(tmp_path / "raw"))
+    assert fetcher.item_from_post(post).authors == ("E. Writer",)
