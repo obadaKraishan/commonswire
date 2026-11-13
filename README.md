@@ -41,6 +41,18 @@ uv run commonswire sources check        # validate the source registry
 uv run commonswire validate FILE.jsonl  # validate a file of articles
 ```
 
+Collecting and building the corpus (needs the `corpus` extra: `uv sync --extra corpus`):
+
+```bash
+uv run commonswire backfill SOURCE      # a source's whole archive, resumable
+uv run commonswire build SOURCE         # rows from the saved archive, with no requests
+uv run commonswire wikinews-dump --download
+uv run commonswire dedup                # exact duplicates dropped, near-duplicates flagged
+uv run commonswire daily                # new, changed and removed articles since the last run
+uv run commonswire corpus-report        # counts only
+uv run commonswire store                # Parquet by source and year
+```
+
 ## Takedowns and corrections
 Publishers, writers and people named in an article can ask for it to be removed or corrected
 with the takedown form in this repository's issues.
