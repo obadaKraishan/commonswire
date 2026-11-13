@@ -200,6 +200,37 @@ def cmd_sample_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def blocked_pages(root: Path) -> list[dict[str, str]]:
+    """Pages that refused scripted requests, with a plain answer for each."""
+    from commonswire.evidence import read_rows
+
+    robots = {r["source_id"]: r for r in read_rows(root / "data" / "evidence" / "robots.csv")}
+    out = []
+    for row in read_rows(root / "data" / "evidence" / "pages.csv"):
+        if row["outcome"] not in ("blocked", "disallowed"):
+            continue
+        if row["outcome"] == "blocked":
+            answer = f"HTTP {row['status']}" if row["status"] else "a bot check page"
+        elif robots.get(row["source_id"], {}).get("state") == "blocked":
+            answer = f"robots.txt answered HTTP {robots[row['source_id']]['robots_status']}"
+        else:
+            answer = "robots.txt disallows the CommonsWire user agent"
+        out.append({**row, "answer": answer})
+    return out
+
+
+def cmd_sources_render(args: argparse.Namespace) -> int:
+    from commonswire.render import render_sources_md
+    from commonswire.sources import load_sources
+
+    root = Path(args.root)
+    sources = load_sources(Path(args.sources))
+    text = render_sources_md(sources.values(), blocked_pages(root))
+    Path(args.out).write_text(text, encoding="utf-8")
+    print(f"wrote {args.out} ({len(sources)} sources)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -234,6 +265,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-quotes", action="store_true", help="skip the check against saved pages"
     )
     check.set_defaults(func=cmd_sources_check)
+    render = src_sub.add_parser("render", help="write docs/sources.md from the registry")
+    render.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    render.add_argument("--out", default=str(repo_root() / "docs" / "sources.md"))
+    render.set_defaults(func=cmd_sources_render)
 
     val = sub.add_parser("validate", help="check a JSON Lines file of articles")
     val.add_argument("file")
