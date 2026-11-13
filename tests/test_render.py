@@ -102,6 +102,14 @@ def test_blocked_pages_and_the_render_command(tmp_path, capsys):
             {**base, "source_id": "c", "url": "https://c.org/", "outcome": "disallowed"},
             {**base, "source_id": "d", "url": "https://d.org/", "outcome": "ok"},
             {**base, "source_id": "e", "url": "https://e.org/", "outcome": "blocked"},
+            {
+                **base,
+                "source_id": "f",
+                "url": "https://f.org/",
+                "outcome": "blocked",
+                "status": "200",
+            },
+            {**base, "source_id": "g", "url": "https://g.org/", "outcome": "disallowed"},
         ],
     )
     rb = {f: "" for f in ROBOTS_FIELDS}
@@ -111,6 +119,7 @@ def test_blocked_pages_and_the_render_command(tmp_path, capsys):
         [
             {**rb, "source_id": "b", "state": "blocked", "robots_status": "403"},
             {**rb, "source_id": "c", "state": "present"},
+            {**rb, "source_id": "g", "state": "unreachable"},
         ],
     )
     answers = [r["answer"] for r in blocked_pages(tmp_path)]
@@ -119,6 +128,8 @@ def test_blocked_pages_and_the_render_command(tmp_path, capsys):
         "robots.txt answered HTTP 403",
         "robots.txt disallows the CommonsWire user agent",
         "a bot check page",
+        "a bot check page",
+        "robots.txt could not be reached",
     ]
     reg = tmp_path / "sources.csv"
     _write(reg, SOURCE_FIELDS, [row()])
