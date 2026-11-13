@@ -527,6 +527,38 @@ def cmd_dedup(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_daily(args: argparse.Namespace) -> int:
+    from datetime import datetime, timezone
+
+    from commonswire.daily import daily_wordpress, load_state, save_state
+    from commonswire.fetchers import WORDPRESS
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    now = datetime.now(timezone.utc)
+    state_path = root / "data" / "interim" / "daily" / "state.json"
+    state = load_state(state_path)
+    wanted = args.only.split(",") if args.only else None
+    print("wikinews_en: skipped (closed since 2026-05-04; its archive comes from the dump)")
+    for source_id in WORDPRESS:
+        if wanted and source_id not in wanted:
+            continue
+        rows_path = root / "data" / "interim" / "rows" / f"{source_id}.jsonl"
+        if not rows_path.exists():
+            print(f"{source_id}: skipped (no rows yet; run its backfill and build first)")
+            continue
+        fetcher, client = _wordpress_fetcher(root, source_id, args.sources)
+        client.byte_budget = args.max_mb * 1024 * 1024
+        raw = root / "data" / "raw" / "daily" / source_id / now.date().isoformat()
+        src_state = state.setdefault(source_id, {})
+        result = daily_wordpress(fetcher, client, rows_path, raw, src_state, now)
+        print(result.line(), flush=True)
+    save_state(state_path, state)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -618,6 +650,12 @@ def build_parser() -> argparse.ArgumentParser:
     dd = sub.add_parser("dedup", help="drop exact duplicates and flag near-duplicates")
     dd.add_argument("--threshold", type=float, default=0.8, help="Jaccard for a flag")
     dd.set_defaults(func=cmd_dedup)
+
+    dl = sub.add_parser("daily", help="new, changed and removed articles since the last run")
+    dl.add_argument("--only", help="comma-separated source ids")
+    dl.add_argument("--max-mb", type=int, default=50, help="stop a source after this many MB")
+    dl.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    dl.set_defaults(func=cmd_daily)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
