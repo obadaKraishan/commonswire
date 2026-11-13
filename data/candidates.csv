@@ -1,0 +1,59 @@
+source_id,name,homepage,kind,seed_urls,notes
+globalvoices,Global Voices,https://globalvoices.org/,news,https://globalvoices.org/about/global-voices-attribution-policy/,checked by the planner on 2026-11-13; multilingual (Lingua sites)
+wikinews_en,Wikinews (English),https://en.wikinews.org/,news,https://en.wikinews.org/wiki/Wikinews:Copyright https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use,checked by the planner on 2026-11-13; other language editions share the license
+voa,Voice of America,https://www.voanews.com/,news,,checked by the planner on 2026-11-13; operating status since 2025 to be checked
+statesnewsroom,States Newsroom,https://statesnewsroom.com/,news,,checked by the planner on 2026-11-13; network of about 40 state outlets
+georgiarecorder,Georgia Recorder (States Newsroom),https://georgiarecorder.com/,news,,States Newsroom outlet: checked for the license it names
+ohiocapitaljournal,Ohio Capital Journal (States Newsroom),https://ohiocapitaljournal.com/,news,,States Newsroom outlet: checked for the license it names
+floridaphoenix,Florida Phoenix (States Newsroom),https://floridaphoenix.com/,news,,States Newsroom outlet: checked for the license it names
+azmirror,Arizona Mirror (States Newsroom),https://azmirror.com/,news,,States Newsroom outlet: checked for the license it names
+marylandmatters,Maryland Matters,https://marylandmatters.org/,news,,
+stateline,Stateline,https://stateline.org/,news,,
+propublica,ProPublica,https://www.propublica.org/,news,https://www.propublica.org/steal-our-stories,checked by the planner on 2026-11-13 (exclude expected)
+theconversation,The Conversation (US),https://theconversation.com/us,news,https://theconversation.com/us/republishing-guidelines,checked by the planner on 2026-11-13 (exclude expected)
+agenciabrasil,Agência Brasil,https://agenciabrasil.ebc.com.br/,news,,Portuguese; public news agency (EBC)
+360info,360info,https://360info.org/,news,,
+scidevnet,SciDev.Net,https://www.scidev.net/global/,news,,
+eff,EFF Deeplinks,https://www.eff.org/deeplinks,advocacy,https://www.eff.org/copyright,advocacy organization's blog
+meduza_en,Meduza (English),https://meduza.io/en,news,,
+opendemocracy,openDemocracy,https://www.opendemocracy.net/en/,news,,
+mongabay,Mongabay,https://news.mongabay.com/,news,,
+nasa,NASA News,https://www.nasa.gov/news/,official,https://www.nasa.gov/nasa-brand-center/images-and-media/,US government official communication
+nih,NIH News Releases,https://www.nih.gov/news-events/news-releases,official,https://www.nih.gov/web-policies-notices,US government official communication
+dodnews,DOD News,https://www.defense.gov/News/,official,,US government official communication
+stategov,US Department of State press releases,https://www.state.gov/,official,https://www.state.gov/copyright-information/,US government official communication
+kffhealthnews,KFF Health News,https://kffhealthnews.org/,news,,
+the19th,The 19th,https://19thnews.org/,news,,
+mississippitoday,Mississippi Today,https://mississippitoday.org/,news,,
+insideclimatenews,Inside Climate News,https://insideclimatenews.org/,news,,
+grist,Grist,https://grist.org/,news,,
+truthout,Truthout,https://truthout.org/,news,,
+commondreams,Common Dreams,https://www.commondreams.org/,news,,
+democracynow,Democracy Now!,https://www.democracynow.org/,news,,
+votebeat,Votebeat,https://www.votebeat.org/,news,,
+chalkbeat,Chalkbeat,https://www.chalkbeat.org/,news,,
+healthbeat,Healthbeat,https://www.healthbeat.org/,news,,
+sdnewswatch,South Dakota News Watch,https://www.sdnewswatch.org/,news,,
+calmatters,CalMatters,https://calmatters.org/,news,,
+texastribune,The Texas Tribune,https://www.texastribune.org/,news,https://www.texastribune.org/republishing-guidelines/,
+marshallproject,The Marshall Project,https://www.themarshallproject.org/,news,,
+undark,Undark,https://undark.org/,news,,
+inn,Institute for Nonprofit News,https://inn.org/,portal,,republication portal for member newsrooms
+africasacountry,Africa Is a Country,https://africasacountry.com/,news,,in the Common Pile news list
+altnews,Alt News,https://www.altnews.in/,fact-check,,in the Common Pile news list
+balkandiskurs,Balkan Diskurs,https://balkandiskurs.com/en/,news,,in the Common Pile news list
+factly,Factly,https://factly.in/,fact-check,,in the Common Pile news list
+freedompress,Freedom of the Press Foundation,https://freedom.press/,advocacy,,in the Common Pile news list
+fides,Agenzia Fides,https://www.fides.org/en,news,,in the Common Pile news list
+mekongeye,Mekong Eye,https://www.mekongeye.com/,news,,in the Common Pile news list
+milwaukeenns,Milwaukee Neighborhood News Service,https://milwaukeenns.org/,news,,in the Common Pile news list
+minorityafrica,Minority Africa,https://minorityafrica.org/,news,,in the Common Pile news list
+newcanadianmedia,New Canadian Media,https://www.newcanadianmedia.ca/,news,,in the Common Pile news list
+sojoexchange,The Solutions Journalism Exchange,https://sojoexchange.solutionsjournalism.org/,portal,,in the Common Pile news list
+tasnim,Tasnim News Agency (English),https://www.tasnimnews.com/en,news,,in the Common Pile news list
+zimfact,ZimFact,https://zimfact.org/,fact-check,,in the Common Pile news list
+oxpeckers,Oxpeckers,https://oxpeckers.org/,news,,in the Common Pile news list
+propastop,Propastop,https://www.propastop.org/en/,fact-check,,in the Common Pile news list
+thepublicrecord,The Public Record,https://thepublicrecord.ca/,news,,in the Common Pile news list
+educeleb,EduCeleb,https://educeleb.com/,news,,in the Common Pile news files
+libertytvradio,Liberty TV Radio,https://libertytvradio.com/,news,,in the Common Pile news files
