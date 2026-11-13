@@ -1,11 +1,11 @@
 {
   "authors_per_page": {
-    "1": 822,
+    "1": 750,
     "2": 29,
     "3": 8,
     "4": 2
   },
-  "bytes_fetched": 98582736,
+  "bytes_fetched": 0,
   "http_status": {
     "200": 880
   },
@@ -14,17 +14,17 @@
     "differs": 484
   },
   "no_person": {
-    "not_a_person": 19
+    "no_byline": 1,
+    "not_a_person": 90
   },
-  "pages_already_saved": 2,
-  "pages_fetched": 878,
+  "pages_already_saved": 880,
+  "pages_fetched": 0,
   "routes": {
-    "jsonld": 72,
     "site": 789
   },
   "rows": 880,
   "rows_without_byline": 880,
   "source_id": "balkandiskurs",
   "stopped": "",
-  "with_person": 861
+  "with_person": 789
 }

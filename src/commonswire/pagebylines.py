@@ -13,9 +13,13 @@ or metadata only, in this order:
 3. **meta tags:** ``<meta name="author">`` and Yoast's "Written by" pair
    (``twitter:label1`` and ``twitter:data1``).
 
-The first of these that names a person wins. A name that is the source's own name or an
-account such as "admin" or "editorial team" names no person: the row stays held, and the
-reason is counted. Names are never inferred from the body text.
+The first of these that names a person wins, with two limits. When the page has the source's
+byline block, only that block counts: a page whose visible byline credits the source itself is
+not given a name from its metadata. And a source whose metadata names the account that posted
+the article rather than its writer (``metadata_fallback=False``) is read from its byline block
+only. A name that is the source's own name or an account such as "admin" or "editorial team"
+names no person: the row stays held, and the reason is counted. Names are never inferred from
+the body text.
 
 The names found are kept in ``data/interim/bylines/<source>.pages.json`` (canonical URL ->
 names); only counts go into the tracked evidence. ``commonswire build`` and ``commonswire
@@ -45,12 +49,14 @@ class BylineMarkup:
 
     ``container`` is the set of class names the byline element carries, ``within`` a class name
     one of its ancestors carries (the article's meta block), and ``name_tag`` the tag of each
-    name inside it. Only the first matching element on the page is read.
+    name inside it. Only the first matching element on the page is read. With
+    ``metadata_fallback`` False, a page without the block gets no name from JSON-LD or meta tags.
     """
 
     container: frozenset[str]
     within: str = ""
     name_tag: str = "a"
+    metadata_fallback: bool = True
 
 
 #: The byline block of each source whose article pages are read for bylines.
@@ -60,8 +66,10 @@ SITE_MARKUP: dict[str, BylineMarkup] = {
     "thepublicrecord": BylineMarkup(frozenset({"byline"}), within="entry-meta", name_tag="a"),
     # <div class="single-meta ..."><p class="byline author vcard ..."><a href="/en/profile/...">
     # NAME</a> | <a ...>NAME</a></p>; related posts use the same class in "card-footer".
+    # Its JSON-LD author is the account that posted the article: on pages with a byline it
+    # differs from that byline almost every time, so it is never used.
     "balkandiskurs": BylineMarkup(
-        frozenset({"byline", "vcard"}), within="single-meta", name_tag="a"
+        frozenset({"byline", "vcard"}), within="single-meta", name_tag="a", metadata_fallback=False
     ),
     # <div class="post-meta-authors"><div class="post-authors"><span>Authors</span>
     # <strong>NAME</strong><br>AFFILIATION ...; the editors are in "post-meta-editors".
@@ -253,6 +261,9 @@ def byline_from_page(
         ("meta", list(split_names(meta_author))),
         ("twitter", list(split_names(twitter))),
     ]
+    if markup is not None and (parser.site_block_found or not markup.metadata_fallback):
+        routes = routes[:1]  # the visible byline block is the page's own word
+        others = []
     jsonld_people = tuple(dict.fromkeys(n for n in people if is_person(n, source_name)))
     seen_any = bool(others)
     for route, names in routes:

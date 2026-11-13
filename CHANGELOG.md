@@ -11,9 +11,12 @@ All notable changes to this project are documented here. The format follows
   policy asks for the author's name and whose API gives none (The Public Record, Balkan Diskurs,
   360info): the page of each row with no byline is fetched once and saved, and the name is read
   from the source's own byline block (the article's meta block only, never related posts), then
-  from JSON-LD `Person` entries, then from meta tags. A name that is the source's own or an
-  account such as "admin" names no person, and the row stays held. `build` and `daily` read the
-  names in; `daily` fetches the page of a new post that has no byline.
+  from JSON-LD `Person` entries, then from meta tags. When the page has the byline block, only
+  that block counts, so a page that credits the source itself is not given a name from its
+  metadata; Balkan Diskurs is read from its byline block only, since its JSON-LD names the
+  account that posted the article. A name that is the source's own or an account such as
+  "admin" names no person, and the row stays held. `build` and `daily` read the names in;
+  `daily` fetches the page of a new post that has no byline.
 - Backfills (`commonswire backfill`, `build`): whole archives through the WordPress REST API,
   oldest first, resumable, raw answers written once, rows built with no requests; fetchers for
   The Public Record, Balkan Diskurs (English edition), Factly and Alt News.

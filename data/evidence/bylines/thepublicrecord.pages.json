@@ -2,7 +2,7 @@
   "authors_per_page": {
     "1": 2749
   },
-  "bytes_fetched": 320474653,
+  "bytes_fetched": 0,
   "http_status": {
     "200": 2749
   },
@@ -10,8 +10,8 @@
     "agrees": 2749
   },
   "no_person": {},
-  "pages_already_saved": 2,
-  "pages_fetched": 2747,
+  "pages_already_saved": 2749,
+  "pages_fetched": 0,
   "routes": {
     "site": 2749
   },

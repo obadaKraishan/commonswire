@@ -5,7 +5,7 @@
     "3": 36,
     "4": 9
   },
-  "bytes_fetched": 170978916,
+  "bytes_fetched": 0,
   "http_status": {
     "200": 563
   },
@@ -13,8 +13,8 @@
   "no_person": {
     "no_byline": 9
   },
-  "pages_already_saved": 2,
-  "pages_fetched": 561,
+  "pages_already_saved": 563,
+  "pages_fetched": 0,
   "routes": {
     "site": 554
   },

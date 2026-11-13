@@ -92,6 +92,32 @@ def test_fallbacks_jsonld_meta_and_written_by():
     assert (r.names, r.route) == (("Kim Invented",), "meta")
 
 
+def test_the_visible_byline_block_is_final_and_some_sources_have_no_fallback():
+    poster = (
+        '<script type="application/ld+json">{"author": {"@type": "Person", '
+        '"name": "Poster Account"}}</script>'
+    )
+    own = (
+        '<div class="single-meta"><p class="byline author vcard"><a href="/en/profile/bd/">'
+        "Balkan Diskurs</a></p></div>"
+    )
+    # The page credits the source itself: its metadata does not overrule that.
+    r = byline_from_page(poster + own, SITE_MARKUP["balkandiskurs"], "Balkan Diskurs")
+    assert (r.names, r.route, r.why_none) == ((), "", "not_a_person")
+    # No byline block, and this source's JSON-LD names the poster: no name.
+    r = byline_from_page(poster, SITE_MARKUP["balkandiskurs"], "Balkan Diskurs")
+    assert (r.names, r.why_none) == ((), "no_byline")
+    # The same rule for a source that keeps its fallback: a block crediting the source wins.
+    tpr = (
+        '<div class="entry-meta"><span class="byline"><a href="/author/t/">The Public Record</a>'
+        "</span></div>"
+    )
+    r = byline_from_page(poster + tpr, SITE_MARKUP["thepublicrecord"], "The Public Record")
+    assert (r.names, r.why_none) == ((), "not_a_person")
+    r = byline_from_page(poster, SITE_MARKUP["thepublicrecord"], "The Public Record")
+    assert (r.names, r.route) == (("Poster Account",), "jsonld")
+
+
 @pytest.mark.parametrize(
     "page, why",
     [
