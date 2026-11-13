@@ -53,6 +53,11 @@ class RawStore:
     count: int = 0
     files: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        # Continue the numbering of an earlier run, so no file is ever overwritten.
+        if self.folder.exists():
+            self.count = max(self.count, len(list(self.folder.glob("*.json"))))
+
     def save(self, resp: Response, label: str) -> None:
         self.count += 1
         self.folder.mkdir(parents=True, exist_ok=True)

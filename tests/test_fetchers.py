@@ -115,9 +115,11 @@ def test_global_voices_sample_keeps_own_stories_and_drops_partners(tmp_path):
     assert art.credit_line.endswith("by A. Writer for Global Voices (" + art.url + "), CC BY 3.0")
     assert result.api_totals == {"total_posts": 9000}
     assert result.raw_files == ["001-posts-p1.json"]
-    # Raw answers are saved once and never overwritten.
-    with pytest.raises(FileExistsError):
-        RawStore(tmp_path / "raw").save(type("R", (), {"body": b"x"})(), "posts-p1")
+    # Raw answers are saved once and never overwritten: a later run continues the numbering.
+    again = RawStore(tmp_path / "raw")
+    again.save(type("R", (), {"body": b"x"})(), "posts-p1")
+    assert again.files == ["003-posts-p1.json"]  # 002 is the oldest-post answer
+    assert (tmp_path / "raw" / "001-posts-p1.json").read_bytes() != b"x"
     s = summary(result)
     assert s["kept"] == 1 and s["raw_bytes"] > 0 and "text" not in dumps(s)
 

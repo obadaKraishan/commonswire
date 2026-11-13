@@ -109,6 +109,97 @@ def cmd_sources_check(args: argparse.Namespace) -> int:
     return 0 if not problems else 1
 
 
+def cmd_probe(args: argparse.Namespace) -> int:
+    from commonswire.evidence import _append
+    from commonswire.http import make_client
+    from commonswire.probe import VOLUME_FIELDS, probe_sitemap, probe_wordpress
+
+    root = Path(args.root)
+    client = make_client(root, byte_budget=20 * 1024 * 1024)
+    if args.wordpress:
+        vol = probe_wordpress(client, args.source_id, args.wordpress)
+    else:
+        vol = probe_sitemap(client, args.source_id, args.sitemap)
+    _append(root / "data" / "evidence" / "volume.csv", VOLUME_FIELDS, [vol.row(args.date)])
+    print(
+        f"{args.source_id}: {vol.per_day if vol.per_day is not None else '?'} a day over "
+        f"{vol.dates_seen} dates; total {vol.total if vol.total is not None else '?'}; "
+        f"archive from {vol.archive_from or '?'}; {vol.requests} requests. {vol.note}"
+    )
+    return 0
+
+
+def cmd_sample(args: argparse.Namespace) -> int:
+    from commonswire.fetchers import FETCHERS
+    from commonswire.fetchers.base import RawStore, dumps, run_sample, summary, write_sample
+    from commonswire.http import make_client
+    from commonswire.sources import load_sources
+    from commonswire.validate import validate_file
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    registry = load_sources(Path(args.sources))
+    if args.source_id not in FETCHERS:
+        print(f"no fetcher for {args.source_id}; there are: {', '.join(FETCHERS)}", file=sys.stderr)
+        return 2
+    source = registry.get(args.source_id)
+    if source is None:
+        print(f"{args.source_id} is not in the registry", file=sys.stderr)
+        return 2
+    client = make_client(root, byte_budget=args.max_mb * 1024 * 1024)
+    raw = RawStore(root / "data" / "raw" / "sample" / args.source_id / args.date)
+    fetcher = FETCHERS[args.source_id](client, source, raw)
+    result = run_sample(fetcher, limit=args.max)
+    if hasattr(fetcher, "archive_start"):
+        fetcher.archive_start()
+        result.api_totals = dict(fetcher.api_totals)
+        result.raw_files = list(raw.files)
+    out = root / "data" / "interim" / "sample" / f"{args.source_id}-{args.date}.jsonl"
+    digest = write_sample(result, out)
+    info = summary(result)
+    info["jsonl_sha256"] = digest
+    info["checked_on"] = args.date
+    summary_path = (
+        root / "data" / "evidence" / "sample" / f"{args.source_id}-{args.date}.summary.json"
+    )
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(dumps(info), encoding="utf-8")
+    check = validate_file(out, registry)
+    print(
+        f"{args.source_id}: saw {result.seen}, kept {len(result.kept)}, dropped "
+        f"{sum(result.dropped.values())} {dict(result.dropped)}; {client.bytes_used:,} bytes; "
+        f"validate: {len(check.errors)} errors, {len(check.warnings)} warnings"
+    )
+    return 0 if check.ok else 1
+
+
+def cmd_sample_report(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.evidence import read_rows
+    from commonswire.report import load_articles, sample_report, write_report
+
+    root = Path(args.root)
+    arts = load_articles(
+        root / "data" / "interim" / "sample" / f"{args.source_id}-{args.date}.jsonl"
+    )
+    folder = root / "data" / "evidence" / "sample"
+    info = json.loads((folder / f"{args.source_id}-{args.date}.summary.json").read_text())
+    totals = info.get("api_totals", {})
+    total = totals.get("total_posts") or totals.get("total_articles")
+    archive = totals.get("archive_from")
+    for row in read_rows(root / "data" / "evidence" / "volume.csv"):
+        if row["source_id"] == args.source_id:
+            total = total or (int(row["total_articles"]) if row["total_articles"] else None)
+            archive = archive or row["archive_from"] or None
+    report = sample_report(arts, info, total_articles=total, archive_from=archive)
+    write_report(report, folder / f"{args.source_id}-{args.date}.report.json")
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -151,6 +242,27 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-registry", action="store_true", help="check the schema only, not the sources"
     )
     val.set_defaults(func=cmd_validate)
+
+    probe = sub.add_parser("probe", help="count a source's articles a day (dates only, no text)")
+    probe.add_argument("source_id")
+    how = probe.add_mutually_exclusive_group(required=True)
+    how.add_argument("--wordpress", metavar="BASE_URL", help="the site's address, for its API")
+    how.add_argument("--sitemap", metavar="URL", help="a news or post sitemap")
+    probe.add_argument("--date", default=_today())
+    probe.set_defaults(func=cmd_probe)
+
+    sample = sub.add_parser("sample", help="fetch a small live sample from an included source")
+    sample.add_argument("source_id")
+    sample.add_argument("--max", type=int, default=200, help="articles (at most 200)")
+    sample.add_argument("--date", default=_today())
+    sample.add_argument("--max-mb", type=int, default=300, help="stop after this many megabytes")
+    sample.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    sample.set_defaults(func=cmd_sample)
+
+    rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
+    rep.add_argument("source_id")
+    rep.add_argument("--date", default=_today())
+    rep.set_defaults(func=cmd_sample_report)
     return parser
 
 
