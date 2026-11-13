@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Bylines from article pages (`commonswire page-bylines`), for sources whose attribution
+  policy asks for the author's name and whose API gives none (The Public Record, Balkan Diskurs,
+  360info): the page of each row with no byline is fetched once and saved, and the name is read
+  from the source's own byline block (the article's meta block only, never related posts), then
+  from JSON-LD `Person` entries, then from meta tags. A name that is the source's own or an
+  account such as "admin" names no person, and the row stays held. `build` and `daily` read the
+  names in; `daily` fetches the page of a new post that has no byline.
 - Backfills (`commonswire backfill`, `build`): whole archives through the WordPress REST API,
   oldest first, resumable, raw answers written once, rows built with no requests; fetchers for
   The Public Record, Balkan Diskurs (English edition), Factly and Alt News.
@@ -24,6 +31,15 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- The Wikinews markup stripper keeps the words of templates that show them in the sentence
+  (`{{w}}`, `{{wikt}}`, `{{nowrap}}`, translated quotes): before, every template was removed, so
+  the names and terms Wikinews writes as `{{w|...}}` links were missing from about a third of
+  its articles. Templates and links are read innermost first; a template or table that is never
+  closed no longer removes the rest of the article; links and `{{w}}` calls with one bracket or
+  brace missing are still read; every character reference is decoded; map and chart JSON is
+  dropped; and a line break is a break.
+- `daily` prints how many new rows are held, and reads the bylines kept from users endpoints and
+  article pages.
 - Requests are paced per host: one lock and stamp per host, at least 2 seconds or the host's
   crawl-delay, so different hosts can be fetched in parallel.
 - The four rulings on reading the clean-source rule (an invitation is not a condition; a

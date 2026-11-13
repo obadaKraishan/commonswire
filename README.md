@@ -46,6 +46,7 @@ Collecting and building the corpus (needs the `corpus` extra: `uv sync --extra c
 ```bash
 uv run commonswire backfill SOURCE      # a source's whole archive, resumable
 uv run commonswire build SOURCE         # rows from the saved archive, with no requests
+uv run commonswire page-bylines SOURCE  # bylines from article pages, each page fetched once
 uv run commonswire wikinews-dump --download
 uv run commonswire dedup                # exact duplicates dropped, near-duplicates flagged
 uv run commonswire daily                # new, changed and removed articles since the last run
