@@ -2,13 +2,13 @@
   "dump_bytes": 47533780,
   "dump_md5": "2ae6c78abee6c66a9dc7740c8d828293",
   "first": "2004-11-13",
-  "kept": 20672,
+  "kept": 20680,
   "last": "2026-05-03",
   "md5_checked": true,
-  "rows_bytes": 58131871,
+  "rows_bytes": 59179374,
   "run": "2026-11-13",
   "skipped": {
-    "empty_text": 20,
+    "empty_text": 12,
     "invalid": 1,
     "no_date": 581,
     "not_an_article_namespace": 68661,
@@ -17,5 +17,5 @@
   },
   "source_id": "wikinews_en",
   "validate_errors": 0,
-  "validate_warnings": 76
+  "validate_warnings": 70
 }

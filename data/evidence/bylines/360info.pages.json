@@ -1,0 +1,26 @@
+{
+  "authors_per_page": {
+    "1": 443,
+    "2": 66,
+    "3": 36,
+    "4": 9
+  },
+  "bytes_fetched": 170978916,
+  "http_status": {
+    "200": 563
+  },
+  "jsonld_check": {},
+  "no_person": {
+    "no_byline": 9
+  },
+  "pages_already_saved": 2,
+  "pages_fetched": 561,
+  "routes": {
+    "site": 554
+  },
+  "rows": 2410,
+  "rows_without_byline": 563,
+  "source_id": "360info",
+  "stopped": "",
+  "with_person": 554
+}
