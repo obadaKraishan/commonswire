@@ -15,18 +15,23 @@ run per source) is in ``data/interim/daily/state.json``. Wikinews is closed and 
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 from commonswire.backfill import save_once
 from commonswire.fetchers.wordpress import WordPressFetcher
 from commonswire.http import Blocked, Disallowed, FetchError, PoliteClient
 from commonswire.schema import Article, text_hash
+
+if TYPE_CHECKING:
+    from commonswire.pagebylines import PageBylineReader
 
 WINDOW_DAYS = 30
 MAX_PAGES = 20
@@ -39,6 +44,8 @@ class DailyResult:
     changed: int = 0
     removed: int = 0
     unchanged_modified: int = 0
+    held: int = 0
+    page_bylines: int = 0
     dropped: Counter[str] = field(default_factory=Counter)
     requests: int = 0
     note: str = ""
@@ -46,9 +53,11 @@ class DailyResult:
     def line(self) -> str:
         extra = f"; {self.note}" if self.note else ""
         drops = sum(self.dropped.values())
+        pages = f", {self.page_bylines} bylines from article pages" if self.page_bylines else ""
         return (
             f"{self.source_id}: {self.new} new, {self.changed} changed, {self.removed} removed, "
-            f"{drops} dropped as third-party or invalid; {self.requests} requests{extra}"
+            f"{drops} dropped as third-party or invalid; {self.held} new rows held{pages}; "
+            f"{self.requests} requests{extra}"
         )
 
 
@@ -112,7 +121,10 @@ def daily_wordpress(
     state: dict[str, str],
     now: datetime,
     window: int = WINDOW_DAYS,
+    page_bylines: PageBylineReader | None = None,
 ) -> DailyResult:
+    """One daily pass over a source. With ``page_bylines``, a new post with no byline gets
+    the name from its article page (fetched once), as ``commonswire page-bylines`` does."""
     res = DailyResult(source_id=fetcher.source_id)
     rows = load_rows(rows_path)
     if not rows:
@@ -127,7 +139,7 @@ def daily_wordpress(
         for post in pager.pages(
             "new", {"after": newest[:19], "orderby": "date", "order": "asc", "_fields": fields}
         ):
-            _take(fetcher, post, rows, by_url, res, now, new=True)
+            _take(fetcher, post, rows, by_url, res, now, new=True, pages=page_bylines)
         for post in pager.pages("modified", {"modified_after": last_run[:19], "_fields": fields}):
             _take(fetcher, post, rows, by_url, res, now, new=False)
         since = now - timedelta(days=window)
@@ -164,6 +176,7 @@ def _take(
     now: datetime,
     *,
     new: bool,
+    pages: PageBylineReader | None = None,
 ) -> None:
     try:
         item = fetcher.item_from_post(post)
@@ -174,6 +187,13 @@ def _take(
     if reason:
         res.dropped[f"third_party:{reason}"] += 1
         return
+    if pages is not None and new and not item.authors and item.url not in by_url:
+        before = pages.stats.pages_fetched
+        names = pages.read(item.url)
+        res.requests += pages.stats.pages_fetched - before
+        if names:
+            item = dataclasses.replace(item, authors=names)
+            res.page_bylines += 1
     try:
         art = fetcher.build(item, now.replace(microsecond=0))
     except ValueError:
@@ -184,6 +204,7 @@ def _take(
         rows[art.id] = json.loads(art.model_dump_json())
         by_url[item.url] = art.id
         res.new += 1
+        res.held += int(not art.releasable)
         return
     old = rows[old_id]
     if old["content_hash"] == art.content_hash:

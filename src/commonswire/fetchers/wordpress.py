@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 
 from commonswire.fetchers.base import Fetcher, Item
 from commonswire.html import strip_tags
+from commonswire.schema import canonical_url
 
 PER_PAGE = 100
 
@@ -109,6 +110,8 @@ class WordPressFetcher(Fetcher):
         self.category_names: dict[int, str] = {}
         #: author id -> byline, for sites whose API gives no author names.
         self.byline_map: dict[int, tuple[str, ...]] = {}
+        #: canonical URL -> byline read from the article page (``commonswire page-bylines``).
+        self.page_bylines: dict[str, tuple[str, ...]] = {}
 
     def backfill_url(self, page: int, per_page: int = PER_PAGE) -> str:
         """Oldest first, so posts published during a backfill do not shift the pages."""
@@ -183,6 +186,11 @@ class WordPressFetcher(Fetcher):
             authors = byline_from_yoast(post.get("yoast_head_json"))
         if not authors and isinstance(post.get("author"), int):
             authors = self.byline_map.get(post["author"], ())
+        if not authors and self.page_bylines and post.get("link"):
+            try:
+                authors = self.page_bylines.get(canonical_url(post["link"]), ())
+            except ValueError:
+                authors = ()
         terms = [t for group in embedded.get("wp:term", []) for t in group if isinstance(t, dict)]
         categories = [
             strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "category"

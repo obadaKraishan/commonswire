@@ -290,7 +290,23 @@ def _wordpress_fetcher(root: Path, source_id: str, sources_path: str):  # type: 
         raise SystemExit(f"{source_id} is not in the registry")
     client = make_client(root)
     folder = root / "data" / "raw" / "backfill" / source_id
-    return WORDPRESS[source_id](client, registry[source_id], ReplayStore(folder)), client
+    fetcher = WORDPRESS[source_id](client, registry[source_id], ReplayStore(folder))
+    _load_bylines(root, fetcher)
+    return fetcher, client
+
+
+def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
+    """Author names kept from a users endpoint and from article pages, if any."""
+    import json
+
+    from commonswire.pagebylines import names_by_url
+
+    folder = root / "data" / "interim" / "bylines"
+    users = folder / f"{fetcher.source_id}.json"
+    if users.exists():
+        data = json.loads(users.read_text())
+        fetcher.byline_map = {int(k): tuple(v) for k, v in data.items() if v}
+    fetcher.page_bylines = names_by_url(folder / f"{fetcher.source_id}.pages.json")
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:
@@ -329,10 +345,6 @@ def cmd_build(args: argparse.Namespace) -> int:
 
     root = Path(args.root)
     fetcher, _ = _wordpress_fetcher(root, args.source_id, args.sources)
-    bylines = root / "data" / "interim" / "bylines" / f"{args.source_id}.json"
-    if bylines.exists():
-        data = json.loads(bylines.read_text())
-        fetcher.byline_map = {int(k): tuple(v) for k, v in data.items() if v}
     folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
     out = root / "data" / "interim" / "rows" / f"{args.source_id}.jsonl"
     result = build_rows(fetcher, folder, out)
@@ -532,6 +544,7 @@ def cmd_daily(args: argparse.Namespace) -> int:
 
     from commonswire.daily import daily_wordpress, load_state, save_state
     from commonswire.fetchers import WORDPRESS
+    from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     root = Path(args.root)
     if not (root / "data" / "raw").exists():
@@ -553,7 +566,20 @@ def cmd_daily(args: argparse.Namespace) -> int:
         client.byte_budget = args.max_mb * 1024 * 1024
         raw = root / "data" / "raw" / "daily" / source_id / now.date().isoformat()
         src_state = state.setdefault(source_id, {})
-        result = daily_wordpress(fetcher, client, rows_path, raw, src_state, now)
+        reader = None
+        if source_id in SITE_MARKUP and fetcher.requires_byline:
+            reader = PageBylineReader(
+                client,
+                source_id,
+                root / "data" / "raw" / "pages" / source_id,
+                root / "data" / "interim" / "bylines" / f"{source_id}.pages.json",
+                source_name=fetcher.source.name,
+            )
+        result = daily_wordpress(
+            fetcher, client, rows_path, raw, src_state, now, page_bylines=reader
+        )
+        if reader is not None:
+            reader.save()
         print(result.line(), flush=True)
     save_state(state_path, state)
     return 0
@@ -646,6 +672,53 @@ def cmd_bylines(args: argparse.Namespace) -> int:
     out.write_text(json.dumps(names, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{args.source_id}: {len(names)} author names from the users endpoint")
     return 0
+
+
+def cmd_page_bylines(args: argparse.Namespace) -> int:
+    """Author names from article pages, for rows that have no byline (each page fetched once)."""
+    import json
+
+    from commonswire.pagebylines import SITE_MARKUP, PageBylineReader, collect_page_bylines
+
+    root = Path(args.root)
+    sid = args.source_id
+    if sid not in SITE_MARKUP:
+        print(
+            f"no byline markup is known for {sid}; there is for: {', '.join(SITE_MARKUP)}",
+            file=sys.stderr,
+        )
+        return 2
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    rows = root / "data" / "interim" / "rows" / f"{sid}.jsonl"
+    if not rows.exists():
+        print(f"{sid}: no rows yet; run its backfill and build first", file=sys.stderr)
+        return 2
+    fetcher, client = _wordpress_fetcher(root, sid, args.sources)
+    client.byte_budget = args.max_mb * 1024 * 1024
+    reader = PageBylineReader(
+        None if args.replay else client,
+        sid,
+        root / "data" / "raw" / "pages" / sid,
+        root / "data" / "interim" / "bylines" / f"{sid}.pages.json",
+        source_name=fetcher.source.name,
+        say=lambda m: print(m, flush=True),
+    )
+    st = collect_page_bylines(reader, rows, limit=args.limit)
+    info = st.summary()
+    path = root / "data" / "evidence" / "bylines" / f"{sid}.pages.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"{sid}: {st.rows_without_byline} rows without a byline; {st.with_person} pages name a "
+        f"person, {sum(st.no_person.values())} do not ({dict(st.no_person)}); "
+        f"{st.pages_fetched} fetched ({st.bytes_fetched:,} bytes), "
+        f"{st.pages_already_saved} already saved"
+        + (f"; stopped: {st.stopped}" if st.stopped else "")
+    )
+    print(f"next: commonswire build {sid} --run RUN, to put the names into the rows")
+    return 0 if not st.stopped else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -755,6 +828,15 @@ def build_parser() -> argparse.ArgumentParser:
     st.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     st.set_defaults(func=cmd_store)
 
+    pb = sub.add_parser(
+        "page-bylines", help="author names from article pages, for rows with no byline"
+    )
+    pb.add_argument("source_id")
+    pb.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    pb.add_argument("--limit", type=int, help="fetch at most this many pages in this run")
+    pb.add_argument("--max-mb", type=int, default=1000, help="stop after this many megabytes")
+    pb.add_argument("--replay", action="store_true", help="read saved pages only, no requests")
+    pb.set_defaults(func=cmd_page_bylines)
     by = sub.add_parser("bylines", help="author names from a WordPress users endpoint")
     by.add_argument("source_id")
     by.add_argument("--run", default=_today())
