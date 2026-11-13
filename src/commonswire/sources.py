@@ -13,10 +13,12 @@ quote:
    stories, syndicated pieces), which is always left out.
 
 A source that fails 1, 2 or 3 is ``exclude``. A source whose pages are silent or unclear on any
-point is ``pending``. A site-wide CC BY, CC BY-SA, CC0 or public-domain statement is itself the
-permission, so silence on bulk reuse passes point 2 for those licenses; silence stays
-``pending`` when the permission is a bespoke republishing page with no named license, or when
-the license is NonCommercial or NoDerivatives.
+point is ``pending``. The rulings of 2026-11-13: (a) an invitation ("contact us if you would
+like to republish regularly") is not a condition; (b) a request ("we urge you to link") is not a
+restriction; (c) a site with no terms of use page passes point 3 when its robots.txt allows the
+pages or feeds used; (d) silence on bulk use passes only under public domain, CC0, CC BY and
+CC BY-SA, where the license itself grants it, and stays ``pending`` under NonCommercial or
+NoDerivatives licenses and under bespoke permissions.
 
 :func:`validate_sources` checks every rule and returns plain-language problems;
 :func:`check_quotes` confirms that each quote is verbatim on a saved page of its source.
@@ -261,7 +263,10 @@ class Source(BaseModel):
         if self.tracking_required == "yes":
             failed.append("2: requires a tracking pixel or counter")
         if self.robots == "forbids":
-            failed.append("3: robots.txt forbids the pages or feeds used")
+            failed.append(
+                "3: robots.txt forbids the pages or feeds used (ruling c: a site with no "
+                "terms page passes point 3 only when its robots.txt allows them)"
+            )
         if self.terms_automation == "forbids":
             failed.append("3: the terms forbid automated collection")
         return failed
@@ -272,9 +277,15 @@ class Source(BaseModel):
         if self.license_family == "none":
             open_.append("1: no license is named")
         if self.license_family == "restricted" and self.bulk_clause != "allows":
-            open_.append("2: a NonCommercial or NoDerivatives license, silent on bulk use")
+            open_.append(
+                "2: a NonCommercial or NoDerivatives license, silent on bulk use (ruling d: "
+                "silence passes only under public domain, CC0, CC BY and CC BY-SA)"
+            )
         if self.license_family == "none" and self.bulk_clause == "silent":
-            open_.append("2: bespoke republishing terms, silent on bulk use")
+            open_.append(
+                "2: bespoke republishing terms, silent on bulk use (ruling d: silence passes "
+                "only where the license itself grants bulk use)"
+            )
         if self.robots == "blocked":
             open_.append("3: the site refused scripted requests")
         if not self.third_party_rule:

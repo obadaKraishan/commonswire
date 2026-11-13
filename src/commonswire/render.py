@@ -27,11 +27,19 @@ of that source and recorded with the URL, the date and a short exact quote:
    stories, syndicated pieces), which is always left out.
 
 A source that fails 1, 2 or 3 is **exclude**. A source whose pages are silent or unclear on any
-point is **pending**, and is never included until the question is settled. A site-wide CC BY,
-CC BY-SA, CC0 or public-domain statement is itself the permission, so silence on bulk reuse
-passes point 2 for those licenses; silence stays pending when the permission is a bespoke
-republishing page with no named license, or when the license is NonCommercial or
-NoDerivatives."""
+point is **pending**, and is never included until the question is settled.
+
+How the rule is read (rulings of 2026-11-13):
+
+- (a) **An invitation is not a condition.** "Contact us if you would like to republish
+  regularly" does not limit a CC BY license.
+- (b) **A request is not a restriction.** "We urge you to link" does not limit public-domain
+  text.
+- (c) **No terms page.** A site with no terms of use page passes point 3 when its robots.txt
+  allows the pages or feeds used.
+- (d) **Silence on bulk use** passes only under public domain, CC0, CC BY and CC BY-SA, where
+  the license itself grants it. Under NonCommercial or NoDerivatives licenses and under bespoke
+  permissions, silence stays pending."""
 
 
 def _quote(label: str, text: str) -> str:
