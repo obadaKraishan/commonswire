@@ -380,3 +380,13 @@ time,host,path,query_keys,status,bytes,note
 2026-11-13T15:07:49+00:00,www.sdnewswatch.org,/robots.txt,,200,218,robots
 2026-11-13T15:07:51+00:00,www.sdnewswatch.org,/wp-json/wp/v2/posts,_fields;orderby;per_page,301,0,volume:sdnewswatch
 2026-11-13T15:07:54+00:00,www.sdnewswatch.org,/wp-json/wp/v2/posts/,,404,212520,volume:sdnewswatch
+2026-11-13T15:49:08+00:00,www.scidev.net,/robots.txt,,200,274,robots
+2026-11-13T15:49:10+00:00,www.scidev.net,/global/news/cop31-opens-with-calls-to-honour-climate-finance-pledges/,,200,198634,evidence:scidevnet
+2026-11-13T15:49:12+00:00,www.scidev.net,/global/opinions/cop31-must-tackle-climate-policys-water-cycle-blind-spot/,,200,200821,evidence:scidevnet
+2026-11-13T15:49:14+00:00,www.scidev.net,/global/news/ebola-spread-prompts-call-for-coordinated-african-response/,,200,202027,evidence:scidevnet
+2026-11-13T15:49:15+00:00,www.altnews.in,/robots.txt,,200,274,robots
+2026-11-13T15:49:18+00:00,www.altnews.in,/29-posts-in-12-days-by-union-environment-minister-not-one-on-pollution-bhupender-yadavs-diwali-silence/,,200,136055,evidence:altnews
+2026-11-13T15:49:21+00:00,www.altnews.in,/homes-razed-families-displaced-himanta-celebrates-assam-eviction-drive-as-ghar-ki-safai/,,200,129540,evidence:altnews
+2026-11-13T15:49:22+00:00,factly.in,/robots.txt,,200,60,robots
+2026-11-13T15:49:24+00:00,factly.in,/beyond-diwali-delhis-winter-air-pollution-remains-a-persistent-problem/,,200,164224,evidence:factly
+2026-11-13T15:49:26+00:00,factly.in,/51-data-breaches-reported-by-29-companies-in-2024-25-brsr-data-shows/,,200,163909,evidence:factly

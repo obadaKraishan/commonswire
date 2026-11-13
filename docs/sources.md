@@ -17,39 +17,47 @@ of that source and recorded with the URL, the date and a short exact quote:
    stories, syndicated pieces), which is always left out.
 
 A source that fails 1, 2 or 3 is **exclude**. A source whose pages are silent or unclear on any
-point is **pending**, and is never included until the question is settled. A site-wide CC BY,
-CC BY-SA, CC0 or public-domain statement is itself the permission, so silence on bulk reuse
-passes point 2 for those licenses; silence stays pending when the permission is a bespoke
-republishing page with no named license, or when the license is NonCommercial or
-NoDerivatives.
+point is **pending**, and is never included until the question is settled.
+
+How the rule is read (rulings of 2026-11-13):
+
+- (a) **An invitation is not a condition.** "Contact us if you would like to republish
+  regularly" does not limit a CC BY license.
+- (b) **A request is not a restriction.** "We urge you to link" does not limit public-domain
+  text.
+- (c) **No terms page.** A site with no terms of use page passes point 3 when its robots.txt
+  allows the pages or feeds used.
+- (d) **Silence on bulk use** passes only under public domain, CC0, CC BY and CC BY-SA, where
+  the license itself grants it. Under NonCommercial or NoDerivatives licenses and under bespoke
+  permissions, silence stays pending.
 
 ## Summary
 
-58 sources checked: 9 include, 35 pending, 14 exclude.
+58 sources checked: 12 include, 31 pending, 15 exclude.
 
 | Source | Kind | License | Bulk | Robots | Terms | Tracking | Status |
 |---|---|---|---|---|---|---|---|
 | 360info | news | CC BY 4.0 | silent | allows | silent | no | include |
 | Africa Is a Country | news | CC BY 4.0 | silent | allows | silent | no | include |
+| Alt News | fact-check | CC BY 3.0 | silent | allows | silent | no | include |
 | Balkan Diskurs | news | CC BY 3.0 | silent | allows | silent | no | include |
 | EFF Deeplinks | advocacy | CC BY 4.0 | silent | allows | silent | no | include |
+| Factly | fact-check | CC BY 4.0 | silent | allows | silent | no | include |
 | Freedom of the Press Foundation | advocacy | CC BY 4.0 | silent | allows | silent | no | include |
 | Global Voices | news | CC BY 3.0 | silent | allows | silent | no | include |
 | NIH News Releases | official | Public domain | silent | allows | silent | no | include |
+| SciDev.Net | news | CC BY 2.0 | allows | allows | silent | no | include |
 | The Public Record | news | CC BY-SA 4.0 | silent | allows | silent | no | include |
 | Wikinews (English) | news | CC BY 2.5 | silent | allows | allows | no | include |
 | Agenzia Fides | news | CC BY 4.0 | silent | allows | silent | no | pending |
 | Agência Brasil | news | NOASSERTION | silent | allows | silent | no | pending |
-| Alt News | fact-check | CC BY 3.0 | silent | allows | silent | no | pending |
 | Arizona Mirror (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | Chalkbeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | Democracy Now! | news | CC BY-NC-ND 3.0 US | silent | allows | silent | no | pending |
 | DOD News | official | NOASSERTION | silent | blocked | silent | no | pending |
-| Factly | fact-check | CC BY 4.0 | silent | allows | silent | no | pending |
 | Florida Phoenix (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | Georgia Recorder (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | Healthbeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
-| Institute for Nonprofit News | portal | NOASSERTION | silent | blocked | silent | no | pending |
 | KFF Health News | news | CC BY-NC-ND 4.0 | allows | allows | silent | no | pending |
 | Liberty TV Radio | news | CC BY-SA 4.0 | silent | allows | silent | no | pending |
 | Maryland Matters | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
@@ -63,7 +71,6 @@ NoDerivatives.
 | Ohio Capital Journal (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | Oxpeckers | news | CC BY-SA 4.0 | silent | allows | silent | no | pending |
 | Propastop | fact-check | CC BY-SA 3.0 | silent | allows | silent | no | pending |
-| SciDev.Net | news | CC BY 2.0 | allows | allows | silent | no | pending |
 | South Dakota News Watch | news | CC BY-SA 4.0 | silent | allows | silent | no | pending |
 | Stateline | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending |
 | States Newsroom | news | NOASSERTION | allows | allows | silent | no | pending |
@@ -78,6 +85,7 @@ NoDerivatives.
 | EduCeleb | news | LicenseRef-all-rights-reserved | silent | allows | silent | no | exclude |
 | Grist | news | NOASSERTION | silent | allows | silent | yes | exclude |
 | Inside Climate News | news | CC BY-NC-ND 3.0 | forbids | allows | silent | yes | exclude |
+| Institute for Nonprofit News | portal | LicenseRef-member-newsrooms | silent | blocked | silent | no | exclude |
 | Milwaukee Neighborhood News Service | news | CC BY-ND 4.0 | forbids | allows | silent | no | exclude |
 | openDemocracy | news | CC BY-NC 4.0 | forbids | allows | silent | no | exclude |
 | ProPublica | news | CC BY-NC-ND 3.0 US | forbids | allows | silent | yes | exclude |
@@ -113,6 +121,17 @@ News, INTL, en. Home: <https://africasacountry.com/>. Checked on 2026-11-13.
 - **Status: include.** Site-wide CC BY 4.0 'unless otherwise noted' on the About page.
 - **Notes:** the license sentence is on the About page; the home page footer shows only a CC BY 4.0 link with no text; pan-African outlet with no stated base No terms of use page exists on the site, so no terms forbid automated collection (point 3 passes, as for a silent terms page).
 
+### Alt News (`altnews`)
+
+Fact-check, IN, en, hi. Home: <https://www.altnews.in/>. Checked on 2026-11-13.
+
+- **License:** CC BY 3.0 (<https://www.altnews.in/about/>); "All the content on the Alt News website, except where otherwise noted, is licensed under the Creative Commons Attribution 3.0 Unported License."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (<https://www.altnews.in/terms-and-conditions/>)
+- **Third-party material:** Embedded social-media posts (tweets, Facebook, Instagram, YouTube) are third-party and are removed as embeds; other material is 'otherwise noted'; videos are not collected
+- **Status: include.** The explicit CC BY 3.0 grant on the About page and in every footer ('Content licensed under CC BY 3.0') governs; the 'All rights reserved' line next to it is boilerplate (P34 ruling).
+- **Notes:** the Terms and Conditions page covers donations only (silent on site use); Hindi edition at /hindi/; fact-checks embed social media posts, which are not collected English site only (the Hindi edition at /hindi/ is not collected).
+
 ### Balkan Diskurs (`balkandiskurs`)
 
 News, BA, en, bs. Home: <https://balkandiskurs.com/en/>. Checked on 2026-11-13.
@@ -136,6 +155,18 @@ Advocacy, US, en. Home: <https://www.eff.org/deeplinks>. Checked on 2026-11-13.
 - **Third-party material:** Only 'original material' is CC BY; material not original to EFF is noted ('unless otherwise noted') and left out
 - **Status: include.**
 - **Notes:** Advocacy organization's blog; robots.txt crawl-delay 30 s; no separate terms of use exists (the privacy policy was read and is silent on automated access)
+
+### Factly (`factly`)
+
+Fact-check, IN, en, te. Home: <https://factly.in/>. Checked on 2026-11-13.
+
+- **License:** CC BY 4.0 (<https://factly.in/faqs/>); "Except where otherwise noted, content on Factly is licensed under a Creative Commons Attribution 4.0 International License."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Credit asked:** "You must give appropriate credit, provide a link to the license, and indicate if changes were made."
+- **Third-party material:** Videos are outside the license; embedded social-media posts are third-party and are removed as embeds; other material is 'otherwise noted'
+- **Status: include.** Site-wide CC BY 4.0 'except where otherwise noted' (FAQ and every footer); no terms page was found and robots.txt allows the feeds and API (ruling c).
+- **Notes:** the footer says 'Except for videos'; the FAQ adds 'We would also like to be informed about the kind of use' (a request); Telugu section English site only (the Telugu section is not collected).
 
 ### Freedom of the Press Foundation (`freedompress`)
 
@@ -171,6 +202,18 @@ Official, US, en. Home: <https://www.nih.gov/news-events/news-releases>. Checked
 - **Status: include.** Site-wide public-domain statement on the NIH FAQ page; bulk silent, which passes under a public-domain statement.
 - **Notes:** An official US government source. The Web Policies and Notices page says nothing on copyright or reuse of text; the statement is in the FAQ's Copyright section, which also says copyrighted materials 'will include a copyright statement'. The FAQ urges linking rather than re-posting health publications and asks re-posters to check back for revisions (the monthly correction check covers this). Images are third-party licensed (text only anyway).
 
+### SciDev.Net (`scidevnet`)
+
+News, GB, en, fr, es, ar. Home: <https://www.scidev.net/global/>. Checked on 2026-11-13.
+
+- **License:** CC BY 2.0 (<https://www.scidev.net/global/content/media.html>); "SciDev.Net makes the written content of this website available for use by others under a Creative Commons Attribution 2.0 licence."
+- **Bulk or automatic reuse:** allows; "If you are interested in taking more than one article from our site our customisable webfeeds might be the answer for you."
+- **Automated collection:** robots.txt allows; terms silent (<https://www.scidev.net/global/content/policies.html>)
+- **Credit asked:** "SciDev.Net must be credited as the original source of the article at the start, no more than three paragraphs in"
+- **Third-party material:** Material owned by others is marked 'unless otherwise stated' and its source is indicated within the document or photo
+- **Status: include.** Every article page carries the line 'All site content, except where otherwise noted, is licensed under a Creative Commons Attribution License', linked to the media page, which names CC BY 2.0; rows take CC BY 2.0 (P34 ruling).
+- **Notes:** Run by CABI (Wallingford, UK); both versions allow verbatim redistribution with credit; the terms are silent on automated access; editions in English, French, Spanish and Arabic Article pages (2026-11-13): 'All site content, except where otherwise noted, is licensed under a Creative Commons Attribution License', linked to https://www.scidev.net/content/media/; the terms page says 'Creative Commons Attribution 3.0 licence'. The CC links on article pages (CC BY 2.0, CC BY-ND 2.0) are photo credits; photos are never collected. English edition (/global/) only.
+
 ### The Public Record (`thepublicrecord`)
 
 News, CA, en. Home: <https://thepublicrecord.ca/>. Checked on 2026-11-13.
@@ -193,7 +236,7 @@ News, INTL, en. Home: <https://en.wikinews.org/>. Checked on 2026-11-13.
 - **Credit asked:** "This work may be attributed to "Wikinews"."
 - **Third-party material:** Text is written by volunteer editors; the copyright policy bars copyrighted and other-Wikimedia text, and the footer license applies 'unless otherwise noted', so pages with a different notice are left out
 - **Status: include.** CC BY 2.5 for 2005-09-25..2024-12-16, CC BY 4.0 after, public domain before; set each article's license by its date.
-- **Notes:** CLOSED: the Wikimedia Foundation closed all Wikinews editions; read-only since 2026-05-04 (main page: 'Wikinews has been made read-only'), so a fixed archive with no new articles; the footer says CC BY 4.0 'unless otherwise noted'; the WMF Terms of Use bar automated uses that are abusive, break usage policies 'or have not been approved by the Wikimedia community', and bind API users to the User-Agent and Robot policies; collect through the API or dumps under those policies Each article's license follows its date (commonswire.licensing): public domain before 2005-09-25, CC BY 2.5 to 2024-12-16, CC BY 4.0 after.
+- **Notes:** CLOSED: the Wikimedia Foundation closed all Wikinews editions; read-only since 2026-05-04 (main page: 'Wikinews has been made read-only'), so a fixed archive with no new articles; the footer says CC BY 4.0 'unless otherwise noted'; the WMF Terms of Use bar automated uses that are abusive, break usage policies 'or have not been approved by the Wikimedia community', and bind API users to the User-Agent and Robot policies; collect through the API or dumps under those policies Each article's license follows its date (commonswire.licensing): public domain before 2005-09-25, CC BY 2.5 to 2024-12-16, CC BY 4.0 after. Paths (2026-11-13): en.wikinews.org/robots.txt disallows /w/ (the MediaWiki API) and allows /wiki/ article pages for general user agents; CommonsWire reads only the dump from https://dumps.wikimedia.org/enwikinews/, which that host's robots.txt allows.
 
 ## Pending: a question to settle first
 
@@ -206,7 +249,7 @@ News, VA, it, en, es, fr, de, zh. Home: <https://www.fides.org/en>. Checked on 2
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** No terms-of-use page was found and no page says how texts by others (Vatican documents, other agencies) are marked: may Fides be included on its footer CC BY 4.0 line, and how would third-party texts be told apart?
-- **Notes:** information service of the Pontifical Mission Societies, in Vatican City (a Holy See body); the license is stated only in the footer; RSS at /en/news/rss
+- **Notes:** information service of the Pontifical Mission Societies, in Vatican City (a Holy See body); the license is stated only in the footer; RSS at /en/news/rss Not pursued for version 1 (planner, 2026-11-13).
 
 ### Agência Brasil (`agenciabrasil`)
 
@@ -218,18 +261,7 @@ News, BR, pt-BR, en, es. Home: <https://agenciabrasil.ebc.com.br/>. Checked on 2
 - **Credit asked:** "Reprodução autorizada mediante indicação da fonte."
 - **Third-party material:** not stated
 - **Status: pending.** Agência Brasil lets anyone reproduce its own content free with credit but names no license (the footer reads 'Todos os direitos reservados pela EBC' and the EBC terms limit portal use to personal, non-commercial ends), and it mixes in partner-agency content without a stated marker: is this bespoke permission enough, and how should partner content be told apart?
-- **Notes:** Public news agency of EBC (state-owned); robots.txt crawl-delay 10 s; the EBC licensing page sells licenses for EBC works; the EBC terms bar probing security, 'clonagem' (cloning) and framing aimed at harming the portal's protections, which reads as a security clause, not a scraping ban; WebSearch shows 2006-2013 pages that named CC BY (2.5, then 3.0 Brasil), no longer on the current site (not fetched)
-
-### Alt News (`altnews`)
-
-Fact-check, IN, en, hi. Home: <https://www.altnews.in/>. Checked on 2026-11-13.
-
-- **License:** CC BY 3.0 (<https://www.altnews.in/about/>); "All the content on the Alt News website, except where otherwise noted, is licensed under the Creative Commons Attribution 3.0 Unported License."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (<https://www.altnews.in/terms-and-conditions/>)
-- **Third-party material:** other material is 'otherwise noted'; content from Facebook, Twitter and other platforms is under those platforms' licenses (About page)
-- **Status: pending.** Every footer says '© 2026 Alt News. All rights reserved.' next to 'Content licensed under CC BY 3.0', while the About page licenses all content under CC BY 3.0 except where noted: does the explicit CC BY 3.0 statement override the 'All rights reserved' line?
-- **Notes:** the Terms and Conditions page covers donations only (silent on site use); Hindi edition at /hindi/; fact-checks embed social media posts, which are not collected
+- **Notes:** Public news agency of EBC (state-owned); robots.txt crawl-delay 10 s; the EBC licensing page sells licenses for EBC works; the EBC terms bar probing security, 'clonagem' (cloning) and framing aimed at harming the portal's protections, which reads as a security clause, not a scraping ban; WebSearch shows 2006-2013 pages that named CC BY (2.5, then 3.0 Brasil), no longer on the current site (not fetched) Not pursued for version 1 (planner, 2026-11-13).
 
 ### Arizona Mirror (States Newsroom) (`azmirror`)
 
@@ -241,7 +273,7 @@ News, US, en. Home: <https://azmirror.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Arizona Mirror credit, including https://azmirror.com and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Arizona Mirror's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page Not pursued for version 1 (planner, 2026-11-13).
 
 ### Chalkbeat (`chalkbeat`)
 
@@ -253,7 +285,7 @@ News, US, en. Home: <https://www.chalkbeat.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Please include this line at the top of the story: “This story was originally published by Chalkbeat. Sign up for their newsletters at ckbe.at/newsletters”."
 - **Third-party material:** Stories are CC 'unless otherwise noted'; the page does not say how partner or wire stories are noted
 - **Status: pending.** Chalkbeat licenses its stories CC BY-NC-ND 4.0 'unless otherwise noted' and is silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); may an NC-ND source silent on bulk enter the corpus?
-- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text).
+- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text). Not pursued for version 1 (planner, 2026-11-13).
 
 ### Democracy Now! (`democracynow`)
 
@@ -265,7 +297,7 @@ News, US, en, es. Home: <https://www.democracynow.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Please attribute legal copies of this work to democracynow.org."
 - **Third-party material:** not stated
 - **Status: pending.** Democracy Now! licenses its original program content CC BY-NC-ND 3.0 US and invites reprinting transcripts 'in any way YOU can', but says only that incorporated works 'may be separately licensed' without marking them; may this NC-ND source enter, and how would third-party material be told apart?
-- **Notes:** The license line is on every program page, not on a site-wide policy page. robots.txt sets crawl-delay 10. Pages are broadcast transcripts and headlines; a Spanish edition is at /es/. No terms of use page was found.
+- **Notes:** The license line is on every program page, not on a site-wide policy page. robots.txt sets crawl-delay 10. Pages are broadcast transcripts and headlines; a Spanish edition is at /es/. No terms of use page was found. Not pursued for version 1 (planner, 2026-11-13).
 
 ### DOD News (`dodnews`)
 
@@ -276,19 +308,7 @@ Official, US, en. Home: <https://www.defense.gov/News/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** defense.gov answered 403 to robots.txt, so the project client read no page there; could Obada read the site's copyright or privacy-and-security notice in a browser and confirm that DOD News text is public domain or free to copy and distribute, with no terms against automated collection?
-- **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved. Search results show defense.gov pages now titled 'Department of War'.
-
-### Factly (`factly`)
-
-Fact-check, IN, en, te. Home: <https://factly.in/>. Checked on 2026-11-13.
-
-- **License:** CC BY 4.0 (<https://factly.in/faqs/>); "Except where otherwise noted, content on Factly is licensed under a Creative Commons Attribution 4.0 International License."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Credit asked:** "You must give appropriate credit, provide a link to the license, and indicate if changes were made."
-- **Third-party material:** videos are outside the license and other material is 'otherwise noted'; each story names its data source (FAQ)
-- **Status: pending.** The privacy policy refers to 'the Terms and conditions posted on our Website', but no such page was found: may Factly be included on its CC BY 4.0 FAQ and footer without reading those terms?
-- **Notes:** the footer says 'Except for videos'; the FAQ adds 'We would also like to be informed about the kind of use' (a request); Telugu section
+- **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved. Search results show defense.gov pages now titled 'Department of War'. Not pursued for version 1 (planner, 2026-11-13).
 
 ### Florida Phoenix (States Newsroom) (`floridaphoenix`)
 
@@ -300,7 +320,7 @@ News, US, en. Home: <https://floridaphoenix.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Florida Phoenix credit, including https://floridaphoenix.com and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Florida Phoenix's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page Not pursued for version 1 (planner, 2026-11-13).
 
 ### Georgia Recorder (States Newsroom) (`georgiarecorder`)
 
@@ -312,7 +332,7 @@ News, US, en. Home: <https://georgiarecorder.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Georgia Recorder credit, including https://georgiarecorder.com and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Georgia Recorder's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page Not pursued for version 1 (planner, 2026-11-13).
 
 ### Healthbeat (`healthbeat`)
 
@@ -324,18 +344,7 @@ News, US, en. Home: <https://www.healthbeat.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Please include this line at the top of the story: “This story was originally published by Healthbeat. Sign up for their public health newsletters at healthbeat.org/newsletters”."
 - **Third-party material:** Stories are CC 'unless otherwise noted'; the page does not say how partner or wire stories are noted
 - **Status: pending.** Healthbeat licenses its stories CC BY-NC-ND 4.0 'unless otherwise noted' and is silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); may an NC-ND source silent on bulk enter the corpus?
-- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text).
-
-### Institute for Nonprofit News (`inn`)
-
-Portal, US, en. Home: <https://inn.org/>. Checked on 2026-11-13.
-
-- **License:** no license named
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** inn.org's robots.txt answered 403, so the project client read no page there; INN is a republication portal for member newsrooms, whose stories are third-party material for INN, so should it be dropped as a source and its members assessed one by one?
-- **Notes:** robots.csv: robots_status 403, state blocked, home and feeds not allowed; the home page was refused before any request (disallowed). A portal, not a newsroom.
+- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text). Not pursued for version 1 (planner, 2026-11-13).
 
 ### KFF Health News (`kffhealthnews`)
 
@@ -347,7 +356,7 @@ News, US, en, es. Home: <https://kffhealthnews.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Include a byline with the reporter’s name and KFF Health News."
 - **Third-party material:** Items KFF cannot license are labeled 'All Rights Reserved'; only staff-produced stories are CC; NPR-partnership stories carry partner credits
 - **Status: pending.** KFF Health News licenses its staff stories CC BY-NC-ND 4.0 and its syndication page explicitly offers all stories by RSS (no 'individually' clause, no pixel requirement); may an NC-ND source with explicit bulk permission enter the corpus as an unchanged, noncommercial class?
-- **Notes:** Asks republishers to keep the standard tagline and to share traffic and engagement information 'when possible' (no pixel named). No terms of use page was found on kffhealthnews.org. The per-story republish pages were not read (they hold article text).
+- **Notes:** Asks republishers to keep the standard tagline and to share traffic and engagement information 'when possible' (no pixel named). No terms of use page was found on kffhealthnews.org. The per-story republish pages were not read (they hold article text). Not pursued for version 1 (planner, 2026-11-13).
 
 ### Liberty TV Radio (`libertytvradio`)
 
@@ -358,7 +367,7 @@ News, NG, en. Home: <https://libertytvradio.com/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** An article page's sidebar says 'This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License', while every footer says '© 2025 Liberty TV/Radio. All Rights Reserved.' and the home page names no license: which statement governs, and how would wire stories be told apart?
-- **Notes:** the CC BY-SA 4.0 line is a sidebar widget on article pages only; robots.txt disallows wp-json; no terms page found
+- **Notes:** the CC BY-SA 4.0 line is a sidebar widget on article pages only; robots.txt disallows wp-json; no terms page found Not pursued for version 1 (planner, 2026-11-13).
 
 ### Maryland Matters (`marylandmatters`)
 
@@ -370,7 +379,7 @@ News, US, en. Home: <https://marylandmatters.org/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Maryland Matters credit, including https://marylandmatters.org and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Maryland Matters's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; part of States Newsroom (its pages say so); it asks, but does not require, a States Newsroom footer on republished articles
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; part of States Newsroom (its pages say so); it asks, but does not require, a States Newsroom footer on republished articles Not pursued for version 1 (planner, 2026-11-13).
 
 ### Meduza (English) (`meduza_en`)
 
@@ -382,7 +391,7 @@ News, LV, en. Home: <https://meduza.io/en>. Checked on 2026-11-13.
 - **Credit asked:** "This means you can republish these select materials without prior approval from Meduza‘s newsroom, though you must identify the author (s) and source."
 - **Third-party material:** not stated
 - **Status: pending.** Meduza says all its materials belong to it and may not be republished without approval, except 'select materials' under CC BY 4.0 (its coverage of the war in Ukraine since 2022-02-24): should we take only those articles, and how can they be told apart from the rest page by page?
-- **Notes:** Based in Riga (SIA 'Medusa Project'); the about page says its English stories are translated with an AI model and reviewed by an editor (relevant to provenance); the license excludes photographs; no terms of use page found (only Google reCAPTCHA terms)
+- **Notes:** Based in Riga (SIA 'Medusa Project'); the about page says its English stories are translated with an AI model and reviewed by an editor (relevant to provenance); the license excludes photographs; no terms of use page found (only Google reCAPTCHA terms) Not pursued for version 1 (planner, 2026-11-13).
 
 ### Mekong Eye (`mekongeye`)
 
@@ -393,7 +402,7 @@ News, INTL, en. Home: <https://www.mekongeye.com/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** The home page and the About page both answered 403 to our client: can Obada read https://www.mekongeye.com/about and the 2024 contributor guide in a browser to find the license (search results say stories are under Creative Commons and may be republished 24 hours after publication)?
-- **Notes:** robots.txt (200) allows our user agent, but pages answer 403; nothing saved; search results name Internews' Earth Journalism Network as its backer
+- **Notes:** robots.txt (200) allows our user agent, but pages answer 403; nothing saved; search results name Internews' Earth Journalism Network as its backer Not pursued for version 1 (planner, 2026-11-13).
 
 ### Minority Africa (`minorityafrica`)
 
@@ -404,7 +413,7 @@ News, INTL, en. Home: <https://minorityafrica.org/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** The About page says stories are under 'a Creative Commons License' without naming it and sends republishers to the Advance framework (a pilot with select media organizations since June 2022): which license applies, and may stories be collected outside Advance?
-- **Notes:** advance.minorityafrica.org is a script-only page with no readable text; the home and About pages carry an injected block of unrelated SEO links (AI tools, boat plans), so the site may be compromised; search results show one Advance story under CC BY-NC-ND
+- **Notes:** advance.minorityafrica.org is a script-only page with no readable text; the home and About pages carry an injected block of unrelated SEO links (AI tools, boat plans), so the site may be compromised; search results show one Advance story under CC BY-NC-ND Not pursued for version 1 (planner, 2026-11-13).
 
 ### Mississippi Today (`mississippitoday`)
 
@@ -415,7 +424,7 @@ News, US, en. Home: <https://mississippitoday.org/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** AP stories carry 'Associated Press' bylines (home page)
 - **Status: pending.** mississippitoday.org answered 403 for its terms of service and its republication page (https://mississippitoday.org/about/republication/); could Obada read both in a browser and confirm the license and the bulk and tracking terms (search results summarize 'select stories individually, not as a collection', CC BY-ND 4.0 and a tracking code, which would make it exclude)?
-- **Notes:** robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider). The home page was read (200); a topic page, the terms of service and the republication page answered 403.
+- **Notes:** robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider). The home page was read (200); a topic page, the terms of service and the republication page answered 403. Not pursued for version 1 (planner, 2026-11-13).
 
 ### Mongabay (`mongabay`)
 
@@ -427,7 +436,7 @@ News, US, en. Home: <https://news.mongabay.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must credit the author as listed on the original article (ideally in the byline), and Mongabay as the source, and also provide a link back to the specific web address of the article on Mongabay’s website (not the Mongabay homepage)."
 - **Third-party material:** Articles under Creative Commons carry a CC badge at the top right of the page (copyright FAQ); third-party images are credited in captions
 - **Status: pending.** Mongabay's guidelines page says its articles are CC BY-ND 4.0, but its copyright FAQ says only 'many' articles are, marked by a badge, and the terms reserve everything else; with bulk use not addressed, is a NoDerivatives license acceptable, and should we take only badged articles?
-- **Notes:** The terms say content is all rights reserved 'unless otherwise stated (e.g. under the published under license near the top of a page or article)'; the FAQ asks for permission for 'extended' use of full articles not covered by an article's terms; translations need permission; the CC links seen on saved pages are image credits only
+- **Notes:** The terms say content is all rights reserved 'unless otherwise stated (e.g. under the published under license near the top of a page or article)'; the FAQ asks for permission for 'extended' use of full articles not covered by an article's terms; translations need permission; the CC links seen on saved pages are image credits only Not pursued for version 1 (planner, 2026-11-13).
 
 ### NASA News (`nasa`)
 
@@ -439,7 +448,7 @@ Official, US, en. Home: <https://www.nasa.gov/news/>. Checked on 2026-11-13.
 - **Credit asked:** "NASA should be acknowledged as the source of the material."
 - **Third-party material:** News releases are written by NASA; third-party copyrighted material is marked with the holder's name (media usage page)
 - **Status: pending.** NASA's media usage page says images, audio, video and media files are generally not under US copyright and lets news outlets use 'NASA content' without permission, but never names text: may we treat NASA news-release text as a US government work in the public domain on that basis?
-- **Notes:** An official US government source; the media page also rules on AI ('SI') use: outputs may not be attributed to NASA and use for training implies no endorsement; the important-notices link now redirects to the privacy policy, which bars only unauthorized attempts to upload or change information
+- **Notes:** An official US government source; the media page also rules on AI ('SI') use: outputs may not be attributed to NASA and use for training implies no endorsement; the important-notices link now redirects to the privacy policy, which bars only unauthorized attempts to upload or change information Not pursued for version 1 (planner, 2026-11-13).
 
 ### New Canadian Media (`newcanadianmedia`)
 
@@ -450,7 +459,7 @@ News, CA, en. Home: <https://www.newcanadianmedia.ca/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** robots.txt answered 403, so our client read no page: can Obada read https://www.newcanadianmedia.ca/ in a browser, and is the outlet still publishing (search results show a page saying New Canadian Media, Inc. was dissolved as of Nov. 20, 2024)?
-- **Notes:** robots.txt answered 403 (robots.csv state blocked, home_allowed no), so the client treated every page as disallowed; search results suggest older stories carried a Creative Commons notice; the outlet appears to have stopped publishing
+- **Notes:** robots.txt answered 403 (robots.csv state blocked, home_allowed no), so the client treated every page as disallowed; search results suggest older stories carried a Creative Commons notice; the outlet appears to have stopped publishing Not pursued for version 1 (planner, 2026-11-13).
 
 ### Ohio Capital Journal (States Newsroom) (`ohiocapitaljournal`)
 
@@ -462,7 +471,7 @@ News, US, en. Home: <https://ohiocapitaljournal.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Ohio Capital Journal credit, including https://ohiocapitaljournal.com and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Ohio Capital Journal's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; a saved partner story from The 19th sits outside /repub/, so the byline and the 'originally reported by' line, not the URL alone, must be used to drop partner copy
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; a saved partner story from The 19th sits outside /repub/, so the byline and the 'originally reported by' line, not the URL alone, must be used to drop partner copy Not pursued for version 1 (planner, 2026-11-13).
 
 ### Oxpeckers (`oxpeckers`)
 
@@ -473,7 +482,7 @@ News, ZA, en. Home: <https://oxpeckers.org/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** the license covers content 'made by the Oxpeckers Center'; investigations end with a note naming the Oxpeckers author and programme; partner pieces' marking not stated
 - **Status: pending.** No terms-of-use page was found, and the footer licenses only content 'made by the Oxpeckers Center' without saying how partners' pieces are marked: may Oxpeckers be included, and is the end note naming the Oxpeckers author enough to tell its own articles apart?
-- **Notes:** the license is stated only in the footer; its link goes through a google.com redirect to the CC BY-SA 4.0 deed; reportage is also published through media partners (About page)
+- **Notes:** the license is stated only in the footer; its link goes through a google.com redirect to the CC BY-SA 4.0 deed; reportage is also published through media partners (About page) Not pursued for version 1 (planner, 2026-11-13).
 
 ### Propastop (`propastop`)
 
@@ -485,19 +494,7 @@ Fact-check, EE, et, en, ru. Home: <https://www.propastop.org/en/>. Checked on 20
 - **Credit asked:** "References must be made in the form of propastop.org and a direct link must be added to the post."
 - **Third-party material:** material not under Creative Commons carries 'a relevant reference'; photos or texts where the author is named need the author's consent
 - **Status: pending.** The terms say texts 'can be mostly used under the Creative Commons licence' (linked to CC BY-SA 3.0), but also that 'texts where the author has been mentioned by name' need the author's consent and that content 'should not be used for commercial purposes': which articles are under CC BY-SA 3.0, and does the noncommercial wish limit the license?
-- **Notes:** the license link points to the Estonian CC BY-SA 3.0 deed; the terms say 'Propastop.org operates non-commercially'; English, Estonian and Russian editions
-
-### SciDev.Net (`scidevnet`)
-
-News, GB, en, fr, es, ar. Home: <https://www.scidev.net/global/>. Checked on 2026-11-13.
-
-- **License:** CC BY 2.0 (<https://www.scidev.net/global/content/media.html>); "SciDev.Net makes the written content of this website available for use by others under a Creative Commons Attribution 2.0 licence."
-- **Bulk or automatic reuse:** allows; "If you are interested in taking more than one article from our site our customisable webfeeds might be the answer for you."
-- **Automated collection:** robots.txt allows; terms silent (<https://www.scidev.net/global/content/policies.html>)
-- **Credit asked:** "SciDev.Net must be credited as the original source of the article at the start, no more than three paragraphs in"
-- **Third-party material:** Material owned by others is marked 'unless otherwise stated' and its source is indicated within the document or photo
-- **Status: pending.** SciDev.Net's media page and its license links say CC BY 2.0, while its terms page says 'Creative Commons Attribution 3.0 licence' twice: which version should the credit lines name, or should we ask SciDev.Net before including it?
-- **Notes:** Run by CABI (Wallingford, UK); both versions allow verbatim redistribution with credit; the terms are silent on automated access; editions in English, French, Spanish and Arabic
+- **Notes:** the license link points to the Estonian CC BY-SA 3.0 deed; the terms say 'Propastop.org operates non-commercially'; English, Estonian and Russian editions Not pursued for version 1 (planner, 2026-11-13).
 
 ### South Dakota News Watch (`sdnewswatch`)
 
@@ -509,7 +506,7 @@ News, US, en. Home: <https://www.sdnewswatch.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Attribution: Credit the full story or elements used (poll result, quote, graphic, photo or other content) to South Dakota News Watch."
 - **Third-party material:** AP and partner pieces carry their own bylines or credit lines and the 'News service' label (Best Practices Policies)
 - **Status: pending.** South Dakota News Watch licenses its stories CC BY-SA 4.0 but adds 'Do not sell ads against our stories', a noncommercial-style condition that CC BY-SA itself does not have: does that condition bind a free research corpus whose users may include commercial ones, or should the source wait until News Watch confirms plain CC BY-SA?
-- **Notes:** The policy adds 'No ads: Do not sell ads against our stories' to the CC BY-SA terms, although CC BY-SA allows commercial use; worth a line in the dataset card. No separate terms of use page exists that we could find; terms_url is the Best Practices Policies page (ethics and privacy), silent on automated access.
+- **Notes:** The policy adds 'No ads: Do not sell ads against our stories' to the CC BY-SA terms, although CC BY-SA allows commercial use; worth a line in the dataset card. No separate terms of use page exists that we could find; terms_url is the Best Practices Policies page (ethics and privacy), silent on automated access. Not pursued for version 1 (planner, 2026-11-13).
 
 ### Stateline (`stateline`)
 
@@ -521,7 +518,7 @@ News, US, en. Home: <https://stateline.org/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give Stateline credit, including https://stateline.org and author."
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Stateline's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
-- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; the national desk of States Newsroom; the home page carries a Ford Foundation series marked 'SPONSORED COMMENTARY' ('This is sponsored content'), which is left out
+- **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page; the national desk of States Newsroom; the home page carries a Ford Foundation series marked 'SPONSORED COMMENTARY' ('This is sponsored content'), which is left out Not pursued for version 1 (planner, 2026-11-13).
 
 ### States Newsroom (`statesnewsroom`)
 
@@ -533,7 +530,7 @@ News, US, en. Home: <https://statesnewsroom.com/>. Checked on 2026-11-13.
 - **Credit asked:** "You must give credit to the original source – either the specific newsroom, or News From The States, including the web address and author."
 - **Third-party material:** Credit goes to 'the original source' newsroom; on the outlet sites, stories from other outlets sit under /repub/ and name the original outlet; the top-stories feed mixes partner stories
 - **Status: pending.** statesnewsroom.com names no license and publishes press releases, not news, while its outlets name CC BY-NC-ND 4.0 and its RSS page invites republishers to ingest each outlet's /feed/localFeed: should this row stay a network umbrella that is not collected, with each outlet judged on CC BY-NC-ND 4.0 plus this feed permission?
-- **Notes:** Network of about 40 state outlets; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); the republishing guidelines bar selling the story, selling ads against it and paywalls (NonCommercial in effect); the state feeds 'contain all republishable stories published by the newsroom, minus stories from our D.C. or National teams'; the privacy policy is the only legal page found and is silent on automated access; no license or terms of use on the network site
+- **Notes:** Network of about 40 state outlets; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); the republishing guidelines bar selling the story, selling ads against it and paywalls (NonCommercial in effect); the state feeds 'contain all republishable stories published by the newsroom, minus stories from our D.C. or National teams'; the privacy policy is the only legal page found and is silent on automated access; no license or terms of use on the network site Not pursued for version 1 (planner, 2026-11-13).
 
 ### Tasnim News Agency (English) (`tasnim`)
 
@@ -544,7 +541,7 @@ News, IR, en. Home: <https://www.tasnimnews.com/en>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** robots.txt could not be reached (connection error), so our client read no page: should Obada read https://www.tasnimnews.com/en in a browser for its license line, or should the source be dropped?
-- **Notes:** state-affiliated news agency; robots.csv: robots_status error, state unreachable, home_allowed no; search results show a CC BY 4.0 line on its photos page (not read)
+- **Notes:** state-affiliated news agency; robots.csv: robots_status error, state unreachable, home_allowed no; search results show a CC BY 4.0 line on its photos page (not read) Not pursued for version 1 (planner, 2026-11-13).
 
 ### The 19th (`the19th`)
 
@@ -555,7 +552,7 @@ News, US, en. Home: <https://19thnews.org/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** 19thnews.org served a bot check page (status 200) for its home page and for https://19thnews.org/republishing-guidelines/; could Obada read the guidelines in a browser and confirm the license, any 'individually' or anti-scraping clause and any tracking pixel (search results summarize CC BY-NC-ND, a required pixel and a ban on scraping, which would make it exclude)?
-- **Notes:** robots.txt itself allows home and feeds; the pages answer a bot check. tracking 'no' only because no page could be read. Terms of service at https://19thnews.org/terms-of-service/ (not fetched: one try per site).
+- **Notes:** robots.txt itself allows home and feeds; the pages answer a bot check. tracking 'no' only because no page could be read. Terms of service at https://19thnews.org/terms-of-service/ (not fetched: one try per site). Not pursued for version 1 (planner, 2026-11-13).
 
 ### The Marshall Project (`marshallproject`)
 
@@ -566,7 +563,7 @@ News, US, en. Home: <https://www.themarshallproject.org/>. Checked on 2026-11-13
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** themarshallproject.org answered 403 to its home page and to a story's republication page; could Obada read a republication page in a browser and confirm the license and the bulk and pixel terms (search results summarize CC BY-NC-ND, individual stories only and a required tracking pixel, which would make it exclude)?
-- **Notes:** robots.txt itself allows home and feeds; the pages answer 403. tracking 'no' only because no page could be read.
+- **Notes:** robots.txt itself allows home and feeds; the pages answer 403. tracking 'no' only because no page could be read. Not pursued for version 1 (planner, 2026-11-13).
 
 ### US Department of State press releases (`stategov`)
 
@@ -577,7 +574,7 @@ Official, US, en. Home: <https://www.state.gov/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** state.gov answered 403 to robots.txt, so its copyright page (https://www.state.gov/copyright-information/) could not be read; could Obada read it in a browser and confirm the public-domain statement for press releases and any terms on automated collection?
-- **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved.
+- **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved. Not pursued for version 1 (planner, 2026-11-13).
 
 ### Votebeat (`votebeat`)
 
@@ -589,7 +586,7 @@ News, US, en. Home: <https://www.votebeat.org/>. Checked on 2026-11-13.
 - **Credit asked:** "Please include this line at the top of the story: “This article was originally published by Votebeat, a nonprofit news organization covering local election administration and voting access.”"
 - **Third-party material:** Stories are CC 'unless otherwise noted'; the page does not say how partner or wire stories are noted
 - **Status: pending.** Votebeat licenses its stories CC BY-NC-ND 4.0 'unless otherwise noted' and is silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); may an NC-ND source silent on bulk enter the corpus?
-- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text).
+- **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text). Not pursued for version 1 (planner, 2026-11-13).
 
 ### ZimFact (`zimfact`)
 
@@ -600,7 +597,7 @@ Fact-check, ZW, en. Home: <https://zimfact.org/>. Checked on 2026-11-13.
 - **Automated collection:** robots.txt none; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** zimfact.org shows only a hosting 'Suspended' page, so there is no license or terms to read: keep it pending until the site returns, or drop it?
-- **Notes:** the home page (226 bytes) says the account is suspended by the host; robots.txt 404; the outlet appears to have stopped publishing at this address
+- **Notes:** the home page (226 bytes) says the account is suspended by the host; robots.txt 404; the outlet appears to have stopped publishing at this address Not pursued for version 1 (planner, 2026-11-13).
 
 ## Excluded
 
@@ -663,6 +660,17 @@ News, US, en. Home: <https://insideclimatenews.org/>. Checked on 2026-11-13.
 - **Third-party material:** Material licensed from third parties may not be republished (user agreement); its marking is not described
 - **Status: exclude.** Point 2 fails: Inside Climate News forbids wholesale or automatic republishing (stories must be selected individually) and requires its tracking pixel.
 - **Notes:** Its user agreement (in the privacy policy page) says copyright is owned by ICN and republishing is granted 'upon request on a case by case basis', which differs from the CC BY-NC-ND 3.0 guidelines page.
+
+### Institute for Nonprofit News (`inn`)
+
+Portal, US, en. Home: <https://inn.org/>. Checked on 2026-11-13.
+
+- **License:** all rights reserved
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: exclude.** Point 1 fails: INN is a portal whose stories belong to its member newsrooms, so it holds no license to their text; the members are assessed one by one, later (P34 ruling).
+- **Notes:** robots.csv: robots_status 403, state blocked, home and feeds not allowed; the home page was refused before any request (disallowed). A portal, not a newsroom.
 
 ### Milwaukee Neighborhood News Service (`milwaukeenns`)
 
