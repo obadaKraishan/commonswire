@@ -1,0 +1,15 @@
+checked_on,source_id,method,requests,dates_seen,window_days,est_articles_per_day,total_articles,archive_from,newest,note
+2026-11-13,thepublicrecord,wordpress,2,100,154.97,0.6,2769,2013-06-28,2026-11-13,
+2026-11-13,africasacountry,wordpress,1,0,,,,,,posts API answered HTTP 404
+2026-11-13,balkandiskurs,wordpress,2,100,351.02,0.3,897,2014-06-04,2026-11-13,
+2026-11-13,kffhealthnews,wordpress,2,100,43.25,2.3,16982,2009-01-13,2026-11-13,
+2026-11-13,factly,wordpress,2,100,44.21,2.3,15160,2014-12-14,2026-11-13,
+2026-11-13,oxpeckers,wordpress,2,100,1092.37,0.1,484,2013-07-08,2026-11-03,
+2026-11-13,mongabay,wordpress,2,100,17.85,5.6,28712,2005-04-02,2026-11-13,
+2026-11-13,sdnewswatch,wordpress,1,0,,,,,,posts API answered HTTP 404
+2026-11-13,georgiarecorder,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,ohiocapitaljournal,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,floridaphoenix,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,azmirror,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,marylandmatters,wordpress,1,0,,,,,,refused: HTTP 403
+2026-11-13,stateline,wordpress,1,0,,,,,,refused: HTTP 403
