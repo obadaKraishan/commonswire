@@ -173,7 +173,7 @@ def cmd_sample(args: argparse.Namespace) -> int:
         interim = root / "data" / "interim"
         client = PoliteClient(
             usage_log=UsageLog(interim / "replay_log.csv"),
-            pacer=Pacer(interim / "replay.lock", 0.0),
+            pacer=Pacer(interim / "replay-locks", 0.0),
             transport=ReplayTransport(files),
         )
         raw = ReplayStore(raw_dir)

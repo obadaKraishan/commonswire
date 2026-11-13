@@ -226,18 +226,26 @@ def test_response_text_uses_the_declared_charset_and_json_parses():
     assert Response(url="u", status=200, headers={}, body=b'{"a": 1}').json() == {"a": 1}
 
 
-def test_pacer_waits_only_for_the_rest_of_the_gap(tmp_path):
+def test_pacer_waits_only_for_the_rest_of_the_gap_per_host(tmp_path):
     clock = FakeClock()
-    pacer = Pacer(tmp_path / "l.lock", 2.0, clock=clock.time, sleep=clock.sleep)
-    with pacer.slot():
+    pacer = Pacer(tmp_path / "locks", 2.0, clock=clock.time, sleep=clock.sleep)
+    with pacer.slot("a.org"):
         pass
     clock.now += 1.5
-    with pacer.slot():
+    with pacer.slot("a.org"):
         pass
     assert clock.sleeps == [pytest.approx(0.5)]
-    (tmp_path / "l.last").write_text("garbage")
-    with pacer.slot():
+    with pacer.slot("b.org"):
+        pass  # another host does not wait for a.org
+    assert len(clock.sleeps) == 1
+    with pacer.slot("a.org", 10.0):
+        pass  # a crawl-delay longer than the minimum is honored
+    assert clock.sleeps[-1] == pytest.approx(10.0)
+    pacer.paths("a.org")[1].write_text("garbage")
+    with pacer.slot("a.org"):
         pass  # an unreadable stamp counts as no earlier request
+    assert pacer.paths("Weird Host:443")[0].name == "weird_host_443.lock"
+    assert pacer.paths("")[0].name == "_any.lock"
 
 
 def test_usage_log_writes_a_header_once(tmp_path):

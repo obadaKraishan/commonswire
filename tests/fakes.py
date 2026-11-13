@@ -64,7 +64,7 @@ def make_test_client(
     tmp_path, transport: FakeTransport, **kwargs
 ) -> tuple[PoliteClient, FakeClock]:
     clock = FakeClock()
-    pacer = Pacer(tmp_path / "interim" / "http.lock", clock=clock.time, sleep=clock.sleep)
+    pacer = Pacer(tmp_path / "interim" / "locks", clock=clock.time, sleep=clock.sleep)
     client = PoliteClient(
         usage_log=UsageLog(tmp_path / "usage_log.csv"),
         pacer=pacer,

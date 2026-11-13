@@ -2,8 +2,9 @@
 
 The rules it enforces:
 
-- **One request at a time**, across processes: a lock file is held for the whole request, and
-  requests start at least ``min_interval`` seconds (2 by default) after the previous one ended.
+- **One request at a time per host**, across processes: a lock file per host is held for the
+  whole request, and requests to a host start at least ``min_interval`` seconds (2 by default)
+  after the previous one to that host ended. Different hosts may be fetched in parallel.
 - **robots.txt** is read once per host and honored for the CommonsWire user agent, including any
   crawl-delay longer than ``min_interval``. A robots.txt that answers 401 or 403 is treated as a
   block; 404 or 410 means there is none; a 5xx answer means the site may not be crawled now.
@@ -23,6 +24,7 @@ import contextlib
 import csv
 import fcntl
 import random
+import re
 import time
 import urllib.robotparser
 from collections.abc import Callable, Iterator, Mapping
@@ -183,49 +185,56 @@ class UsageLog:
 
 
 class Pacer:
-    """Holds a lock file for each request and spaces request starts across processes.
+    """Holds a lock file per host for each request and spaces request starts to that host.
 
-    The time the last request ended is kept in a small file next to the lock, so two
-    CommonsWire processes on the same machine never send at the same moment.
+    The time the last request to a host ended is kept in a small file next to its lock, so two
+    CommonsWire processes on the same machine never send to the same host at the same moment,
+    while different hosts can be fetched in parallel (one request at a time per host).
     """
 
     def __init__(
         self,
-        lock_path: Path,
+        lock_dir: Path,
         min_interval: float = MIN_INTERVAL,
         *,
         clock: Callable[[], float] = time.time,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        self.lock_path = Path(lock_path)
-        self.stamp_path = self.lock_path.with_suffix(".last")
+        self.lock_dir = Path(lock_dir)
         self.min_interval = min_interval
         self._clock = clock
         self._sleep = sleep
 
+    def paths(self, host: str) -> tuple[Path, Path]:
+        """The lock file and the last-request stamp of a host."""
+        key = re.sub(r"[^a-z0-9.-]", "_", host.lower()) or "_any"
+        return self.lock_dir / f"{key}.lock", self.lock_dir / f"{key}.last"
+
     @contextlib.contextmanager
-    def slot(self, interval: float | None = None) -> Iterator[None]:
+    def slot(self, host: str = "", interval: float | None = None) -> Iterator[None]:
         gap = max(self.min_interval, interval or 0.0)
-        self.lock_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.lock_path.open("a+") as lock:
+        lock_path, stamp_path = self.paths(host)
+        self.lock_dir.mkdir(parents=True, exist_ok=True)
+        with lock_path.open("a+") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             try:
-                last = self._read_stamp()
+                last = _read_stamp(stamp_path)
                 wait = last + gap - self._clock()
                 if wait > 0:
                     self._sleep(wait)
                 try:
                     yield
                 finally:
-                    self.stamp_path.write_text(f"{self._clock():.3f}")
+                    stamp_path.write_text(f"{self._clock():.3f}")
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
-    def _read_stamp(self) -> float:
-        try:
-            return float(self.stamp_path.read_text().strip() or 0)
-        except (FileNotFoundError, ValueError):
-            return 0.0
+
+def _read_stamp(path: Path) -> float:
+    try:
+        return float(path.read_text().strip() or 0)
+    except (FileNotFoundError, ValueError):
+        return 0.0
 
 
 @dataclass
@@ -366,7 +375,7 @@ class PoliteClient:
         attempt = 0
         error: Exception | None = None
         while True:
-            with self.pacer.slot(delay):
+            with self.pacer.slot(host, delay):
                 try:
                     raw = self.transport(url, headers, TIMEOUT, max_bytes)
                 except requests.RequestException as exc:
@@ -432,7 +441,7 @@ def make_client(
 ) -> PoliteClient:
     """A client that logs to ``data/usage_log.csv`` and paces through ``data/interim/``."""
     log = UsageLog(root / "data" / "usage_log.csv")
-    pacer = Pacer(root / "data" / "interim" / "http.lock")
+    pacer = Pacer(root / "data" / "interim" / "locks")
     if transport is None:
         return PoliteClient(usage_log=log, pacer=pacer, byte_budget=byte_budget)
     return PoliteClient(usage_log=log, pacer=pacer, transport=transport, byte_budget=byte_budget)
