@@ -21,6 +21,7 @@ from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from html import unescape as html_unescape
 from pathlib import Path
 from typing import BinaryIO
 from urllib.parse import quote
@@ -44,9 +45,14 @@ CLOSING = re.compile(
 )
 _REF = re.compile(r"<ref[^>/]*/>|<ref[^>]*>.*?</ref>", re.I | re.S)
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
+#: Tags whose content is not article text: galleries, formulas, scores, and the JSON of maps
+#: and charts (Kartographer's ``<mapframe>`` and ``<maplink>``, ``<graph>``).
 _DROP_TAGS = re.compile(
-    r"<(gallery|math|score|timeline|imagemap|syntaxhighlight|source)[^>]*>.*?</\1>", re.I | re.S
+    r"<(gallery|math|score|timeline|imagemap|syntaxhighlight|source|mapframe|maplink|graph|"
+    r"chart|templatedata)\b[^>]*?(/>|>.*?</\1\s*>)",
+    re.I | re.S,
 )
+_BR = re.compile(r"<br\s*/?\s*>", re.I)
 _TAG = re.compile(r"</?[a-zA-Z][^>]*>")
 _FILE_LINK = re.compile(
     r"^(file|image|media|category|template|wikinews|user|talk|special|portal|help|"
@@ -59,61 +65,175 @@ _HEADING = re.compile(r"^\s*(=+)\s*(.*?)\s*\1\s*$", re.M)
 _LIST = re.compile(r"^[*#:;]+\s*", re.M)
 _MAGIC = re.compile(r"__[A-Z]+__")
 _SPACES = re.compile(r"[ \t]+")
+#: Character references with their semicolon (``&mdash;``, ``&#8212;``, ``&#x2014;``).
+_ENTITY = re.compile(r"&(#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});")
+_APOSTROPHES = re.compile(r"'{2,}")
+#: A template or a link with no other template or link inside: expanded innermost first.
+_INNER_TEMPLATE = re.compile(r"\{\{([^{}]*)\}\}")
+_INNER_LINK = re.compile(r"\[\[((?:[^\[\]]|\[(?!\[)|\](?!\]))*)\]\]")
+#: Common slips in the wikitext: a template on one line with its last brace missing
+#: (``{{name|...}``); ``{[w|...}}``, ``{w|...}}`` or ``{w|...}`` for ``{{w|...}}`` (and the same
+#: for ``{{wikt}}``); a link with one bracket missing at its end (``[[a|b]``) or at its start
+#: (``[a|b]]``).
+_SLIP_CLOSE = re.compile(r"(\{\{[^{}\n]{1,300}?)\}(?!\})")
+_SLIP_OPEN = re.compile(r"(?<!\{)\{\[?(?=\s*(?:w|wikt)\s*\|[^{}\n]{1,200}?\}\})", re.I)
+_SLIP_BOTH = re.compile(r"(?<!\{)\{\s*((?:w|wikt)\s*\|[^{}\n]{1,200}?)\}(?!\})", re.I)
+#: ``{{w|...]]`` or ``[[w|...}}``: a {{w}} call closed or opened like a link.
+_SLIP_W_AS_LINK_END = re.compile(r"\{\{\s*((?:w|wikt)\s*\|[^{}\[\]\n]{1,200}?)\]\]", re.I)
+_SLIP_W_AS_LINK_START = re.compile(r"\[\[\s*((?:w|wikt)\s*\|[^{}\[\]\n]{1,200}?)\}\}", re.I)
+_LINK_SHORT_END = re.compile(r"\[\[([^\[\]\n]{1,200})\](?!\])")
+_LINK_SHORT_START = re.compile(r"(?<!\[)\[(?![\[/]|https?:)([^\[\]\n]{1,200})\]\]")
+#: Lines left by a template or table that was never closed: ``| name = value``, ``|-``, ``|}``.
+_PARAM_LINE = re.compile(r"^[ \t]*(\|[ \t]*[\w .-]{1,40}=.*|\|[-+}].*|\{\|.*|!.*\|.*)$", re.M)
+_NAMED = re.compile(r"^\s*[A-Za-z][\w ]{0,30}=")
+#: The name after a template opener that is never closed, up to a bar or the end of a line.
+_UNCLOSED_TAIL = re.compile(r"[^|{}\[\]\n]{0,40}(?=\||\n|$)")
+
+
+def _shown_link(pos: list[str]) -> str:
+    """``{{w|target}}`` shows the target and ``{{w|target|label}}`` the label."""
+    if len(pos) > 1 and pos[1].strip():
+        return pos[1]
+    return pos[0] if pos else ""
+
+
+def _shown_translation(pos: list[str]) -> str:
+    """``{{translated quote|code|language|original|translation}}`` shows the translation."""
+    return f'"{pos[3].strip()}"' if len(pos) > 3 else ""
+
+
+#: Templates that show words in the sentence, and how they render their positional params.
+SHOWN_TEMPLATES = {
+    "w": _shown_link,
+    "wikt": _shown_link,
+    "nowrap": lambda pos: pos[0] if pos else "",
+    "translated quote": _shown_translation,
+}
+
+
+def _params(inner: str) -> tuple[str, list[str]]:
+    """A template's name and its positional parameters (named ones such as ``nocat=`` are
+    left out), split on bars that are not inside a link."""
+    parts: list[str] = []
+    cur: list[str] = []
+    depth = 0
+    i = 0
+    while i < len(inner):
+        if inner.startswith("[[", i):
+            depth += 1
+            cur.append("[[")
+            i += 2
+        elif depth and inner.startswith("]]", i):
+            depth -= 1
+            cur.append("]]")
+            i += 2
+        elif inner[i] == "|" and not depth:
+            parts.append("".join(cur))
+            cur = []
+            i += 1
+        else:
+            cur.append(inner[i])
+            i += 1
+    parts.append("".join(cur))
+    name = parts[0].strip().lower().replace("_", " ")
+    return name, [p for p in parts[1:] if not _NAMED.match(p)]
+
+
+def _render_template(match: re.Match[str]) -> str:
+    name, positional = _params(match.group(1))
+    render = SHOWN_TEMPLATES.get(name)
+    return render(positional) if render else ""
+
+
+def _repair_slips(text: str) -> str:
+    """Mend a missing brace in a template call (see the ``_SLIP_`` patterns)."""
+    text = _SLIP_CLOSE.sub(r"\1}}", text)
+    text = _SLIP_OPEN.sub("{{", text)
+    text = _SLIP_BOTH.sub(r"{{\1}}", text)
+    text = _SLIP_W_AS_LINK_END.sub(r"{{\1}}", text)
+    return _SLIP_W_AS_LINK_START.sub(r"{{\1}}", text)
+
+
+def _expand_templates(text: str) -> str:
+    """Replace templates innermost first: the few that show words keep them, the rest go."""
+    while True:
+        new = _INNER_TEMPLATE.sub(_render_template, text)
+        if new == text:
+            return text
+        text = new
 
 
 def _remove_balanced(text: str, opener: str, closer: str) -> str:
-    """Remove every balanced ``opener ... closer`` block, nested blocks included."""
-    out: list[str] = []
-    depth = 0
+    """Remove every balanced ``opener ... closer`` block, nested blocks included. An opener
+    that is never closed is removed with its template name (or, for a table, the rest of its
+    line), so it does not take the rest of the text with it."""
+    spans: list[tuple[int, int]] = []
+    stack: list[int] = []
     i = 0
     n = len(text)
     while i < n:
         if text.startswith(opener, i):
-            depth += 1
+            stack.append(i)
             i += len(opener)
-        elif depth and text.startswith(closer, i):
-            depth -= 1
+        elif stack and text.startswith(closer, i):
+            start = stack.pop()
             i += len(closer)
+            if not stack:
+                spans.append((start, i))
         else:
-            if not depth:
-                out.append(text[i])
             i += 1
+    for s in stack:  # never closed: the opener goes with its name (or a table's attributes)
+        m = _UNCLOSED_TAIL.match(text, s + len(opener)) if opener == "{{" else None
+        end = m.end() if m else text.find("\n", s) if opener == "{|" else s + len(opener)
+        spans.append((s, end if end > s else n))
+    out: list[str] = []
+    last = 0
+    for s, e in sorted(spans):
+        if s < last:
+            continue
+        out.append(text[last:s])
+        last = e
+    out.append(text[last:])
     return "".join(out)
+
+
+def _render_link(match: re.Match[str]) -> str:
+    target, _, label = match.group(1).partition("|")
+    t = target.strip()
+    if _FILE_LINK.match(t) and not _LINK_PREFIX.match(t):
+        return ""  # a file, a category, or an interlanguage link: dropped
+    # A label with more bars ("[[w:X|Label|]]") is a slip: its last non-empty part is shown.
+    parts = [x for x in label.split("|") if x.strip()]
+    return parts[-1] if parts else _LINK_PREFIX.sub("", t).split("#")[0]
 
 
 def _replace_links(text: str) -> str:
-    """``[[target|label]]`` -> label, ``[[target]]`` -> target; files, categories and
-    interlanguage links are removed."""
-    out: list[str] = []
-    i = 0
+    """``[[target|label]]`` -> label and ``[[target]]`` -> target, innermost first, so a
+    file whose caption holds links is dropped whole; files, categories and interlanguage links
+    are removed. A link with one bracket missing is still read as a link, and stray double
+    brackets left over are removed."""
     while True:
-        start = text.find("[[", i)
-        if start < 0:
-            out.append(text[i:])
+        new = _INNER_LINK.sub(_render_link, text)
+        if new == text:
             break
-        out.append(text[i:start])
-        depth = 0
-        j = start
-        while j < len(text):
-            if text.startswith("[[", j):
-                depth += 1
-                j += 2
-            elif text.startswith("]]", j):
-                depth -= 1
-                j += 2
-                if depth == 0:
-                    break
-            else:
-                j += 1
-        inner = text[start + 2 : j - 2]
-        target, _, label = inner.partition("|")
-        if _FILE_LINK.match(target.strip()) and not _LINK_PREFIX.match(target.strip()):
-            pass  # a file, a category, or an interlanguage link: dropped
-        else:
-            shown = label if label else _LINK_PREFIX.sub("", target).split("#")[0]
-            out.append(shown)
-        i = j
-    return "".join(out)
+        text = new
+    text = _LINK_SHORT_END.sub(_render_link, text)
+    text = _LINK_SHORT_START.sub(_render_link, text)
+    return text.replace("[[", "").replace("]]", "")
+
+
+def _apostrophes(match: re.Match[str]) -> str:
+    """Runs of apostrophes: two (italic), three (bold) and five (both) are markup; in a run
+    of four, or of more than five, the extra apostrophes are real ones."""
+    n = len(match.group())
+    if n == 4:
+        return "'"
+    return "'" * (n - 5) if n > 5 else ""
+
+
+def _entity(match: re.Match[str]) -> str:
+    out = html_unescape(match.group())
+    return " " if out == "\u00a0" else out
 
 
 def wiki_to_text(wikitext: str) -> str:
@@ -124,22 +244,22 @@ def wiki_to_text(wikitext: str) -> str:
         text = text[: match.start()]
     text = _REF.sub("", text)
     text = _DROP_TAGS.sub("", text)
+    text = _repair_slips(text)
+    text = _expand_templates(text)
     text = _remove_balanced(text, "{|", "|}")
+    text = _expand_templates(text)
     text = _remove_balanced(text, "{{", "}}")
-    text = _replace_links(text)
+    text = text.replace("{{", "").replace("}}", "")
     text = _EXT_LINK.sub(lambda m: m.group(1) or "", text)
-    text = text.replace("'''", "").replace("''", "")
+    text = _replace_links(text)
+    text = _APOSTROPHES.sub(_apostrophes, text)
     text = _HEADING.sub(lambda m: m.group(2), text)
+    text = _PARAM_LINE.sub("", text)
     text = _LIST.sub("", text)
     text = _MAGIC.sub("", text)
+    text = _BR.sub("\n", text)
     text = _TAG.sub("", text)
-    text = (
-        text.replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", '"')
-    )
+    text = _ENTITY.sub(_entity, text)
     paragraphs = []
     for block in re.split(r"\n\s*\n|\n", text):
         block = _SPACES.sub(" ", block).strip()

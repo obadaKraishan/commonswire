@@ -7,6 +7,8 @@ import csv
 import io
 from collections import Counter
 
+import pytest
+
 from commonswire import cli
 from commonswire.sources import SOURCE_FIELDS
 from commonswire.wikidump import (
@@ -161,3 +163,59 @@ def test_cli_downloads_once_checks_md5_and_builds(tmp_path, monkeypatch, capsys)
     sums.chmod(0o644)
     sums.write_text("0000  enwikinews-20261101-pages-articles.xml.bz2\n")
     assert cli.main([*root, "wikinews-dump", "--run", "r", "--sources", str(reg)]) == 1
+
+
+@pytest.mark.parametrize(
+    "wikitext, text",
+    [
+        # Templates that show words keep them; named parameters are left out.
+        ("Said {{w|Invented Town}} today.", "Said Invented Town today."),
+        ("Said {{w|Invented Town|the town|nocat=1}}.", "Said the town."),
+        ("A {{wikt|neologism}} and {{W|Place|}}.", "A neologism and Place."),
+        ("On {{nowrap|1 May}}.", "On 1 May."),
+        (
+            "He said {{translated quote|xx|Invented language|Original words|Invented words}}.",
+            'He said "Invented words".',
+        ),
+        # Every other template goes, with any template inside it.
+        ("A {{image|caption={{w|Invented}} here|x=1}}B.", "A B."),
+        ("A {{q|An invented pull-quote}}B.", "A B."),
+        # A template that is never closed removes only its opener, not the rest of the text.
+        (
+            "{{Infobox\n| name = Invented\n| size = 9.9\nThe invented story goes on.",
+            "The invented story goes on.",
+        ),
+        # Slips in the wikitext.
+        ("A {[w|Invented Place}} b.", "A Invented Place b."),
+        ("A {{w|Invented Place} b.", "A Invented Place b."),
+        ("A {w|Invented Place}} b.", "A Invented Place b."),
+        ("A {w|Invented Place|the place} b.", "A the place b."),
+        ("A {{w|Invented Place]] b.", "A Invented Place b."),
+        ("A [[w|Invented Place}} b.", "A Invented Place b."),
+        ("A {{coord|9.9|lat=1} b.", "A b."),
+        # Links: innermost first; a file whose caption holds links and an external link goes.
+        (
+            "A [[File:Invented.jpg|thumb|Caption [[Invented]] [http://example.org ext]]] B.",
+            "A B.",
+        ),
+        ("A [[w:Invented Target|the label|]] B.", "A the label B."),
+        ("A [[Invented Target|label] B.", "A label B."),
+        ("A [Invented Target|label]] B.", "A label B."),
+        ("A stray ]] and [[ B.", "A stray and B."),
+        # Editorial brackets in quotes are text and stay.
+        ('"[T]he invented [...] plan," she said.', '"[T]he invented [...] plan," she said.'),
+        # Character references are decoded; a bare ampersand is left alone.
+        ("A&nbsp;B &mdash; C &#8212; D &#x2014; AT&T &amp;ndash;", "A B — C — D — AT&T &ndash;"),
+        # Map and chart JSON is not text; a line break is a break.
+        ('A <mapframe width="200">{"type": "Feature", "x": [1, 2]}</mapframe>B.', "A B."),
+        ('A <maplink zoom="5"/>B.', "A B."),
+        ("Line one<br />Line two", "Line one\n\nLine two"),
+        # Apostrophes: italic, bold, both, and a real one before bold.
+        ("''Invented'' '''Bold''' '''''Both''''' ''''Quoted'''", "Invented Bold Both 'Quoted"),
+        # Leftover table and parameter lines go; a closed table goes whole.
+        ("Text.\n{|\n| cell\n|-\n| cell\n|}\nMore.", "Text.\n\nMore."),
+        ("Text.\n|-\n| key = value\n!head | cell\nMore.", "Text.\n\nMore."),
+    ],
+)
+def test_wiki_to_text_markup_cases(wikitext, text):
+    assert wiki_to_text(wikitext) == text
