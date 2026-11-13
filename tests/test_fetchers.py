@@ -379,3 +379,39 @@ def test_byline_from_yoast_when_the_user_endpoint_is_closed(tmp_path):
     client, _ = make_test_client(tmp_path, FakeTransport())
     fetcher = GlobalVoicesFetcher(client, gv_source(), RawStore(tmp_path / "raw"))
     assert fetcher.item_from_post(post).authors == ("E. Writer",)
+
+
+def test_dated_self_notes_are_not_third_party():
+    from commonswire.fetchers.wordpress import republication_note
+
+    assert not republication_note("Invented text. This was first published on June 8, 2022.")
+    assert not republication_note("Originally published: March 19, 2020 Last edited: May 1")
+    assert not republication_note("This first appeared in our invented special report package.")
+    assert not republication_note("It was first published in 2021.")
+    assert republication_note("This story was originally published by Invented Daily on May 1.")
+    assert republication_note("This article was first published in Invented Daily: May 1, 2026")
+    assert republication_note("Republished under a content-sharing agreement with Invented Media.")
+    assert not republication_note(
+        "This article has been republished as part of a series on elections."
+    )
+    assert republication_note("Republished here as part of a content-sharing agreement.")
+
+
+def test_360info_sign_off_with_a_license_version(tmp_path):
+    from commonswire.fetchers.wordpress import ThreeSixtyInfoFetcher
+
+    src = parse_row(
+        row(
+            source_id="360info",
+            name="360info",
+            homepage="https://360info.org/",
+            credit_line="{title}, by {authors}, {source} ({url}), {license}",
+        )
+    )
+    client, _ = make_test_client(tmp_path, FakeTransport())
+    f = ThreeSixtyInfoFetcher(client, src, RawStore(tmp_path / "raw"))
+    body = "<p>Invented analysis.</p><p>Originally published under Creative Commons "
+    body += "Attribution 4.0 by 360info\u2122.</p>"
+    item = f.item_from_post(wp_post(1, body=body))
+    assert f.third_party_reason(item) is None
+    assert f.build(item, item.published_at).text == "Invented analysis."

@@ -25,6 +25,37 @@ REPUBLISHED = re.compile(
     r"reprinted with permission|published (here )?with permission)",
     re.I,
 )
+_MONTH = (
+    r"(january|february|march|april|may|june|july|august|september|october|november|december|"
+    r"jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec)\.?"
+)
+#: A note that only dates the source's own earlier publication ("This was first published on
+#: June 8, 2022", "Originally published: March 19, 2020", "first appeared in our ...
+#: package"): not third-party material.
+SELF_DATED = re.compile(
+    r"(originally|first) (published|appeared)\s*(:|on|in)?\s*(on\s+)?"
+    rf"({_MONTH}|\d{{1,2}}\s+{_MONTH}|\d{{4}}\b|our\b)",
+    re.I,
+)
+
+
+#: A note that the source re-runs its own story in a series or package of its own.
+SELF_SERIES = re.compile(
+    r"republished (here )?as part of (a|an|our|the) [^.]{0,40}?"
+    r"(series|package|special report|collection|edition)",
+    re.I,
+)
+
+
+def republication_note(segment: str) -> bool:
+    """True if a stretch of text holds a republication note that is not only a date or the
+    source's own series."""
+    for m in REPUBLISHED.finditer(segment):
+        if not (SELF_DATED.match(segment, m.start()) or SELF_SERIES.match(segment, m.start())):
+            return True
+    return False
+
+
 #: A note that the text is under someone else's rights.
 RIGHTS_NOTE = re.compile(
     r"all rights reserved|\u00a9\s*(the )?(associated press|reuters|afp)", re.I
@@ -192,7 +223,7 @@ class WordPressFetcher(Fetcher):
         text = strip_tags(item.body_html)
         if self.own_notes:
             text = self.strip_own_notes(text)
-        if REPUBLISHED.search(text[:400]) or REPUBLISHED.search(text[-600:]):
+        if republication_note(text[:400]) or republication_note(text[-600:]):
             return "republication_note"
         if RIGHTS_NOTE.search(text[:400]) or RIGHTS_NOTE.search(text[-600:]):
             return "rights_reserved_note"
@@ -228,8 +259,8 @@ class ThreeSixtyInfoFetcher(WordPressFetcher):
     api_base = "https://360info.org"
     language = "en"
     own_notes = (
-        r"Originally published under Creative Commons(?: (?:CC )?BY(?: 4\.0)?| by)?"
-        r"(?: by)? 360info(?:\u2122|TM)?\.?",
+        r"Originally published under (?:a )?Creative Commons[^\n]{0,60}? "
+        r"by 360info(?:\u2122|TM)?\.?",
     )
     drop_classes = (
         "sharedaddy",
