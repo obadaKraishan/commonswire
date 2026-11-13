@@ -1,16 +1,16 @@
 source_id,name,homepage,kind,seed_urls,notes
-globalvoices,Global Voices,https://globalvoices.org/,news,https://globalvoices.org/about/global-voices-attribution-policy/,checked by the planner on 2026-11-13; multilingual (Lingua sites)
-wikinews_en,Wikinews (English),https://en.wikinews.org/,news,https://en.wikinews.org/wiki/Wikinews:Copyright https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use,checked by the planner on 2026-11-13; other language editions share the license
-voa,Voice of America,https://www.voanews.com/,news,,checked by the planner on 2026-11-13; operating status since 2025 to be checked
-statesnewsroom,States Newsroom,https://statesnewsroom.com/,news,,checked by the planner on 2026-11-13; network of about 40 state outlets
+globalvoices,Global Voices,https://globalvoices.org/,news,https://globalvoices.org/about/global-voices-attribution-policy/,an earlier check on 2026-11-13; multilingual (Lingua sites)
+wikinews_en,Wikinews (English),https://en.wikinews.org/,news,https://en.wikinews.org/wiki/Wikinews:Copyright https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use,an earlier check on 2026-11-13; other language editions share the license
+voa,Voice of America,https://www.voanews.com/,news,,an earlier check on 2026-11-13; operating status since 2025 to be checked
+statesnewsroom,States Newsroom,https://statesnewsroom.com/,news,,an earlier check on 2026-11-13; network of about 40 state outlets
 georgiarecorder,Georgia Recorder (States Newsroom),https://georgiarecorder.com/,news,,States Newsroom outlet: checked for the license it names
 ohiocapitaljournal,Ohio Capital Journal (States Newsroom),https://ohiocapitaljournal.com/,news,,States Newsroom outlet: checked for the license it names
 floridaphoenix,Florida Phoenix (States Newsroom),https://floridaphoenix.com/,news,,States Newsroom outlet: checked for the license it names
 azmirror,Arizona Mirror (States Newsroom),https://azmirror.com/,news,,States Newsroom outlet: checked for the license it names
 marylandmatters,Maryland Matters,https://marylandmatters.org/,news,,
 stateline,Stateline,https://stateline.org/,news,,
-propublica,ProPublica,https://www.propublica.org/,news,https://www.propublica.org/steal-our-stories,checked by the planner on 2026-11-13 (exclude expected)
-theconversation,The Conversation (US),https://theconversation.com/us,news,https://theconversation.com/us/republishing-guidelines,checked by the planner on 2026-11-13 (exclude expected)
+propublica,ProPublica,https://www.propublica.org/,news,https://www.propublica.org/steal-our-stories,an earlier check on 2026-11-13 (exclude expected)
+theconversation,The Conversation (US),https://theconversation.com/us,news,https://theconversation.com/us/republishing-guidelines,an earlier check on 2026-11-13 (exclude expected)
 agenciabrasil,Agência Brasil,https://agenciabrasil.ebc.com.br/,news,,Portuguese; public news agency (EBC)
 360info,360info,https://360info.org/,news,,
 scidevnet,SciDev.Net,https://www.scidev.net/global/,news,,
