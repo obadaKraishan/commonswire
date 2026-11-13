@@ -1,6 +1,6 @@
 {
-  "candidate_pairs": 341109,
-  "candidate_pairs_cross_source": 184963,
+  "candidate_pairs": 342813,
+  "candidate_pairs_cross_source": 185983,
   "dropped_exact": {
     "same_text:360info": 1,
     "same_text:altnews": 1,
@@ -14,37 +14,37 @@
     {
       "from": 0.0,
       "mean_title_overlap": 0.002,
-      "pairs": 10253,
+      "pairs": 10364,
       "to": 0.05
     },
     {
       "from": 0.05,
       "mean_title_overlap": 0.006,
-      "pairs": 129056,
+      "pairs": 130140,
       "to": 0.1
     },
     {
       "from": 0.1,
       "mean_title_overlap": 0.01,
-      "pairs": 44550,
+      "pairs": 44400,
       "to": 0.15
     },
     {
       "from": 0.15,
       "mean_title_overlap": 0.013,
-      "pairs": 1053,
+      "pairs": 1032,
       "to": 0.2
     },
     {
       "from": 0.2,
-      "mean_title_overlap": 0.041,
-      "pairs": 44,
+      "mean_title_overlap": 0.046,
+      "pairs": 39,
       "to": 0.25
     },
     {
       "from": 0.25,
-      "mean_title_overlap": 0.297,
-      "pairs": 5,
+      "mean_title_overlap": 0.247,
+      "pairs": 6,
       "to": 0.3
     },
     {
@@ -64,85 +64,85 @@
     {
       "from": 0.0,
       "mean_title_overlap": 0.003,
-      "pairs": 3146,
+      "pairs": 3272,
       "to": 0.05
     },
     {
       "from": 0.05,
       "mean_title_overlap": 0.011,
-      "pairs": 55702,
+      "pairs": 56280,
       "to": 0.1
     },
     {
       "from": 0.1,
       "mean_title_overlap": 0.036,
-      "pairs": 78185,
+      "pairs": 78152,
       "to": 0.15
     },
     {
       "from": 0.15,
       "mean_title_overlap": 0.07,
-      "pairs": 15341,
+      "pairs": 15336,
       "to": 0.2
     },
     {
       "from": 0.2,
-      "mean_title_overlap": 0.112,
-      "pairs": 2177,
+      "mean_title_overlap": 0.113,
+      "pairs": 2179,
       "to": 0.25
     },
     {
       "from": 0.25,
-      "mean_title_overlap": 0.197,
-      "pairs": 568,
+      "mean_title_overlap": 0.198,
+      "pairs": 570,
       "to": 0.3
     },
     {
       "from": 0.3,
-      "mean_title_overlap": 0.249,
-      "pairs": 266,
+      "mean_title_overlap": 0.253,
+      "pairs": 271,
       "to": 0.35
     },
     {
       "from": 0.35,
-      "mean_title_overlap": 0.282,
-      "pairs": 174,
+      "mean_title_overlap": 0.286,
+      "pairs": 178,
       "to": 0.4
     },
     {
       "from": 0.4,
-      "mean_title_overlap": 0.281,
-      "pairs": 104,
+      "mean_title_overlap": 0.273,
+      "pairs": 100,
       "to": 0.45
     },
     {
       "from": 0.45,
-      "mean_title_overlap": 0.33,
-      "pairs": 77,
+      "mean_title_overlap": 0.331,
+      "pairs": 84,
       "to": 0.5
     },
     {
       "from": 0.5,
-      "mean_title_overlap": 0.334,
-      "pairs": 72,
+      "mean_title_overlap": 0.331,
+      "pairs": 71,
       "to": 0.55
     },
     {
       "from": 0.55,
-      "mean_title_overlap": 0.476,
-      "pairs": 59,
+      "mean_title_overlap": 0.48,
+      "pairs": 60,
       "to": 0.6
     },
     {
       "from": 0.6,
-      "mean_title_overlap": 0.554,
+      "mean_title_overlap": 0.556,
       "pairs": 66,
       "to": 0.65
     },
     {
       "from": 0.65,
-      "mean_title_overlap": 0.636,
-      "pairs": 60,
+      "mean_title_overlap": 0.627,
+      "pairs": 61,
       "to": 0.7
     },
     {
@@ -165,8 +165,8 @@
     },
     {
       "from": 0.85,
-      "mean_title_overlap": 0.889,
-      "pairs": 16,
+      "mean_title_overlap": 0.866,
+      "pairs": 17,
       "to": 0.9
     },
     {
@@ -182,8 +182,8 @@
       "to": 1.0
     }
   ],
-  "kept_after_exact": 47587,
+  "kept_after_exact": 47595,
   "oversized_buckets_skipped": 0,
-  "rows_in": 47626,
+  "rows_in": 47634,
   "threshold": 0.6
 }

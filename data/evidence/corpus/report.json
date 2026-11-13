@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-13T16:17:04+00:00",
+  "as_of": "2026-11-13T19:44:30+00:00",
   "near_duplicate_threshold": 0.6,
   "sources": {
     "360info": {
@@ -23,10 +23,10 @@
       "near_duplicate_flags": 0,
       "per_day_last_90_days": 0.48,
       "raw_gb": 0.023,
-      "releasable_rows": 1846,
+      "releasable_rows": 2400,
       "rows_gb": 0.017,
       "rows_kept": 2409,
-      "share_with_byline": 0.766,
+      "share_with_byline": 0.996,
       "words_median": 980,
       "words_total": 2269014
     },
@@ -91,10 +91,10 @@
       "near_duplicate_flags": 0,
       "per_day_last_90_days": 0.24,
       "raw_gb": 0.009,
-      "releasable_rows": 0,
+      "releasable_rows": 789,
       "rows_gb": 0.007,
       "rows_kept": 880,
-      "share_with_byline": 0.0,
+      "share_with_byline": 0.897,
       "words_median": 958.0,
       "words_total": 952669
     },
@@ -162,10 +162,10 @@
       "near_duplicate_flags": 0,
       "per_day_last_90_days": 0.53,
       "raw_gb": 0.015,
-      "releasable_rows": 0,
+      "releasable_rows": 2749,
       "rows_gb": 0.011,
       "rows_kept": 2749,
-      "share_with_byline": 0.0,
+      "share_with_byline": 1.0,
       "words_median": 317,
       "words_total": 1271171
     },
@@ -173,13 +173,13 @@
       "articles_per_year": {
         "2004": 42,
         "2005": 2672,
-        "2006": 3543,
+        "2006": 3544,
         "2007": 3409,
-        "2008": 2613,
+        "2008": 2614,
         "2009": 2207,
-        "2010": 1802,
-        "2011": 835,
-        "2012": 615,
+        "2010": 1805,
+        "2011": 836,
+        "2012": 617,
         "2013": 412,
         "2014": 322,
         "2015": 315,
@@ -195,40 +195,40 @@
         "2025": 190,
         "2026": 38
       },
-      "dropped_other": 91905,
+      "dropped_other": 91897,
       "dropped_third_party": 0,
       "exact_duplicates_dropped": 29,
       "first": "2004-11-13",
       "kind": "news",
       "last": "2026-05-03",
       "license_classes": {
-        "by": 18689,
+        "by": 18697,
         "pd": 1954
       },
       "near_duplicate_flags": 0,
       "per_day_last_90_days": 0.0,
       "raw_gb": 0.048,
-      "releasable_rows": 20643,
-      "rows_gb": 0.058,
-      "rows_kept": 20643,
+      "releasable_rows": 20651,
+      "rows_gb": 0.059,
+      "rows_kept": 20651,
       "share_with_byline": 0.0,
-      "words_median": 243,
-      "words_total": 6995958
+      "words_median": 248,
+      "words_total": 7120820
     }
   },
   "total": {
     "dropped_third_party": 65,
     "exact_duplicates_dropped": 39,
     "license_classes": {
-      "by": 42884,
+      "by": 42892,
       "by-sa": 2749,
       "pd": 1954
     },
     "per_day_last_90_days": 4.72,
     "raw_gb": 0.358,
-    "releasable_rows": 43395,
-    "rows_gb": 0.207,
-    "rows_kept": 47587,
-    "words_total": 22567765
+    "releasable_rows": 47495,
+    "rows_gb": 0.208,
+    "rows_kept": 47595,
+    "words_total": 22692627
   }
 }
