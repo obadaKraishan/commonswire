@@ -469,6 +469,64 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     return 0 if check.ok else 1
 
 
+def cmd_dedup(args: argparse.Namespace) -> int:
+    import json
+    from collections import Counter
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from commonswire.dedup import exact_duplicates, histogram, near_duplicates, read_rows
+
+    root = Path(args.root)
+    paths = sorted((root / "data" / "interim" / "rows").glob("*.jsonl"))
+    rows = list(read_rows(paths))
+    order = [p.stem for p in paths]
+    exact = exact_duplicates(rows, order)
+    by_id = {r.id: r for r in rows}
+    pairs, oversized = near_duplicates(by_id, exact.kept_ids)
+    threshold = args.threshold
+    cross = [p for p in pairs if p[2] != p[3]]
+    flagged = [p for p in cross if p[4] >= threshold]
+    out = root / "data" / "interim" / "dedup"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "dropped.json").write_text(json.dumps(exact.dropped, indent=1) + "\n")
+    table = pa.table(
+        {
+            "id_a": [p[0] for p in pairs],
+            "id_b": [p[1] for p in pairs],
+            "source_a": [p[2] for p in pairs],
+            "source_b": [p[3] for p in pairs],
+            "jaccard": [p[4] for p in pairs],
+            "title_overlap": [p[5] for p in pairs],
+        }
+    )
+    pq.write_table(table, out / "near_duplicates.parquet")
+    summary = {
+        "rows_in": exact.rows_in,
+        "kept_after_exact": len(exact.kept_ids),
+        "dropped_exact": dict(sorted(exact.dropped_by.items())),
+        "candidate_pairs": len(pairs),
+        "candidate_pairs_cross_source": len(cross),
+        "oversized_buckets_skipped": oversized,
+        "threshold": threshold,
+        "flagged_pairs_cross_source": len(flagged),
+        "flagged_rows_cross_source": len({x for p in flagged for x in p[:2]}),
+        "flagged_by_source_pair": dict(Counter(f"{p[2]}|{p[3]}" for p in flagged)),
+        "histogram_cross_source": histogram(pairs, cross_source=True),
+        "histogram_same_source": histogram(pairs, cross_source=False),
+    }
+    ev = root / "data" / "evidence" / "dedup"
+    ev.mkdir(parents=True, exist_ok=True)
+    (ev / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    print(
+        f"{exact.rows_in} rows; {len(exact.kept_ids)} after exact duplicates "
+        f"({dict(exact.dropped_by)}); {len(pairs)} candidate pairs, {len(cross)} across "
+        f"sources; {len(flagged)} flagged at Jaccard >= {threshold}"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -556,6 +614,10 @@ def build_parser() -> argparse.ArgumentParser:
     wd.add_argument("--download", action="store_true", help="download the dump once first")
     wd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     wd.set_defaults(func=cmd_wikinews_dump)
+
+    dd = sub.add_parser("dedup", help="drop exact duplicates and flag near-duplicates")
+    dd.add_argument("--threshold", type=float, default=0.8, help="Jaccard for a flag")
+    dd.set_defaults(func=cmd_dedup)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
