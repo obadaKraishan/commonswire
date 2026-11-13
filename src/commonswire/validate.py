@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from commonswire.licensing import LICENSE_SCHEDULES, license_on
 from commonswire.schema import Article
 from commonswire.sources import PUBLIC_DOMAIN, Source, render_credit
 
@@ -90,7 +91,14 @@ def _registry_problems(art: Article, registry: Mapping[str, Source]) -> list[str
     out = []
     if src.status != "include":
         out.append(f"source {art.source_id} is {src.status}, not include; its articles stay out")
-    if art.license not in (src.license, PUBLIC_DOMAIN):
+    if src.source_id in LICENSE_SCHEDULES:
+        expected_license = license_on(src.source_id, art.published_at, src.license)
+        if art.license != expected_license:
+            out.append(
+                f"license {art.license} is wrong for an article of {art.published_at.date()}; "
+                f"the source's license then was {expected_license}"
+            )
+    elif art.license not in (src.license, PUBLIC_DOMAIN):
         out.append(f"license {art.license} differs from the source's license {src.license}")
     expected = render_credit(
         src.credit_line,

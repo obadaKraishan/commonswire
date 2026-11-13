@@ -6,7 +6,8 @@ first, with the time each article was published), and their plain text comes fro
 TextExtracts API, 20 articles per request. The text stops at the first closing section
 (Sources, Related news, External links, Sister links).
 
-Wikinews text is CC BY 2.5 from 2005-09-25; earlier articles are in the public domain.
+Wikinews text is CC BY 2.5 from 2005-09-25 and CC BY 4.0 after 2024-12-16; earlier articles are
+in the public domain (``commonswire.licensing``).
 Articles have no bylines: the credit names "Wikinews contributors".
 """
 
@@ -14,15 +15,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
-from datetime import date, datetime
+from datetime import datetime
 from urllib.parse import quote, urlencode
 
 from commonswire.fetchers.base import Fetcher, Item
-from commonswire.sources import PUBLIC_DOMAIN
+from commonswire.licensing import license_on
 
 API = "https://en.wikinews.org/w/api.php"
 ARTICLE_URL = "https://en.wikinews.org/wiki/"
-LICENSE_FROM = date(2005, 9, 25)
 EXTRACTS_PER_REQUEST = 20
 LIST_LIMIT = 500
 
@@ -53,9 +53,7 @@ class WikinewsFetcher(Fetcher):
         return f"{API}?{urlencode(params)}"
 
     def license_for(self, item: Item) -> str:
-        if item.published_at.date() < LICENSE_FROM:
-            return PUBLIC_DOMAIN
-        return self.source.license
+        return license_on(self.source_id, item.published_at, self.source.license)
 
     def items(self, limit: int) -> Iterator[Item]:
         listing = self.get_json(

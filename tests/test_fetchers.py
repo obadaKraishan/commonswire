@@ -75,7 +75,8 @@ def gv_site(posts_p1, posts_p2=(), total=None, per_page=3):
 
 
 def test_registry_of_fetchers():
-    assert set(FETCHERS) == {"globalvoices", "wikinews_en"}
+    assert set(FETCHERS) == {"globalvoices", "wikinews_en", "360info"}
+    assert FETCHERS["360info"].api_base == "https://360info.org"
 
 
 def test_fetcher_refuses_a_source_that_is_not_include(tmp_path):
@@ -294,15 +295,37 @@ def test_wikinews_sample_licenses_by_date_and_credits_contributors(tmp_path):
         "Invented early story",
     ]
     new, old = result.kept
-    assert new.license == "CC-BY-2.5" and old.license == "public-domain"
+    assert new.license == "CC-BY-4.0" and old.license == "public-domain"
     assert new.url == "https://en.wikinews.org/wiki/Invented_town_elects_council"
     assert new.updated_at == datetime(2026, 5, 1, tzinfo=timezone.utc)
     assert old.updated_at is None
     assert new.credit_line == (
         "Invented town elects council, by Wikinews contributors "
-        "(https://en.wikinews.org/wiki/Invented_town_elects_council), CC BY 2.5"
+        "(https://en.wikinews.org/wiki/Invented_town_elects_council), CC BY 4.0"
     )
     assert old.credit_line.endswith("Public domain")
     assert "invented source line" not in new.text
     assert new.authors == ()
     assert result.raw_files == ["001-published-list.json", "002-extracts-01.json"]
+
+
+def test_wikinews_license_schedule_and_validation(tmp_path):
+    from commonswire.licensing import license_on
+
+    def at(y, m, d):
+        return datetime(y, m, d, 12, tzinfo=timezone.utc)
+
+    assert license_on("wikinews_en", at(2005, 9, 24), "CC-BY-2.5") == "public-domain"
+    assert license_on("wikinews_en", at(2005, 9, 25), "CC-BY-2.5") == "CC-BY-2.5"
+    assert license_on("wikinews_en", at(2024, 12, 16), "CC-BY-2.5") == "CC-BY-2.5"
+    assert license_on("wikinews_en", at(2024, 12, 17), "CC-BY-2.5") == "CC-BY-4.0"
+    assert license_on("globalvoices", at(2024, 12, 17), "CC-BY-3.0") == "CC-BY-3.0"
+    client, _ = make_test_client(tmp_path, wn_site())
+    result = run_sample(WikinewsFetcher(client, wn_source(), RawStore(tmp_path / "raw")), limit=3)
+    assert [a.license for a in result.kept] == ["CC-BY-4.0", "public-domain"]
+    write_sample(result, tmp_path / "wn.jsonl")
+    assert validate_file(tmp_path / "wn.jsonl", {"wikinews_en": wn_source()}).ok
+    wrong = result.kept[0].model_copy(update={"license": "CC-BY-2.5"})
+    (tmp_path / "bad.jsonl").write_text(wrong.model_dump_json() + "\n")
+    errors = validate_file(tmp_path / "bad.jsonl", {"wikinews_en": wn_source()}).errors
+    assert any("the source's license then was CC-BY-4.0" in e for e in errors)

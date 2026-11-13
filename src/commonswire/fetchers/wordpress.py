@@ -155,3 +155,21 @@ class GlobalVoicesFetcher(WordPressFetcher):
         "wp-caption",
         "credit",
     )
+
+
+class ThreeSixtyInfoFetcher(WordPressFetcher):
+    """360info: commissioned articles by named researchers, CC BY 4.0 except where noted.
+    Third-party material is noted with the content; such posts are dropped."""
+
+    source_id = "360info"
+    api_base = "https://360info.org"
+    language = "en"
+    drop_classes = (
+        "sharedaddy",
+        "jp-relatedposts",
+        "republish",
+        "share",
+        "newsletter",
+        "wp-caption",
+        "related",
+    )
