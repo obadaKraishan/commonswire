@@ -65,6 +65,50 @@ def cmd_evidence_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate(args: argparse.Namespace) -> int:
+    from commonswire.sources import load_sources
+    from commonswire.validate import validate_file
+
+    registry = None
+    if not args.no_registry:
+        try:
+            registry = load_sources(Path(args.sources))
+        except (OSError, ValueError) as exc:
+            print(f"can't use the source registry: {exc}", file=sys.stderr)
+            return 2
+    result = validate_file(Path(args.file), registry)
+    for msg in result.errors:
+        print(f"error: {msg}")
+    for msg in result.warnings:
+        print(f"warning: {msg}")
+    print(
+        f"{args.file}: {result.articles} articles, {len(result.errors)} errors, "
+        f"{len(result.warnings)} warnings"
+    )
+    return 0 if result.ok else 1
+
+
+def cmd_sources_check(args: argparse.Namespace) -> int:
+    from collections import Counter
+
+    from commonswire.evidence import page_texts
+    from commonswire.sources import check_quotes, validate_sources
+
+    root = Path(args.root)
+    sources, problems = validate_sources(Path(args.sources))
+    if not args.no_quotes:
+        if (root / "data" / "raw" / "evidence").exists():
+            problems += check_quotes(sources, lambda sid: page_texts(root, sid))
+        else:
+            print("note: no saved evidence pages here, so quotes were not checked")
+    for msg in problems:
+        print(f"problem: {msg}")
+    counts = Counter(s.status for s in sources)
+    summary = ", ".join(f"{counts[k]} {k}" for k in ("include", "pending", "exclude"))
+    print(f"{args.sources}: {len(sources)} sources ({summary}), {len(problems)} problems")
+    return 0 if not problems else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -90,6 +134,23 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--date", default=_today())
     extract.add_argument("--only", help="comma-separated source ids")
     extract.set_defaults(func=cmd_evidence_extract)
+
+    src = sub.add_parser("sources", help="check the source registry")
+    src_sub = src.add_subparsers(dest="sources_command", metavar="STEP", required=True)
+    check = src_sub.add_parser("check", help="check every rule and every quote")
+    check.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    check.add_argument(
+        "--no-quotes", action="store_true", help="skip the check against saved pages"
+    )
+    check.set_defaults(func=cmd_sources_check)
+
+    val = sub.add_parser("validate", help="check a JSON Lines file of articles")
+    val.add_argument("file")
+    val.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    val.add_argument(
+        "--no-registry", action="store_true", help="check the schema only, not the sources"
+    )
+    val.set_defaults(func=cmd_validate)
     return parser
 
 

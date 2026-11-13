@@ -307,6 +307,18 @@ def rule_problems(src: Source, today: date | None = None) -> list[str]:
             out.append(f"status is include, but point {open_[0]} (that makes it pending)")
         if not src.credit_line:
             out.append("status is include: give the credit_line every row must carry")
+        else:
+            try:
+                render_credit(
+                    src.credit_line,
+                    title="t",
+                    authors=(),
+                    source=src.name,
+                    url="u",
+                    license=src.license,
+                )
+            except ValueError as exc:
+                out.append(str(exc))
         if not src.access:
             out.append("status is include: say how articles are collected in access")
         if not src.terms_url:
@@ -431,3 +443,52 @@ def load_sources(path: Path) -> dict[str, Source]:
     if problems:
         raise ValueError(f"{path} has {len(problems)} problem(s); the first: {problems[0]}")
     return {s.source_id: s for s in sources}
+
+
+#: Placeholders a registry credit line may use; each row's credit line is the template filled in.
+CREDIT_FIELDS = ("title", "authors", "source", "url", "license")
+
+
+def license_label(spdx: str) -> str:
+    """A license as people write it: CC-BY-4.0 -> CC BY 4.0, public-domain -> Public domain."""
+    if spdx == PUBLIC_DOMAIN:
+        return "Public domain"
+    if spdx == "CC0-1.0":
+        return "CC0 1.0"
+    if spdx.startswith("CC-"):
+        parts = spdx[3:].split("-")
+        version = [p for p in parts if p[0].isdigit() or p in ("US", "IGO")]
+        terms = [p for p in parts if p not in version]
+        return "CC " + "-".join(terms) + " " + " ".join(version)
+    return spdx
+
+
+def render_credit(
+    template: str,
+    *,
+    title: str,
+    authors: Iterable[str],
+    source: str,
+    url: str,
+    license: str,
+) -> str:
+    """Fill in a registry credit line for one article.
+
+    ``{authors}`` becomes the bylines joined with commas, or the source's name when there is
+    no byline; ``{license}`` becomes the license as people write it (CC BY 4.0).
+    """
+    names = [a for a in authors if a.strip()]
+    values = {
+        "title": title,
+        "authors": ", ".join(names) if names else source,
+        "source": source,
+        "url": url,
+        "license": license_label(license),
+    }
+    try:
+        return template.format(**values)
+    except (KeyError, IndexError, ValueError) as exc:
+        raise ValueError(
+            f"the credit line {template!r} uses an unknown placeholder ({exc}); "
+            f"use {', '.join('{' + f + '}' for f in CREDIT_FIELDS)}"
+        ) from exc
