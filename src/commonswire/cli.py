@@ -111,15 +111,22 @@ def cmd_sources_check(args: argparse.Namespace) -> int:
 
 def cmd_probe(args: argparse.Namespace) -> int:
     from commonswire.evidence import _append
-    from commonswire.http import make_client
-    from commonswire.probe import VOLUME_FIELDS, probe_sitemap, probe_wordpress
+    from commonswire.http import Blocked, FetchError, make_client
+    from commonswire.probe import VOLUME_FIELDS, Volume, probe_sitemap, probe_wordpress
 
     root = Path(args.root)
     client = make_client(root, byte_budget=20 * 1024 * 1024)
-    if args.wordpress:
-        vol = probe_wordpress(client, args.source_id, args.wordpress)
-    else:
-        vol = probe_sitemap(client, args.source_id, args.sitemap)
+    try:
+        if args.wordpress:
+            vol = probe_wordpress(client, args.source_id, args.wordpress)
+        else:
+            vol = probe_sitemap(client, args.source_id, args.sitemap)
+    except Blocked as exc:
+        method = "wordpress" if args.wordpress else "sitemap"
+        vol = Volume(args.source_id, method, requests=1, note=f"refused: HTTP {exc.status}")
+    except FetchError as exc:
+        method = "wordpress" if args.wordpress else "sitemap"
+        vol = Volume(args.source_id, method, note=f"not fetched: {exc}"[:120])
     _append(root / "data" / "evidence" / "volume.csv", VOLUME_FIELDS, [vol.row(args.date)])
     print(
         f"{args.source_id}: {vol.per_day if vol.per_day is not None else '?'} a day over "

@@ -226,3 +226,21 @@ def test_cli_sample_probe_and_report(tmp_path, monkeypatch, capsys):
         ).read_text()
     )
     assert rep["kept"] == 2 and rep["backfill"]["archive_articles"] == 40
+
+
+def test_cli_probe_records_a_refusal_without_retrying(tmp_path, monkeypatch, capsys):
+    t = FakeTransport().add(f"{SITE}/robots.txt", (404, ""))
+    t.add(f"{SITE}/wp-json/wp/v2/posts?per_page=100&_fields=date_gmt&orderby=date", (403, "no"))
+    t.add("https://other.example.org/robots.txt", (200, "User-agent: *\nDisallow: /\n"))
+
+    def fake_make_client(root, *, byte_budget=None, transport=None):
+        client, _ = make_test_client(root / "data", t, byte_budget=byte_budget)
+        return client
+
+    monkeypatch.setattr("commonswire.http.make_client", fake_make_client)
+    root = ["--root", str(tmp_path)]
+    assert cli.main([*root, "probe", "x", "--wordpress", SITE]) == 0
+    assert cli.main([*root, "probe", "y", "--sitemap", "https://other.example.org/s.xml"]) == 0
+    rows = list(csv.DictReader((tmp_path / "data" / "evidence" / "volume.csv").open()))
+    assert rows[0]["note"] == "refused: HTTP 403" and rows[0]["requests"] == "1"
+    assert rows[1]["note"].startswith("not fetched: robots.txt does not allow")
