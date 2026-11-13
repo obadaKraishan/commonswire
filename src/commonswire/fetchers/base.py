@@ -1,0 +1,207 @@
+"""The interface every fetcher follows, and the sample runner.
+
+A fetcher lists a source's newest items through the source's own API or feed (``items``), says
+whether an item is third-party material (``third_party_reason``), and turns an item into an
+:class:`~commonswire.schema.Article` (``build``). The runner saves every API answer once,
+unchanged, as raw data, keeps the source's own articles, and drops and counts the rest.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from abc import ABC, abstractmethod
+from collections import Counter
+from collections.abc import Iterator
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+from commonswire.html import article_text
+from commonswire.http import PoliteClient, Response
+from commonswire.schema import Article, make_article
+from commonswire.sources import Source, render_credit
+
+#: The most articles a sample may hold from one source in one session.
+SAMPLE_CAP = 200
+
+
+@dataclass(frozen=True)
+class Item:
+    """One article as a source's API gives it, before cleaning."""
+
+    url: str
+    title: str
+    body_html: str
+    published_at: datetime
+    language: str
+    updated_at: datetime | None = None
+    authors: tuple[str, ...] = ()
+    section: str = ""
+    license: str | None = None
+    #: Source-specific facts used to spot third-party material (categories, credits, flags).
+    hints: dict[str, object] = field(default_factory=dict)
+    #: Body text that is already plain (for APIs that give text, not HTML).
+    body_text: str | None = None
+
+
+@dataclass
+class RawStore:
+    """Saves every API answer once, unchanged, under ``data/raw/sample/<source>/<date>/``."""
+
+    folder: Path
+    count: int = 0
+    files: list[str] = field(default_factory=list)
+
+    def save(self, resp: Response, label: str) -> None:
+        self.count += 1
+        self.folder.mkdir(parents=True, exist_ok=True)
+        name = f"{self.count:03d}-{label}.json"
+        with (self.folder / name).open("xb") as fh:  # write once, never overwrite
+            fh.write(resp.body)
+        self.files.append(name)
+
+
+@dataclass
+class SampleResult:
+    source_id: str
+    kept: list[Article] = field(default_factory=list)
+    dropped: Counter[str] = field(default_factory=Counter)
+    seen: int = 0
+    raw_files: list[str] = field(default_factory=list)
+    raw_bytes: int = 0
+    api_totals: dict[str, object] = field(default_factory=dict)
+
+
+class Fetcher(ABC):
+    """Base class: subclasses set ``source_id`` and implement ``items`` and
+    ``third_party_reason``."""
+
+    source_id: str = ""
+    #: Classes and ids of boilerplate blocks inside the body (share boxes, newsletter forms).
+    drop_classes: tuple[str, ...] = ()
+
+    def __init__(self, client: PoliteClient, source: Source, raw: RawStore) -> None:
+        if source.source_id != self.source_id:
+            raise ValueError(f"this fetcher is for {self.source_id}, not {source.source_id}")
+        if source.status != "include":
+            raise ValueError(
+                f"{source.source_id} is {source.status} in the registry; only include sources "
+                "are fetched"
+            )
+        self.client = client
+        self.source = source
+        self.raw = raw
+        self.api_totals: dict[str, object] = {}
+
+    def get_json(self, url: str, label: str) -> object:
+        """GET an API answer politely, save it as raw data, and parse it."""
+        resp = self.client.get(url, accept="application/json", note=f"sample:{self.source_id}")
+        if resp.status != 200:
+            raise RuntimeError(f"{url} answered HTTP {resp.status}")
+        self.raw.save(resp, label)
+        return resp.json()
+
+    @abstractmethod
+    def items(self, limit: int) -> Iterator[Item]:
+        """The newest items, newest first, at most ``limit`` of them."""
+
+    @abstractmethod
+    def third_party_reason(self, item: Item) -> str | None:
+        """Why an item is third-party material, or None if it is the source's own."""
+
+    def license_for(self, item: Item) -> str:
+        return item.license or self.source.license
+
+    def build(self, item: Item, retrieved_at: datetime) -> Article:
+        text = (
+            item.body_text
+            if item.body_text is not None
+            else article_text(item.body_html, self.drop_classes)
+        )
+        lic = self.license_for(item)
+        credit = render_credit(
+            self.source.credit_line,
+            title=item.title,
+            authors=item.authors,
+            source=self.source.name,
+            url=item.url,
+            license=lic,
+        )
+        return make_article(
+            source_id=self.source_id,
+            url=item.url,
+            title=item.title,
+            text=text,
+            published_at=item.published_at,
+            updated_at=item.updated_at,
+            retrieved_at=retrieved_at,
+            language=item.language,
+            license=lic,
+            credit_line=credit,
+            authors=item.authors,
+            section=item.section,
+        )
+
+
+def run_sample(fetcher: Fetcher, limit: int = SAMPLE_CAP) -> SampleResult:
+    """Fetch up to ``limit`` items; keep the source's own articles, drop and count the rest."""
+    if limit > SAMPLE_CAP:
+        raise ValueError(f"a sample holds at most {SAMPLE_CAP} articles per source; ask first")
+    result = SampleResult(source_id=fetcher.source_id)
+    retrieved_at = datetime.now(timezone.utc).replace(microsecond=0)
+    seen_urls: set[str] = set()
+    for item in fetcher.items(limit):
+        result.seen += 1
+        if item.url in seen_urls:
+            result.dropped["duplicate"] += 1
+            continue
+        seen_urls.add(item.url)
+        reason = fetcher.third_party_reason(item)
+        if reason:
+            result.dropped[f"third_party:{reason}"] += 1
+            continue
+        try:
+            article = fetcher.build(item, retrieved_at)
+        except ValueError as exc:
+            result.dropped[f"invalid:{_short(exc)}"] += 1
+            continue
+        result.kept.append(article)
+    result.raw_files = list(fetcher.raw.files)
+    result.raw_bytes = sum((fetcher.raw.folder / f).stat().st_size for f in fetcher.raw.files)
+    result.api_totals = dict(fetcher.api_totals)
+    return result
+
+
+def _short(exc: Exception) -> str:
+    text = str(exc).splitlines()
+    for line in text:
+        if line.strip() and not line.startswith(("1 validation error", "  ")):
+            return line.strip()[:60]
+    return type(exc).__name__
+
+
+def write_sample(result: SampleResult, path: Path) -> str:
+    """Write the kept articles as JSON Lines (once); return the file's SHA-256."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = "".join(a.model_dump_json() + "\n" for a in result.kept).encode("utf-8")
+    with path.open("xb") as fh:
+        fh.write(data)
+    return hashlib.sha256(data).hexdigest()
+
+
+def summary(result: SampleResult) -> dict[str, object]:
+    """Counts only, no text: what was seen, kept and dropped, and why."""
+    return {
+        "source_id": result.source_id,
+        "seen": result.seen,
+        "kept": len(result.kept),
+        "dropped": dict(sorted(result.dropped.items())),
+        "raw_files": len(result.raw_files),
+        "raw_bytes": result.raw_bytes,
+        "api_totals": result.api_totals,
+    }
+
+
+def dumps(obj: object) -> str:
+    return json.dumps(obj, indent=2, sort_keys=True, default=str) + "\n"
