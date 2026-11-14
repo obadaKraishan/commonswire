@@ -30,6 +30,7 @@ import json
 import os
 import re
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -162,6 +163,12 @@ class Checks:
     credit_mismatch: list[str] = field(default_factory=list)
     third_party: list[str] = field(default_factory=list)
     unreleasable_class: list[str] = field(default_factory=list)
+    #: Ids only (no text, no address): the held rows with their source, day and reason, and
+    #: the rows dropped as exact duplicates, removed or taken down.
+    held_ids: dict[str, dict[str, str]] = field(default_factory=dict)
+    duplicate_ids: list[str] = field(default_factory=list)
+    removed_ids: list[str] = field(default_factory=list)
+    taken_down_ids: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -213,66 +220,95 @@ def _flags(rows: dict[str, Row], kept: list[str], threshold: float) -> tuple[dic
     return {k: sorted(v) for k, v in flags.items()}, n
 
 
+def _read_jsonl(path: Path) -> Iterator[dict]:
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            yield json.loads(line)
+
+
 def collect(
     root: Path,
     version: str,
     registry: dict[str, Source],
     threshold: float = NEAR_DUPLICATE_THRESHOLD,
+    *,
+    rows: Mapping[str, Iterable[dict]] | None = None,
+    takedowns_path: Path | None = None,
 ) -> Release:
-    """Read, deduplicate, check and group the rows of a version (nothing is written)."""
+    """Read, deduplicate, check and group the rows of a version (nothing is written).
+
+    The rows come from ``data/interim/rows/<source>.jsonl`` under ``root``, or from ``rows``
+    (source id -> rows) when given, as ``commonswire update`` does; the takedown list from
+    ``data/takedowns.csv`` under ``root``, or ``takedowns_path``."""
     sources = series_sources(version)
-    takedowns = load_takedowns(root / "data" / "takedowns.csv")
+    takedowns = load_takedowns(takedowns_path or root / "data" / "takedowns.csv")
     rows_dir = root / "data" / "interim" / "rows"
-    missing = [s for s in sources if not (rows_dir / f"{s}.jsonl").exists()]
-    if missing:
-        raise ReleaseError(
-            f"no rows for {', '.join(missing)} in {rows_dir}; build them first "
-            "(commonswire build SOURCE, or commonswire wikinews-dump)"
-        )
+    if rows is None:
+        missing = [s for s in sources if not (rows_dir / f"{s}.jsonl").exists()]
+        if missing:
+            raise ReleaseError(
+                f"no rows for {', '.join(missing)} in {rows_dir}; build them first "
+                "(commonswire build SOURCE, or commonswire wikinews-dump)"
+            )
+        given: Mapping[str, Iterable[dict]] = {
+            s: _read_jsonl(rows_dir / f"{s}.jsonl") for s in sources
+        }
+    else:
+        missing = [s for s in sources if s not in rows]
+        if missing:
+            raise ReleaseError(f"no rows were given for {', '.join(missing)}")
+        given = rows
     unknown = [s for s in sources if s not in registry]
     if unknown:
         raise ReleaseError(f"{', '.join(unknown)} not in the registry (data/sources.csv)")
     checks = Checks()
     with_translators = "translators" in columns(version)
     data: dict[str, dict] = {}
-    rows: dict[str, Row] = {}
+    by_id: dict[str, Row] = {}
     order = sorted(sources)
     for source in order:
-        with (rows_dir / f"{source}.jsonl").open(encoding="utf-8") as fh:
-            for line in fh:
-                d = json.loads(line)
-                checks.rows_in += 1
-                if d["source_id"] != source:
-                    checks.invalid.append(f"{d['id']} (source_id {d['source_id']!r})")
-                    continue
-                if d["id"] in data:
-                    checks.exact_duplicates[f"same_url:{source}"] += 1
-                    continue
-                data[d["id"]] = d
-                rows[d["id"]] = Row(
-                    id=d["id"],
-                    source_id=source,
-                    published_at=d["published_at"],
-                    content_hash=d["content_hash"],
-                    text=d["text"],
-                    title=d.get("title", ""),
-                )
-    exact = exact_duplicates(rows.values(), order)
+        for d in given[source]:
+            checks.rows_in += 1
+            if d["source_id"] != source:
+                checks.invalid.append(f"{d['id']} (source_id {d['source_id']!r})")
+                continue
+            if d["id"] in data:
+                checks.exact_duplicates[f"same_url:{source}"] += 1
+                continue
+            data[d["id"]] = d
+            by_id[d["id"]] = Row(
+                id=d["id"],
+                source_id=source,
+                published_at=d["published_at"],
+                content_hash=d["content_hash"],
+                text=d["text"],
+                title=d.get("title", ""),
+            )
+    exact = exact_duplicates(by_id.values(), order)
     checks.exact_duplicates.update(exact.dropped_by)
-    flags, n_pairs = _flags(rows, exact.kept_ids, threshold)
+    checks.duplicate_ids = sorted(exact.dropped)
+    flags, n_pairs = _flags(by_id, exact.kept_ids, threshold)
     grouped: dict[str, list[dict]] = {c: [] for c in CONFIGURATIONS}
     for rid in exact.kept_ids:
         d = data[rid]
         src = registry[d["source_id"]]
         if rid in takedowns:
             checks.taken_down[d["source_id"]] += 1
+            checks.taken_down_ids.append(rid)
             continue
         if d.get("status") == "removed":
             checks.removed[d["source_id"]] += 1
+            checks.removed_ids.append(rid)
             continue
         if not d.get("releasable", True):
+            reason = (d.get("hold_reason") or "held").split(":", 1)[0]
             checks.held[d["source_id"]] += 1
-            checks.held_reasons[(d.get("hold_reason") or "held").split(":", 1)[0]] += 1
+            checks.held_reasons[reason] += 1
+            checks.held_ids[rid] = {
+                "source_id": d["source_id"],
+                "published_on": d["published_at"][:10],
+                "reason": reason,
+            }
             continue
         if d.get("third_party"):
             checks.third_party.append(rid)
@@ -423,8 +459,10 @@ def write_release(
     *,
     card: str,
     licenses_md: str,
+    extra: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    """Write the files of a checked release under ``out`` and return the manifest."""
+    """Write the files of a checked release under ``out`` and return the manifest. ``extra``
+    adds keys to the manifest (an update's counts), before the list of files."""
     if not release.checks.ok:
         raise ReleaseError("the checks failed: " + "; ".join(release.checks.problems()))
     files: dict[str, bytes] = {}
@@ -479,6 +517,7 @@ def write_release(
         "exact_duplicates_dropped": dict(sorted(release.checks.exact_duplicates.items())),
         "near_duplicate_threshold": NEAR_DUPLICATE_THRESHOLD,
         "near_duplicate_pairs_across_sources": release.near_duplicate_pairs,
+        **(extra or {}),
         "files": [
             {"path": name, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()}
             for name, body in sorted(files.items())
@@ -488,7 +527,9 @@ def write_release(
     return manifest
 
 
-def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
+def verify(
+    out: Path, corpus_report: dict | None = None, *, ignore_hidden: bool = False
+) -> list[str]:
     """Check a written release against its manifest (and the corpus report, if given):
     every file's size and hash, the row counts in the Parquet files, each id once, each row in
     its license's configuration, and each credit line exactly its source's template (from the
@@ -507,8 +548,11 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
             problems.append(f"{f['path']} differs from the manifest")
     listed = {f["path"] for f in manifest["files"]} | {"manifest.json"}
     for path in sorted(out.rglob("*")):
-        if path.is_file() and str(path.relative_to(out)) not in listed:
-            problems.append(f"{path.relative_to(out)} is not in the manifest")
+        rel_path = path.relative_to(out)
+        if ignore_hidden and any(part.startswith(".") for part in rel_path.parts):
+            continue  # a download's own files (.gitattributes, .cache/), not the release's
+        if path.is_file() and str(rel_path) not in listed:
+            problems.append(f"{rel_path} is not in the manifest")
     from commonswire.sources import load_sources
 
     registry = load_sources(out / "sources.csv")

@@ -164,9 +164,31 @@ def _license_cell(licenses: dict[str, int]) -> str:
     return "; ".join(f"{k} ({_n(v)})" for k, v in licenses.items())
 
 
-def card(release: Release, registry: dict[str, Source], third_party: int) -> str:
-    """The dataset card of a release, with the Hugging Face metadata block on top."""
+def card(
+    release: Release,
+    registry: dict[str, Source],
+    third_party: int,
+    update: dict[str, object] | None = None,
+) -> str:
+    """The dataset card of a release, with the Hugging Face metadata block on top. ``update``
+    (from ``commonswire update``) adds a short section on what changed since the version it
+    was built from: ``from_version``, ``window_days``, ``as_of``, and the counts ``new``,
+    ``changed``, ``removed`` and ``taken_down``."""
     f = facts(release, registry, third_party)
+    update_section = ""
+    if update:
+        new = int(update["new"])  # type: ignore[call-overload]
+        update_section = (
+            "\n## This update\n"
+            + _wrap(
+                f"Version {release.version} updates {update['from_version']} with what the "
+                f"sources published, edited or removed in the {update['window_days']} days up "
+                f"to {update['as_of']}: {_n(new)} new {'row' if new == 1 else 'rows'}, "
+                f"{_n(int(update['changed']))} changed, {_n(int(update['removed']))} removed "  # type: ignore[call-overload]
+                f"at their source, and {_n(int(update['taken_down']))} taken down on request."  # type: ignore[call-overload]
+            )
+            + "\n"
+        )
     counts = release.counts()
     per_config = counts["rows_by_configuration"]
     table = source_table(release, registry)
@@ -378,7 +400,7 @@ articles it holds.
 {largest_line}{wikinews_line}- **It is English only.**
 - **It has no coded variables yet** (topic, frame, types of sources quoted, tone). They are
   planned for a later version.
-{changes}
+{update_section}{changes}
 ## The sources
 | Source | Kind | License | Rows | Published | Credit line template |
 |---|---|---|---|---|---|
@@ -459,11 +481,11 @@ every file.
   honored, and a user agent that names the project. Blocks are never worked around.
 
 ## Removals and corrections
-- **At the source.** Each update looks again at the last 30 days of every source that still
-  publishes: an article
-  edited at its source gets its new text and status `changed` in the next version, and an
-  article removed at its source is dropped from the next version. Older articles are not
-  checked again yet; a monthly check is planned.
+- **At the source.** Each update asks every source that still publishes for the articles it
+  published or edited in the last 30 days. An article edited at its source, however old, gets
+  its new text and status `changed` in the next version; an article of the last 30 days that
+  was removed at its source is dropped from the next version. Removals of older articles are
+  not checked yet.
 - **On request.** Publishers, writers and people named in an article can ask for a removal or a
   correction with the [takedown and correction form]({ISSUE_FORM}). Requests are answered
   within 14 days. An article taken down goes on a list of ids (`data/takedowns.csv` in the
