@@ -1,5 +1,5 @@
-# The DOI is added once Zenodo has archived the first GitHub release (its metadata is in
-# .zenodo.json, which Zenodo reads in place of this file).
+# Zenodo archives each GitHub release of this repository from .zenodo.json (which it reads in
+# place of this file); the DOI below stands for all versions and resolves to the latest.
 cff-version: 1.2.0
 message: "If you use CommonsWire, please cite the dataset as below, and credit the newsrooms as each row asks."
 type: software
@@ -15,6 +15,11 @@ authors:
     given-names: Obada
     affiliation: "College of Media and Communication, Texas Tech University"
 license: Apache-2.0
+doi: 10.5281/zenodo.24231835
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24231835
+    description: "The code and the source registry on Zenodo, all versions"
 repository-code: "https://github.com/obadaKraishan/commonswire"
 keywords:
   - news

@@ -1,5 +1,7 @@
 # CommonsWire
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24231835.svg)](https://doi.org/10.5281/zenodo.24231835)
+
 CommonsWire is a full-text corpus of news that may legally be redistributed. It collects
 articles only from sources whose own pages allow their text to be shared unchanged (public
 domain and Creative Commons licenses), and it keeps each article's license and credit line on
@@ -91,6 +93,21 @@ uv run commonswire release check --version 0.2.0   # files, hashes, counts, cred
 uv run commonswire release kaggle --version 0.2.0  # a folder for the Kaggle mirror
 uv run commonswire release zenodo --version 0.2.0  # checks .zenodo.json for Zenodo's GitHub route
 ```
+
+## How to cite
+Please cite the version of the dataset you used, and credit the newsrooms as each row's
+`credit_line` asks:
+
+> Kraishan, Obada. *CommonsWire: a full-text corpus of openly licensed news*, version 0.2.0.
+> Hugging Face, 2026. <https://huggingface.co/datasets/obadakr/commonswire>
+
+The code and the source registry are archived on Zenodo, with no article text:
+
+> Kraishan, Obada. *CommonsWire: code and source registry, no article text*. Zenodo.
+> <https://doi.org/10.5281/zenodo.24231835>
+
+This DOI stands for all versions and resolves to the latest; each version also has its own DOI,
+listed on the Zenodo record. GitHub's "Cite this repository" reads `CITATION.cff`.
 
 ## Takedowns and corrections
 Publishers, writers and people named in an article can ask for it to be removed or corrected
