@@ -1,0 +1,2 @@
+# Release archives (git archive, GitHub releases, Zenodo) never carry the request log.
+data/usage_log.csv export-ignore

@@ -159,7 +159,10 @@ def daily_wordpress(
                 continue
             if d["url"] in listed:
                 continue
-            resp = client.get(d["url"], accept="text/html", note=f"daily:{res.source_id}")
+            # One article's page: the request log records its id, not its address.
+            resp = client.get(
+                d["url"], accept="text/html", note=f"daily:{res.source_id}", log_as=rid
+            )
             res.requests += 1
             if resp.status in (404, 410):
                 pager.n += 1

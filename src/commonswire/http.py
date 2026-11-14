@@ -15,7 +15,10 @@ The rules it enforces:
 - **Redirects** are followed by hand, so each hop is checked against robots.txt, paced and
   logged like any other request.
 - **Every attempt is logged** to the usage log (time, host, path, status, bytes). Query values
-  are never logged, only the names of the query parameters.
+  are never logged, only the names of the query parameters. A request for one article's page
+  is logged with the article's id (``log_as``) in place of its path, so the tracked log never
+  lists article addresses; listing, API, feed, robots.txt and policy-page paths are logged as
+  they are.
 """
 
 from __future__ import annotations
@@ -163,14 +166,18 @@ class UsageLog:
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
 
-    def write(self, url: str, status: int | str, nbytes: int, note: str = "") -> None:
+    def write(
+        self, url: str, status: int | str, nbytes: int, note: str = "", log_as: str = ""
+    ) -> None:
+        """One row. With ``log_as`` (an article's id), the row names that instead of the
+        URL's path and query keys."""
         parts = urlsplit(url)
         keys = sorted({kv.split("=", 1)[0] for kv in parts.query.split("&") if kv})
         row = {
             "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "host": parts.hostname or "",
-            "path": parts.path or "/",
-            "query_keys": ";".join(keys),
+            "path": log_as or parts.path or "/",
+            "query_keys": "" if log_as else ";".join(keys),
             "status": status,
             "bytes": nbytes,
             "note": note,
@@ -339,10 +346,16 @@ class PoliteClient:
         accept: str = "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
         max_bytes: int = DEFAULT_MAX_BYTES,
         note: str = "",
+        log_as: str = "",
     ) -> Response:
         """GET a URL politely. Raises :class:`Disallowed`, :class:`Blocked` or
-        :class:`FetchError`."""
-        return self._send_following(url, accept=accept, max_bytes=max_bytes, note=note)
+        :class:`FetchError`.
+
+        ``log_as`` is what the usage log records in place of the path, for every hop and
+        every retry of this request: the article's id when the URL is one article's page."""
+        return self._send_following(
+            url, accept=accept, max_bytes=max_bytes, note=note, log_as=log_as
+        )
 
     def _send_following(
         self,
@@ -352,13 +365,16 @@ class PoliteClient:
         accept: str = "*/*",
         max_bytes: int = DEFAULT_MAX_BYTES,
         note: str = "",
+        log_as: str = "",
     ) -> Response:
         hops: list[str] = []
         current = url
         for _ in range(MAX_REDIRECTS + 1):
             if check_robots and not self.robots(current).allows(current):
                 raise Disallowed(current)
-            raw = self._send_once(current, accept=accept, max_bytes=max_bytes, note=note)
+            raw = self._send_once(
+                current, accept=accept, max_bytes=max_bytes, note=note, log_as=log_as
+            )
             if raw.status in (301, 302, 303, 307, 308) and _header(raw.headers, "Location"):
                 hops.append(current)
                 current = urljoin(current, _header(raw.headers, "Location"))
@@ -373,7 +389,9 @@ class PoliteClient:
             )
         raise FetchError(f"{url} redirected more than {MAX_REDIRECTS} times")
 
-    def _send_once(self, url: str, *, accept: str, max_bytes: int, note: str) -> RawResponse:
+    def _send_once(
+        self, url: str, *, accept: str, max_bytes: int, note: str, log_as: str = ""
+    ) -> RawResponse:
         if self.byte_budget is not None and self.bytes_used >= self.byte_budget:
             raise BudgetExceeded(
                 f"the byte budget of {self.byte_budget:,} bytes is used up; "
@@ -392,13 +410,19 @@ class PoliteClient:
                 try:
                     raw = self.transport(url, headers, TIMEOUT, max_bytes)
                 except requests.RequestException as exc:
-                    self.usage_log.write(url, "error", 0, _join(note, type(exc).__name__))
+                    self.usage_log.write(
+                        url, "error", 0, _join(note, type(exc).__name__), log_as=log_as
+                    )
                     raw = None
                     error = exc
                 else:
                     self.bytes_used += len(raw.body)
                     self.usage_log.write(
-                        url, raw.status, len(raw.body), _join(note, "truncated" * raw.truncated)
+                        url,
+                        raw.status,
+                        len(raw.body),
+                        _join(note, "truncated" * raw.truncated),
+                        log_as=log_as,
                     )
             if raw is not None:
                 if raw.status in (401, 403, 451):
