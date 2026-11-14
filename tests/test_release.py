@@ -1,0 +1,364 @@
+"""The release build, with invented sources and articles. No network."""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from commonswire import release as rel
+from commonswire.cli import main
+from commonswire.release import ReleaseError, collect, series_sources, verify, write_release
+from commonswire.release_pack import (
+    KAGGLE_SUBTITLE,
+    KAGGLE_TITLE,
+    card_body,
+    kaggle_folder,
+    zenodo_folder,
+)
+from commonswire.release_text import card, licenses_md
+from commonswire.schema import make_article, text_hash
+from commonswire.sources import load_sources, render_credit
+from test_sources import row, write_csv
+
+T0 = datetime(2026, 9, 1, 8, tzinfo=timezone.utc)
+SENTENCE = (
+    "The invented council met on an invented Tuesday to discuss an invented budget for the "
+    "invented river bridge, and residents asked invented questions about the invented plan. "
+)
+TEMPLATES = {
+    "alpha": (
+        "Alpha News",
+        "news",
+        "CC-BY-4.0",
+        "{title}, by {authors}, {source} ({url}), {license}",
+    ),
+    "beta": (
+        "Beta Record",
+        "news",
+        "CC-BY-SA-4.0",
+        "{title}, by {authors}, {source} ({url}), {license}",
+    ),
+    "gamma": (
+        "Gamma Checks",
+        "fact-check",
+        "public-domain",
+        "{title}, {source} ({url}), {license}",
+    ),
+}
+
+
+def registry_csv(tmp_path):
+    rows = [
+        row(
+            source_id=s,
+            name=n,
+            kind=k,
+            license=lic,
+            credit_line=c,
+            homepage=f"https://{s}.example/",
+        )
+        for s, (n, k, lic, c) in TEMPLATES.items()
+    ]
+    rows.append(
+        row(source_id="delta", name="Delta", status="pending", reason="Does it allow bulk use?")
+    )
+    return write_csv(tmp_path, rows)
+
+
+def article(source, n, text, *, days=0, authors=("Ana Invented",), lic=None, **kw):
+    name, _, default, template = TEMPLATES[source]
+    url = f"https://{source}.example/story-{n}"
+    lic = lic or default
+    title = f"Invented story {n}"
+    credit = render_credit(
+        template, title=title, authors=authors, source=name, url=url, license=lic
+    )
+    a = make_article(
+        source_id=source,
+        url=url,
+        title=title,
+        text=text,
+        published_at=T0 + timedelta(days=days),
+        retrieved_at=T0 + timedelta(days=70),
+        language="en",
+        license=lic,
+        credit_line=credit,
+        authors=authors,
+        **kw,
+    )
+    return json.loads(a.model_dump_json())
+
+
+def corpus(tmp_path):
+    long = SENTENCE * 12
+    alpha = [
+        article("alpha", 1, long),
+        article("alpha", 2, "A short invented note about an invented fair.", days=1),
+        article(
+            "alpha",
+            3,
+            "An invented held story.",
+            days=2,
+            authors=(),
+            releasable=False,
+            hold_reason="no byline: Alpha News asks for the author's name",
+        ),
+        article("alpha", 4, "An invented story later removed.", days=3),
+        article("alpha", 5, long.replace("Tuesday", "Wednesday"), days=60),
+    ]
+    alpha[3] = {**alpha[3], "text": "", "content_hash": text_hash(""), "status": "removed"}
+    beta = [
+        article("beta", 1, long.replace("bridge", "tunnel"), days=5),
+        article("beta", 2, "A short invented note about an invented fair.", days=6),  # same text
+        article("beta", 3, "An invented changed story.", days=7),
+    ]
+    beta[2] = {**beta[2], "status": "changed"}
+    gamma = [article("gamma", 1, "An invented public record.", days=-3000, authors=())]
+    rows_dir = tmp_path / "data" / "interim" / "rows"
+    rows_dir.mkdir(parents=True)
+    for name, rows in (("alpha", alpha), ("beta", beta), ("gamma", gamma)):
+        (rows_dir / f"{name}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return rows_dir
+
+
+@pytest.fixture
+def series(monkeypatch):
+    monkeypatch.setitem(rel.SERIES, (9, 9), ("alpha", "beta", "gamma"))
+
+
+def test_series_sources_by_version():
+    assert series_sources("0.1.0") == series_sources("0.1.7")
+    assert "globalvoices" not in series_sources("0.1.0")
+    assert len(series_sources("0.1.0")) == 6
+    with pytest.raises(ReleaseError, match=r"of the form 0\.1\.0"):
+        series_sources("0.1")
+    with pytest.raises(ReleaseError, match=r"series 0\.9, which has no source list"):
+        series_sources("0.9.0")
+
+
+def test_collect_dedups_checks_and_groups(tmp_path, series):
+    corpus(tmp_path)
+    registry = load_sources(registry_csv(tmp_path))
+    r = collect(tmp_path, "9.9.0", registry)
+    assert r.checks.ok and r.checks.rows_in == 9
+    assert dict(r.checks.held) == {"alpha": 1} and dict(r.checks.removed) == {"alpha": 1}
+    assert dict(r.checks.exact_duplicates) == {"same_text:beta": 1}  # the later copy goes
+    counts = r.counts()
+    assert counts["rows_by_configuration"] == {"by": 3, "by-sa": 2, "pd": 1}
+    assert counts["rows_by_source"] == {
+        "alpha": {"by": 3},
+        "beta": {"by-sa": 2},
+        "gamma": {"pd": 1},
+    }
+    by = {x["id"]: x for x in r.rows["by"]}
+    near = [x for x in r.rows["by"] + r.rows["by-sa"] if x["near_duplicates"]]
+    assert r.near_duplicate_pairs >= 1 and near  # alpha 1 and beta 1 differ by one word
+    assert all(x["license_url"].startswith("https://creativecommons.org/") for x in by.values())
+    assert r.rows["pd"][0]["license_url"].endswith("/publicdomain/mark/1.0/")
+    assert [x["published_at"] for x in r.rows["by"]] == sorted(
+        x["published_at"] for x in r.rows["by"]
+    )
+    assert {x["status"] for x in r.rows["by-sa"]} == {"live", "changed"}
+
+
+def test_collect_refuses_missing_rows_and_unknown_sources(tmp_path, series, monkeypatch):
+    registry = load_sources(registry_csv(tmp_path))
+    with pytest.raises(ReleaseError, match="no rows for alpha, beta, gamma"):
+        collect(tmp_path, "9.9.0", registry)
+    corpus(tmp_path)
+    monkeypatch.setitem(rel.SERIES, (9, 8), ("alpha", "omega"))
+    (tmp_path / "data" / "interim" / "rows" / "omega.jsonl").write_text("")
+    with pytest.raises(ReleaseError, match="omega not in the registry"):
+        collect(tmp_path, "9.8.0", registry)
+
+
+def test_checks_catch_bad_credit_third_party_nc_and_invalid_rows(tmp_path, series):
+    rows_dir = corpus(tmp_path)
+    registry = load_sources(registry_csv(tmp_path))
+    good = [json.loads(x) for x in (rows_dir / "alpha.jsonl").read_text().splitlines()]
+    good[0]["credit_line"] = "Somebody else"
+    good[1]["third_party"] = True
+    good[4] = article("alpha", 5, "An invented NC story.", lic="CC-BY-NC-4.0")
+    bad_source = dict(good[2], source_id="beta")
+    broken = dict(article("alpha", 9, "An invented broken row.", days=9), content_hash="0" * 64)
+    lines = [*good, bad_source, broken]
+    (rows_dir / "alpha.jsonl").write_text("".join(json.dumps(r) + "\n" for r in lines))
+    r = collect(tmp_path, "9.9.0", registry)
+    assert not r.checks.ok
+    problems = " | ".join(r.checks.problems())
+    for word in ("credit mismatch", "third party", "unreleasable class", "invalid"):
+        assert word in problems
+    with pytest.raises(ReleaseError, match="the checks failed"):
+        write_release(
+            r, tmp_path / "out", registry_csv(tmp_path), registry, card="", licenses_md=""
+        )
+
+
+def build(tmp_path, out_name="out"):
+    registry_path = registry_csv(tmp_path)
+    registry = load_sources(registry_path)
+    r = collect(tmp_path, "9.9.0", registry)
+    out = tmp_path / out_name
+    m = write_release(
+        r,
+        out,
+        registry_path,
+        registry,
+        card=card(r, registry, 4),
+        licenses_md=licenses_md(r, registry),
+    )
+    return r, out, m
+
+
+def test_the_same_input_gives_the_same_files_and_verify_passes(tmp_path, series):
+    corpus(tmp_path)
+    _, a, ma = build(tmp_path, "a")
+    _, b, mb = build(tmp_path, "b")
+    names = sorted(str(p.relative_to(a)) for p in a.rglob("*") if p.is_file())
+    assert names == sorted(str(p.relative_to(b)) for p in b.rglob("*") if p.is_file())
+    for n in names:
+        assert (a / n).read_bytes() == (b / n).read_bytes(), n
+    assert ma == mb
+    assert "data/by/train-00000-of-00001.parquet" in names and "index.csv" in names
+    assert ma["rows"] == 6 and ma["as_of"] == "2026-11-10T08:00:00Z"
+    assert ma["held_rows_not_released"] == {"alpha": 1}
+    assert ma["removed_rows_not_released"] == {"alpha": 1}
+    assert verify(a) == []
+    index = (a / "index.csv").read_text().splitlines()
+    assert index[0] == "id,source_id,configuration,url,license,content_hash,published_at"
+    assert len(index) == 7 and "text" not in index[0]
+    assert (a / "sources.csv").read_bytes() == registry_csv(tmp_path).read_bytes()
+
+
+def test_verify_finds_changed_missing_and_extra_files_and_count_mismatches(tmp_path, series):
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    report = {
+        "sources": {
+            "alpha": {"releasable_rows": 4},
+            "beta": {"releasable_rows": 2},
+            "gamma": {"releasable_rows": 1},
+        }
+    }
+    assert verify(out, report) == []  # alpha: 4 releasable minus 1 removed
+    report["sources"]["gamma"]["releasable_rows"] = 5
+    assert any("gamma: 1 rows released" in p for p in verify(out, report))
+    (out / "LICENSES.md").write_text("changed")
+    (out / "stray.txt").write_text("x")
+    (out / "index.csv").unlink()
+    problems = verify(out)
+    assert "LICENSES.md differs from the manifest" in problems
+    assert "stray.txt is not in the manifest" in problems
+    assert "index.csv is missing" in problems
+    manifest = json.loads((out / "manifest.json").read_text())
+    manifest["rows_by_configuration"]["pd"] = 2
+    (out / "manifest.json").write_text(json.dumps(manifest))
+    assert any(p.startswith("pd: 1 rows in the files, 2") for p in verify(out))
+
+
+def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    text = (out / "README.md").read_text()
+    assert text.startswith("---\npretty_name: CommonsWire\n")
+    assert "license: other\nlicense_name: per-row-open-licenses\nlicense_link: LICENSES.md" in text
+    by_config = '- config_name: by\n  data_files:\n  - split: train\n    path: "data/by/*.parquet"'
+    assert by_config + "\n  default: true" in text
+    assert "# CommonsWire 9.9.0" in text and "6 articles" in text
+    assert "| Alpha News | news | CC BY 4.0 | 3 |" in text
+    assert "not affiliated with" in text and "issues/new?template=takedown.yml" in text
+    assert "1 more rows are held back" in text
+    assert "type: ignore" not in text
+    for leftover in ("{_n(", "{f[", "{release", "{HF_", "{REPO", "{ISSUE", "{size", "{chr("):
+        assert leftover not in text, leftover
+    assert "`{title}, by {authors}, {source} ({url}), {license}`" in text
+    body = card_body(text)
+    assert body.startswith("# CommonsWire 9.9.0") and "config_name" not in body
+    lic = (out / "LICENSES.md").read_text()
+    assert "| `by-sa` | CC BY-SA 4.0 (2) | 2 |" in lic and "not legal advice" in lic
+
+
+def test_kaggle_and_zenodo_folders(tmp_path, series):
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    k = kaggle_folder(out, tmp_path / "k")
+    meta = json.loads((k / "dataset-metadata.json").read_text())
+    assert meta["licenses"] == [{"name": "other"}] and meta["id"] == "KAGGLE_USERNAME/commonswire"
+    assert 6 <= len(KAGGLE_TITLE) <= 50 and 20 <= len(KAGGLE_SUBTITLE) <= 80
+    assert meta["description"].startswith("# CommonsWire")
+    names = sorted(p.name for p in k.iterdir())
+    assert "commonswire-by.parquet" in names and "manifest.json" in names
+    assert {r["path"] for r in meta["resources"]} == set(names) - {"dataset-metadata.json"}
+    assert (k / "commonswire-pd.parquet").read_bytes() == (
+        out / "data/pd/train-00000-of-00001.parquet"
+    ).read_bytes()
+    with pytest.raises(FileExistsError, match="not empty"):
+        kaggle_folder(out, k)
+    z = zenodo_folder(out, tmp_path / "z", tmp_path)  # tmp_path is no git checkout
+    zm = json.loads((z / "zenodo-metadata.json").read_text())["metadata"]
+    assert zm["upload_type"] == "dataset" and zm["license"] == "apache-2.0"
+    assert "no article text" in zm["title"] and "to be added at deposit" in zm["notes"]
+    assert not list(z.glob("*.parquet"))
+    assert sorted(p.name for p in z.iterdir()) == [
+        "LICENSES.md",
+        "README.md",
+        "index.csv",
+        "manifest.json",
+        "sources.csv",
+        "zenodo-metadata.json",
+    ]
+
+
+def test_zenodo_folder_archives_the_code_of_a_git_checkout(tmp_path, series):
+    import subprocess
+
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("print('invented')\n")
+    for cmd in (
+        ["init", "-q"],
+        ["add", "a.py"],
+        ["-c", "user.name=t", "-c", "user.email=t@example.org", "commit", "-qm", "x"],
+    ):
+        subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+    z = zenodo_folder(out, tmp_path / "z", repo)
+    assert (z / "commonswire-code-9.9.0.tar.gz").stat().st_size > 0
+    notes = json.loads((z / "zenodo-metadata.json").read_text())["metadata"]["notes"]
+    assert notes.startswith("Code commit: ") and "to be added" not in notes
+
+
+def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
+    corpus(tmp_path)
+    reg = str(registry_csv(tmp_path))
+    base = ["--root", str(tmp_path), "release"]
+    assert main([*base, "check", "--version", "9.9.0"]) == 2
+    assert main([*base, "kaggle", "--version", "9.9.0"]) == 2
+    assert main([*base, "zenodo", "--version", "9.9.0"]) == 2
+    capsys.readouterr()
+    assert main([*base, "build", "--version", "9.9.0", "--sources", reg]) == 0
+    out = capsys.readouterr().out
+    assert "release 9.9.0: 6 rows (by 3, by-sa 2, pd 1); held back 1, removed 1" in out
+    assert "checks: all passed" in out
+    assert main([*base, "build", "--version", "9.9.0", "--sources", reg]) == 2
+    assert "already exists" in capsys.readouterr().err
+    assert main([*base, "build", "--version", "9.9.0", "--sources", reg, "--overwrite"]) == 0
+    assert main([*base, "check", "--version", "9.9.0"]) == 0
+    assert main([*base, "kaggle", "--version", "9.9.0"]) == 0
+    assert main([*base, "zenodo", "--version", "9.9.0"]) == 0
+    assert "zenodo-metadata.json and" in capsys.readouterr().out
+    assert main([*base, "build", "--version", "0.9.0", "--sources", reg]) == 2
+    # A corpus report that disagrees makes the check fail.
+    ev = tmp_path / "data" / "evidence" / "corpus"
+    ev.mkdir(parents=True)
+    (ev / "report.json").write_text(json.dumps({"sources": {"alpha": {"releasable_rows": 9}}}))
+    assert main([*base, "check", "--version", "9.9.0"]) == 1
+    # Rows that fail the checks stop the build.
+    rows = tmp_path / "data" / "interim" / "rows" / "gamma.jsonl"
+    rows.write_text(rows.read_text().replace('"credit_line": "', '"credit_line": "X'))
+    capsys.readouterr()
+    assert main([*base, "build", "--version", "9.9.1", "--sources", reg]) == 1
+    assert "check failed: 1 rows credit mismatch" in capsys.readouterr().err

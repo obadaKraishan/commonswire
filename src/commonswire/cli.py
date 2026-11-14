@@ -790,6 +790,118 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
     return 1 if st.stopped else 0
 
 
+def _third_party_dropped(root: Path, sources: Sequence[str]) -> int:
+    import json
+
+    total = 0
+    for s in sources:
+        path = root / "data" / "evidence" / "backfill" / f"{s}.build.json"
+        if path.exists():
+            info = json.loads(path.read_text())
+            drops = info.get("dropped") or info.get("skipped") or {}
+            total += sum(v for k, v in drops.items() if k.startswith("third_party"))
+    return total
+
+
+def _corpus_report(root: Path) -> dict | None:
+    import json
+
+    path = root / "data" / "evidence" / "corpus" / "report.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def cmd_release_build(args: argparse.Namespace) -> int:
+    """Write data/release/<version>/ from the built rows (no requests)."""
+    from commonswire.release import ReleaseError, collect, verify, write_release
+    from commonswire.release_text import card, licenses_md
+    from commonswire.sources import load_sources
+
+    root = Path(args.root)
+    out = root / "data" / "release" / args.version
+    if out.exists() and not args.overwrite:
+        print(
+            f"{out} already exists. A published version never changes: pick a new version, or "
+            "give --overwrite to rewrite an unpublished one in place.",
+            file=sys.stderr,
+        )
+        return 2
+    registry = load_sources(Path(args.sources))
+    try:
+        rel = collect(root, args.version, registry)
+    except ReleaseError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if not rel.checks.ok:
+        for problem in rel.checks.problems():
+            print(f"check failed: {problem}", file=sys.stderr)
+        return 1
+    third = _third_party_dropped(root, rel.sources)
+    manifest = write_release(
+        rel,
+        out,
+        Path(args.sources),
+        registry,
+        card=card(rel, registry, third),
+        licenses_md=licenses_md(rel, registry),
+    )
+    problems = verify(out, _corpus_report(root))
+    per = manifest["rows_by_configuration"]
+    size = sum(f["bytes"] for f in manifest["files"])
+    print(
+        f"release {args.version}: {manifest['rows']:,} rows ("
+        + ", ".join(f"{c} {n:,}" for c, n in per.items())
+        + f"); held back {sum(manifest['held_rows_not_released'].values())}, removed "
+        f"{sum(manifest['removed_rows_not_released'].values())}, exact duplicates "
+        f"{sum(manifest['exact_duplicates_dropped'].values())}; {len(manifest['files']) + 1} "
+        f"files, {size / 1e6:.1f} MB, in {out}"
+    )
+    for problem in problems:
+        print(f"check failed: {problem}", file=sys.stderr)
+    print("checks: all passed" if not problems else f"checks: {len(problems)} problems")
+    return 1 if problems else 0
+
+
+def cmd_release_check(args: argparse.Namespace) -> int:
+    from commonswire.release import verify
+
+    root = Path(args.root)
+    out = root / "data" / "release" / args.version
+    if not (out / "manifest.json").exists():
+        print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
+        return 2
+    problems = verify(out, _corpus_report(root))
+    for problem in problems:
+        print(f"check failed: {problem}")
+    print(f"release {args.version}: " + ("all checks passed" if not problems else "problems found"))
+    return 1 if problems else 0
+
+
+def cmd_release_kaggle(args: argparse.Namespace) -> int:
+    from commonswire.release_pack import kaggle_folder
+
+    root = Path(args.root)
+    out = root / "data" / "release" / args.version
+    if not (out / "manifest.json").exists():
+        print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
+        return 2
+    folder = kaggle_folder(out, root / "data" / "release" / f"{args.version}-kaggle")
+    print(f"wrote {folder} (dataset-metadata.json and {len(list(folder.iterdir())) - 1} files)")
+    return 0
+
+
+def cmd_release_zenodo(args: argparse.Namespace) -> int:
+    from commonswire.release_pack import zenodo_folder
+
+    root = Path(args.root)
+    out = root / "data" / "release" / args.version
+    if not (out / "manifest.json").exists():
+        print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
+        return 2
+    folder = zenodo_folder(out, root / "data" / "release" / f"{args.version}-zenodo", root)
+    print(f"wrote {folder} (zenodo-metadata.json and {len(list(folder.iterdir())) - 1} files)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -921,6 +1033,25 @@ def build_parser() -> argparse.ArgumentParser:
     by.add_argument("--run", default=_today())
     by.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     by.set_defaults(func=cmd_bylines)
+
+    rel = sub.add_parser("release", help="build and check a dataset version (no requests)")
+    rel_sub = rel.add_subparsers(dest="release_command", metavar="STEP", required=True)
+    rb = rel_sub.add_parser("build", help="write data/release/VERSION/ from the built rows")
+    rb.add_argument("--version", required=True, help="the dataset version, such as 0.1.0")
+    rb.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    rb.add_argument("--overwrite", action="store_true", help="rewrite an unpublished version")
+    rb.set_defaults(func=cmd_release_build)
+    rc = rel_sub.add_parser("check", help="check a written version against its manifest")
+    rc.add_argument("--version", required=True)
+    rc.set_defaults(func=cmd_release_check)
+    rk = rel_sub.add_parser("kaggle", help="prepare the Kaggle folder of a version (no upload)")
+    rk.add_argument("--version", required=True)
+    rk.set_defaults(func=cmd_release_kaggle)
+    rz = rel_sub.add_parser(
+        "zenodo", help="prepare a Zenodo record of a version, with no article text (no upload)"
+    )
+    rz.add_argument("--version", required=True)
+    rz.set_defaults(func=cmd_release_zenodo)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
