@@ -68,6 +68,8 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- The README gives the Kaggle mirror's link and the publication date of version 0.1.0
+  (2026-11-14); the request log records the Global Voices backfill and the byline-route tests.
 - The README and the docs say only what version 0.1.0 does: new versions are published by the
   maintainer, about weekly for now, a daily automatic update is planned, and the coded variables
   are planned for a later version. `docs/licenses.md` is no longer a draft (its license classes
