@@ -1,6 +1,6 @@
 # Automation
 
-Sections 1 to 3 describe plans (**DRAFT**), not what version 0.1.0 does. Version 0.1.0 has no
+Sections 1 to 3 describe plans (**DRAFT**), not what version 0.2.0 does. Version 0.2.0 has no
 scheduled job: the daily fetch and the release build are local commands that the maintainer
 runs by hand (section 0), and every publishing step stays behind the maintainer's release
 approval.
@@ -18,9 +18,9 @@ uv run commonswire release build --version 0.2.N         # the next version, fro
 - `daily` asks each source's API for posts published or modified since the last run, through
   the polite client, and checks the last 30 days for removed articles. Its answers are saved
   once, so `commonswire build` can always rebuild the same rows.
-- `release build` writes `data/release/0.2.N/` and checks it (`docs/release-layout.md`). Once
-  version 0.2.0 (built, not yet published) is out, the version number goes up by one each week
-  (0.2.1, 0.2.2, ...); a new source starts a new series. Before the upload, `commonswire
+- `release build` writes `data/release/0.2.N/` and checks it (`docs/release-layout.md`). After
+  version 0.2.0 (published on 2026-11-14), the version number goes up by one each week (0.2.1,
+  0.2.2, ...); a new source starts a new series. Before the upload, `commonswire
   release kaggle --version 0.2.N` prepares the Kaggle folder.
 - Global Voices' new stories stay held for now: its API gives no author names, and `daily`
   does not yet read the first page of its story listing, where their writers are named.

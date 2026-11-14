@@ -7,25 +7,23 @@ its row. New versions are published by the maintainer, about weekly for now; a d
 update is planned. The variables that communication and journalism researchers usually code by
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
-**Status:** version 0.1.0, published on 2026-11-14: 47,585 articles from six sources, no
-coded variables yet. Version 0.2.0 (149,147 articles from seven sources, Global Voices added)
-is built and checked, and not yet published.
+**Status:** version 0.2.0, published on 2026-11-14: 149,147 articles from seven sources, no
+coded variables yet.
 
 ## The dataset
 - **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
 - **Kaggle (a mirror):** <https://www.kaggle.com/datasets/obadakraishan/commonswire>
 
-Version 0.1.0 holds the full text of 47,585 articles (22.7 million words, 2004 to 2026) from six
-sources: English Wikinews (a closed archive), 360info, The Public Record, Balkan Diskurs, and
-the fact-checkers Factly and Alt News. There is one configuration per license class: `by`
-(CC BY, 42,882 rows), `by-sa` (CC BY-SA, 2,749) and `pd` (public domain, 1,954). Every row
-carries its license, a link to the license and the credit line its publisher asks for.
-
-Version 0.2.0, built and not yet published, adds Global Voices (101,562 articles, CC BY 3.0,
-2004 to 2026) and a `translators` field: the translators a source names, apart from the
-writers in `authors`, and named in the credit line ("This story by A, translated by B,
-originally appeared on Global Voices: ..."). The dataset card of 0.2.0 (`docs/data-card.md`)
-has the details and the limits; the card of 0.1.0 is on Hugging Face.
+Version 0.2.0 holds the full text of 149,147 articles (55.2 million words, 2004 to 2026) from
+seven sources: Global Voices (101,562 articles), English Wikinews (a closed archive), 360info,
+The Public Record, Balkan Diskurs, and the fact-checkers Factly and Alt News. There is one
+configuration per license class: `by` (CC BY, 144,444 rows), `by-sa` (CC BY-SA, 2,749) and
+`pd` (public domain, 1,954). Every row carries its license, a link to the license and the
+credit line its publisher asks for. Where the source names translators, `translators` lists
+them apart from the writers in `authors`, and the credit line names them ("This story by A,
+translated by B, originally appeared on Global Voices: ..."). The dataset card
+(`docs/data-card.md`) has the details and the limits. Version 0.1.0 (47,585 articles from six
+sources, published on 2026-11-14) stays available under the tag `v0.1.0` on Hugging Face.
 
 ```python
 from datasets import load_dataset
@@ -43,7 +41,7 @@ print(articles[0]["title"], articles[0]["credit_line"])
   third-party material are always left out. `data/sources.csv` records the evidence for every
   source it checked: the pages read, the date, and short exact quotes.
 - **Each row carries its own license and credit line.** Users can take only the license
-  classes their own use allows (public domain, CC BY or CC BY-SA in version 0.1.0). See
+  classes their own use allows (public domain, CC BY or CC BY-SA in version 0.2.0). See
   `docs/licenses.md`.
 - **Updated by hand for now.** New versions are published by the maintainer, about weekly; a
   daily automatic update is planned. Each update checks the last 30 days of every source that
@@ -88,10 +86,10 @@ uv run commonswire listing-bylines SOURCE  # bylines from a paged story listing
 Building a dataset version from the built rows (no requests):
 
 ```bash
-uv run commonswire release build --version 0.1.0   # data/release/0.1.0/
-uv run commonswire release check --version 0.1.0   # files, hashes, counts, credit lines
-uv run commonswire release kaggle --version 0.1.0  # a folder for the Kaggle mirror
-uv run commonswire release zenodo --version 0.1.0  # checks .zenodo.json for Zenodo's GitHub route
+uv run commonswire release build --version 0.2.0   # data/release/0.2.0/
+uv run commonswire release check --version 0.2.0   # files, hashes, counts, credit lines
+uv run commonswire release kaggle --version 0.2.0  # a folder for the Kaggle mirror
+uv run commonswire release zenodo --version 0.2.0  # checks .zenodo.json for Zenodo's GitHub route
 ```
 
 ## Takedowns and corrections

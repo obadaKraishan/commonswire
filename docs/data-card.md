@@ -1,10 +1,10 @@
 # Data card: CommonsWire 0.2.0
 
 This is the text of the dataset card of version 0.2.0, as `commonswire release build --version
-0.2.0` writes it (`data/release/<version>/README.md`). Version 0.2.0 is built and checked, and
-**not yet published**; the card of version 0.1.0, the published version, is on Hugging Face
-(tag `v0.1.0`). Its metadata block, which Hugging Face reads for the license and the
-configurations, is:
+0.2.0` writes it (`data/release/<version>/README.md`, the card on Hugging Face). Version 0.2.0
+was published on 2026-11-14 (tag `v0.2.0`); the card of version 0.1.0 stays under the tag
+`v0.1.0`. Its metadata block, which Hugging Face reads for the license and the configurations,
+is:
 
 ```yaml
 pretty_name: CommonsWire

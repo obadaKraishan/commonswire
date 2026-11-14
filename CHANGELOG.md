@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-14
+
+The first code release, made with version 0.2.0 of the dataset (published on Hugging Face
+and Kaggle on 2026-11-14); it also holds everything that built version 0.1.0 of the dataset.
+
 ### Fixed
 - The story listing kept a story's first sighting even when it was a featured teaser with no
   credit block (the home page shows several); a story now takes its writers from the first
@@ -90,11 +95,13 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
-- The README and the docs describe version 0.2.0 as built and not yet published: the status
-  line, Global Voices and the `translators` field (README); the 0.2.0 card
-  (`docs/data-card.md`); series 0.2 and its column (`docs/release-layout.md`); and the weekly
-  update from 0.2.1 on, with Global Voices' new stories held until `daily` reads the first page
-  of its story listing (`docs/automation.md`).
+- The README, `CITATION.cff` and the docs describe version 0.2.0, published on 2026-11-14:
+  the status line, Global Voices and the `translators` field (README); the citation of the
+  dataset at 0.2.0 (`CITATION.cff`); the 0.2.0 card (`docs/data-card.md`); series 0.2 and its
+  column (`docs/release-layout.md`); and the weekly update from 0.2.1 on, with Global Voices'
+  new stories held until `daily` reads the first page of its story listing
+  (`docs/automation.md`). The package version is 0.2.0 (it was 0.1.0.dev0), so requests name
+  `CommonsWire/0.2.0`.
 - A row held because its byline names only an account (such as "Guest Contributor") says so:
   "credited to an account, not a person: ... asks for the author's name"; the story listing
   records the reason as `not_a_person`, as the article-page reader does, and drops accounts

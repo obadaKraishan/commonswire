@@ -6,8 +6,8 @@ import commonswire
 from commonswire.cli import main
 
 
-def test_version_is_a_dev_version():
-    assert commonswire.__version__.startswith("0.1.0")
+def test_version_is_the_released_version():
+    assert commonswire.__version__ == "0.2.0"
 
 
 def test_cli_without_a_command_prints_help(capsys):
@@ -19,7 +19,7 @@ def test_cli_version(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "commonswire 0.1.0" in capsys.readouterr().out
+    assert "commonswire 0.2.0" in capsys.readouterr().out
 
 
 def test_data_file_finds_a_checkout_file_and_names_both_places_when_missing():
