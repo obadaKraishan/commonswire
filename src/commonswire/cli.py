@@ -804,10 +804,20 @@ def _third_party_dropped(root: Path, sources: Sequence[str]) -> int:
 
 
 def _corpus_report(root: Path) -> dict | None:
+    """The corpus report, if it is newer than every rows file (else its counts are stale)."""
     import json
 
     path = root / "data" / "evidence" / "corpus" / "report.json"
-    return json.loads(path.read_text()) if path.exists() else None
+    if not path.exists():
+        return None
+    rows = list((root / "data" / "interim" / "rows").glob("*.jsonl"))
+    if rows and path.stat().st_mtime < max(r.stat().st_mtime for r in rows):
+        print(
+            "note: the corpus report is older than the rows, so the counts were not compared "
+            "with it (run commonswire dedup and corpus-report first to compare them)"
+        )
+        return None
+    return json.loads(path.read_text())
 
 
 def cmd_release_build(args: argparse.Namespace) -> int:
@@ -884,7 +894,9 @@ def cmd_release_kaggle(args: argparse.Namespace) -> int:
     if not (out / "manifest.json").exists():
         print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
         return 2
-    folder = kaggle_folder(out, root / "data" / "release" / f"{args.version}-kaggle")
+    folder = kaggle_folder(
+        out, root / "data" / "release" / f"{args.version}-kaggle", overwrite=args.overwrite
+    )
     print(f"wrote {folder} (dataset-metadata.json and {len(list(folder.iterdir())) - 1} files)")
     return 0
 
@@ -897,7 +909,9 @@ def cmd_release_zenodo(args: argparse.Namespace) -> int:
     if not (out / "manifest.json").exists():
         print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
         return 2
-    folder = zenodo_folder(out, root / "data" / "release" / f"{args.version}-zenodo", root)
+    folder = zenodo_folder(
+        out, root / "data" / "release" / f"{args.version}-zenodo", root, overwrite=args.overwrite
+    )
     print(f"wrote {folder} (zenodo-metadata.json and {len(list(folder.iterdir())) - 1} files)")
     return 0
 
@@ -1046,11 +1060,13 @@ def build_parser() -> argparse.ArgumentParser:
     rc.set_defaults(func=cmd_release_check)
     rk = rel_sub.add_parser("kaggle", help="prepare the Kaggle folder of a version (no upload)")
     rk.add_argument("--version", required=True)
+    rk.add_argument("--overwrite", action="store_true", help="rewrite the folder's files")
     rk.set_defaults(func=cmd_release_kaggle)
     rz = rel_sub.add_parser(
         "zenodo", help="prepare a Zenodo record of a version, with no article text (no upload)"
     )
     rz.add_argument("--version", required=True)
+    rz.add_argument("--overwrite", action="store_true", help="rewrite the folder's files")
     rz.set_defaults(func=cmd_release_zenodo)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")

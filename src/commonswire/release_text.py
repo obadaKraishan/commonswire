@@ -134,6 +134,11 @@ Version {release.version} holds {_n(f["rows"])} articles ({f["words"] / 1e6:.1f}
 from {len(release.sources)} sources, published from {f["first"]} to {f["last"]} and collected
 up to {f["as_of"]}.
 
+- **Curated by:** Obada Kraishan, College of Media and Communication, Texas Tech University.
+- **License:** each article keeps its publisher's license (public domain, CC BY or CC BY-SA),
+  on its row; see `LICENSES.md`.
+- **Contact:** the [issue tracker]({REPO}/issues).
+
 CommonsWire is not affiliated with, endorsed by or sponsored by any of the newsrooms whose
 articles it holds.
 

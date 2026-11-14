@@ -24,7 +24,7 @@ from commonswire.release_text import HF_URL, REPO
 
 KAGGLE_ID = "KAGGLE_USERNAME/commonswire"
 KAGGLE_TITLE = "CommonsWire: openly licensed news text"
-KAGGLE_SUBTITLE = "Full-text news articles their publishers allow to share, each with its license"
+KAGGLE_SUBTITLE = "Full-text news that publishers allow others to share, each with its license"
 CREATOR = {"name": "Kraishan, Obada", "affiliation": "Texas Tech University"}
 KEYWORDS = ["news", "journalism", "corpus", "creative commons", "communication research"]
 _FRONT = re.compile(r"\A---\n.*?\n---\n+", re.S)
@@ -45,19 +45,20 @@ def _flat_name(path: str) -> str:
     return f"commonswire-{config}.parquet" if n == "00001" else f"commonswire-{config}-{i}.parquet"
 
 
-def _clean(folder: Path) -> None:
+def _clean(folder: Path, overwrite: bool = False) -> None:
     folder.mkdir(parents=True, exist_ok=True)
-    stale = [p.name for p in folder.iterdir()]
-    if stale:
+    present = [p.name for p in folder.iterdir()]
+    if present and not overwrite:
         raise FileExistsError(
-            f"{folder} is not empty ({len(stale)} files); prepare into a new, empty folder"
+            f"{folder} is not empty ({len(present)} files); give --overwrite to rewrite the "
+            "files in place, or prepare into a new folder"
         )
 
 
-def kaggle_folder(release: Path, folder: Path) -> Path:
+def kaggle_folder(release: Path, folder: Path, *, overwrite: bool = False) -> Path:
     """Copy a release's files into ``folder`` under flat names, with dataset-metadata.json."""
     manifest = json.loads((release / "manifest.json").read_text())
-    _clean(folder)
+    _clean(folder, overwrite)
     resources = []
     for f in [*manifest["files"], {"path": "manifest.json"}]:
         name = _flat_name(f["path"])
@@ -95,11 +96,11 @@ def _describe(path: str) -> str:
     }.get(path, path)
 
 
-def zenodo_folder(release: Path, folder: Path, repo: Path) -> Path:
+def zenodo_folder(release: Path, folder: Path, repo: Path, *, overwrite: bool = False) -> Path:
     """The files and metadata of a Zenodo record with no article text."""
     manifest = json.loads((release / "manifest.json").read_text())
     version = manifest["version"]
-    _clean(folder)
+    _clean(folder, overwrite)
     for name in ("sources.csv", "index.csv", "README.md", "LICENSES.md", "manifest.json"):
         shutil.copyfile(release / name, folder / name)
     commit = ""

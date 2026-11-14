@@ -299,6 +299,7 @@ def test_kaggle_and_zenodo_folders(tmp_path, series):
     ).read_bytes()
     with pytest.raises(FileExistsError, match="not empty"):
         kaggle_folder(out, k)
+    assert kaggle_folder(out, k, overwrite=True) == k
     z = zenodo_folder(out, tmp_path / "z", tmp_path)  # tmp_path is no git checkout
     zm = json.loads((z / "zenodo-metadata.json").read_text())["metadata"]
     assert zm["upload_type"] == "dataset" and zm["license"] == "apache-2.0"
@@ -353,12 +354,21 @@ def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
     assert main([*base, "kaggle", "--version", "9.9.0"]) == 0
     assert main([*base, "zenodo", "--version", "9.9.0"]) == 0
     assert "zenodo-metadata.json and" in capsys.readouterr().out
+    assert main([*base, "kaggle", "--version", "9.9.0", "--overwrite"]) == 0
+    assert main([*base, "zenodo", "--version", "9.9.0", "--overwrite"]) == 0
     assert main([*base, "build", "--version", "0.9.0", "--sources", reg]) == 2
     # A corpus report that disagrees makes the check fail.
     ev = tmp_path / "data" / "evidence" / "corpus"
     ev.mkdir(parents=True)
     (ev / "report.json").write_text(json.dumps({"sources": {"alpha": {"releasable_rows": 9}}}))
     assert main([*base, "check", "--version", "9.9.0"]) == 1
+    # A report older than the rows is not compared (it predates the last daily run).
+    import os
+
+    os.utime(ev / "report.json", (1, 1))
+    capsys.readouterr()
+    assert main([*base, "check", "--version", "9.9.0"]) == 0
+    assert "the corpus report is older than the rows" in capsys.readouterr().out
     # Rows that fail the checks stop the build.
     rows = tmp_path / "data" / "interim" / "rows" / "gamma.jsonl"
     rows.write_text(rows.read_text().replace('"credit_line": "', '"credit_line": "X'))
