@@ -307,7 +307,7 @@ Official, US, en. Home: <https://www.defense.gov/News/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** defense.gov answered 403 to robots.txt, so the project client read no page there; could Obada read the site's copyright or privacy-and-security notice in a browser and confirm that DOD News text is public domain or free to copy and distribute, with no terms against automated collection?
+- **Status: pending.** defense.gov answered 403 to robots.txt, so the project client read no page there; could the maintainer read the site's copyright or privacy-and-security notice in a browser and confirm that DOD News text is public domain or free to copy and distribute, with no terms against automated collection?
 - **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved. Search results show defense.gov pages now titled 'Department of War'. Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### Florida Phoenix (States Newsroom) (`floridaphoenix`)
@@ -401,7 +401,7 @@ News, INTL, en. Home: <https://www.mekongeye.com/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** The home page and the About page both answered 403 to our client: can Obada read https://www.mekongeye.com/about and the 2024 contributor guide in a browser to find the license (search results say stories are under Creative Commons and may be republished 24 hours after publication)?
+- **Status: pending.** The home page and the About page both answered 403 to our client: can the maintainer read https://www.mekongeye.com/about and the 2024 contributor guide in a browser to find the license (search results say stories are under Creative Commons and may be republished 24 hours after publication)?
 - **Notes:** robots.txt (200) allows our user agent, but pages answer 403; nothing saved; search results name Internews' Earth Journalism Network as its backer Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### Minority Africa (`minorityafrica`)
@@ -423,7 +423,7 @@ News, US, en. Home: <https://mississippitoday.org/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** AP stories carry 'Associated Press' bylines (home page)
-- **Status: pending.** mississippitoday.org answered 403 for its terms of service and its republication page (https://mississippitoday.org/about/republication/); could Obada read both in a browser and confirm the license and the bulk and tracking terms (search results summarize 'select stories individually, not as a collection', CC BY-ND 4.0 and a tracking code, which would make it exclude)?
+- **Status: pending.** mississippitoday.org answered 403 for its terms of service and its republication page (https://mississippitoday.org/about/republication/); could the maintainer read both in a browser and confirm the license and the bulk and tracking terms (search results summarize 'select stories individually, not as a collection', CC BY-ND 4.0 and a tracking code, which would make it exclude)?
 - **Notes:** robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider). The home page was read (200); a topic page, the terms of service and the republication page answered 403. Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### Mongabay (`mongabay`)
@@ -458,7 +458,7 @@ News, CA, en. Home: <https://www.newcanadianmedia.ca/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** robots.txt answered 403, so our client read no page: can Obada read https://www.newcanadianmedia.ca/ in a browser, and is the outlet still publishing (search results show a page saying New Canadian Media, Inc. was dissolved as of Nov. 20, 2024)?
+- **Status: pending.** robots.txt answered 403, so our client read no page: can the maintainer read https://www.newcanadianmedia.ca/ in a browser, and is the outlet still publishing (search results show a page saying New Canadian Media, Inc. was dissolved as of Nov. 20, 2024)?
 - **Notes:** robots.txt answered 403 (robots.csv state blocked, home_allowed no), so the client treated every page as disallowed; search results suggest older stories carried a Creative Commons notice; the outlet appears to have stopped publishing Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### Ohio Capital Journal (States Newsroom) (`ohiocapitaljournal`)
@@ -540,7 +540,7 @@ News, IR, en. Home: <https://www.tasnimnews.com/en>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** robots.txt could not be reached (connection error), so our client read no page: should Obada read https://www.tasnimnews.com/en in a browser for its license line, or should the source be dropped?
+- **Status: pending.** robots.txt could not be reached (connection error), so our client read no page: should the maintainer read https://www.tasnimnews.com/en in a browser for its license line, or should the source be dropped?
 - **Notes:** state-affiliated news agency; robots.csv: robots_status error, state unreachable, home_allowed no; search results show a CC BY 4.0 line on its photos page (not read) Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### The 19th (`the19th`)
@@ -551,7 +551,7 @@ News, US, en. Home: <https://19thnews.org/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** 19thnews.org served a bot check page (status 200) for its home page and for https://19thnews.org/republishing-guidelines/; could Obada read the guidelines in a browser and confirm the license, any 'individually' or anti-scraping clause and any tracking pixel (search results summarize CC BY-NC-ND, a required pixel and a ban on scraping, which would make it exclude)?
+- **Status: pending.** 19thnews.org served a bot check page (status 200) for its home page and for https://19thnews.org/republishing-guidelines/; could the maintainer read the guidelines in a browser and confirm the license, any 'individually' or anti-scraping clause and any tracking pixel (search results summarize CC BY-NC-ND, a required pixel and a ban on scraping, which would make it exclude)?
 - **Notes:** robots.txt itself allows home and feeds; the pages answer a bot check. tracking 'no' only because no page could be read. Terms of service at https://19thnews.org/terms-of-service/ (not fetched: one try per site). Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### The Marshall Project (`marshallproject`)
@@ -562,7 +562,7 @@ News, US, en. Home: <https://www.themarshallproject.org/>. Checked on 2026-11-13
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** themarshallproject.org answered 403 to its home page and to a story's republication page; could Obada read a republication page in a browser and confirm the license and the bulk and pixel terms (search results summarize CC BY-NC-ND, individual stories only and a required tracking pixel, which would make it exclude)?
+- **Status: pending.** themarshallproject.org answered 403 to its home page and to a story's republication page; could the maintainer read a republication page in a browser and confirm the license and the bulk and pixel terms (search results summarize CC BY-NC-ND, individual stories only and a required tracking pixel, which would make it exclude)?
 - **Notes:** robots.txt itself allows home and feeds; the pages answer 403. tracking 'no' only because no page could be read. Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### US Department of State press releases (`stategov`)
@@ -573,7 +573,7 @@ Official, US, en. Home: <https://www.state.gov/>. Checked on 2026-11-13.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt blocked; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** state.gov answered 403 to robots.txt, so its copyright page (https://www.state.gov/copyright-information/) could not be read; could Obada read it in a browser and confirm the public-domain statement for press releases and any terms on automated collection?
+- **Status: pending.** state.gov answered 403 to robots.txt, so its copyright page (https://www.state.gov/copyright-information/) could not be read; could the maintainer read it in a browser and confirm the public-domain statement for press releases and any terms on automated collection?
 - **Notes:** An official US government source. robots.txt answered 403, so every page is refused by the client; nothing was saved. Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
 ### Votebeat (`votebeat`)
@@ -778,7 +778,7 @@ News, US, en. Home: <https://www.voanews.com/>. Checked on 2026-11-13.
 - **Credit asked:** "Credit for any use of VOA material should be given to voanews.com, Voice of America, or VOA."
 - **Third-party material:** AFP, AP and Reuters copy (named in the copyright statement as licensed, not public domain) is identified by agency byline or credit and left out
 - **Status: exclude.** Point 2 fails: VOA's usage-requests page refuses U.S. domestic media blanket, standing or recurring use and asks for a request for each piece.
-- **Notes:** An official US government (USAGM) source whose own text is public domain; the refusal sits on insidevoa.com/p/5719.html, ties itself to the ban on propagandizing in the US, and addresses 'U.S. domestic media', so Obada may judge whether it binds a research corpus; the saved home page shows only a short 'Top Stories' list from a few language services (Kurdish, Ukrainian, Russian, Korean, Mandarin, Pashto), no English news sections and no visible dates (page metadata: last modified 2026-11-13), so English publishing looks sharply reduced
+- **Notes:** An official US government (USAGM) source whose own text is public domain; the refusal sits on insidevoa.com/p/5719.html, ties itself to the ban on propagandizing in the US, and addresses 'U.S. domestic media', so the maintainer may judge whether it binds a research corpus; the saved home page shows only a short 'Top Stories' list from a few language services (Kurdish, Ukrainian, Russian, Korean, Mandarin, Pashto), no English news sections and no visible dates (page metadata: last modified 2026-11-13), so English publishing looks sharply reduced
 
 ## Pages that refused scripted requests
 
