@@ -266,7 +266,10 @@ def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
     _, out, _ = build(tmp_path)
     text = (out / "README.md").read_text()
     assert text.startswith("---\npretty_name: CommonsWire\n")
-    assert "license: other\nlicense_name: per-row-open-licenses\nlicense_link: LICENSES.md" in text
+    assert (
+        "license: other\nlicense_name: per-row-open-licenses\nlicense_link: "
+        "https://huggingface.co/datasets/obadakr/commonswire/blob/main/LICENSES.md"
+    ) in text
     by_config = '- config_name: by\n  data_files:\n  - split: train\n    path: "data/by/*.parquet"'
     assert by_config + "\n  default: true" in text
     assert "# CommonsWire 9.9.0" in text and "6 articles" in text
