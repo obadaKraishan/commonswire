@@ -182,6 +182,27 @@ def test_redirects_are_followed_by_hand_with_robots_and_a_log_row_per_hop(tmp_pa
     ]
 
 
+def test_log_as_replaces_the_path_on_every_hop_retry_and_error(tmp_path):
+    t = FakeTransport()
+    t.add(f"{SITE}/robots.txt", (200, "User-agent: *\nAllow: /\n"))
+    t.add(f"{SITE}/2026/01/story?ref=x", (301, "", {"Location": "/2026/01/story-new"}))
+    t.add(f"{SITE}/2026/01/story-new", (503, "busy"), (200, "<p>page</p>"))
+    t.add(f"{SITE}/2026/02/other", CONNECTION_ERROR)
+    client, _ = make_test_client(tmp_path, t)
+    resp = client.get(f"{SITE}/2026/01/story?ref=x", note="page-byline:x", log_as="cw_0123")
+    assert resp.status == 200
+    with pytest.raises(FetchError):
+        client.get(f"{SITE}/2026/02/other", log_as="cw_4567")
+    rows = log_rows(tmp_path)
+    assert [r["path"] for r in rows] == ["/robots.txt", "cw_0123", "cw_0123", "cw_0123"] + [
+        "cw_4567"
+    ] * 4
+    assert all(r["query_keys"] == "" for r in rows)
+    assert [r["status"] for r in rows[1:4]] == ["301", "503", "200"]
+    assert rows[1]["note"] == "page-byline:x" and rows[-1]["note"] == "ConnectionError"
+    assert not any("story" in v or "other" in v for r in rows for v in r.values())
+
+
 def test_too_many_redirects_fail(tmp_path):
     t = FakeTransport().add(f"{SITE}/robots.txt", (404, ""))
     t.add(f"{SITE}/loop", (302, "", {"Location": f"{SITE}/loop"}))

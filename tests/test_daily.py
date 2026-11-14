@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from datetime import datetime, timezone
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from commonswire.daily import (
     DailyResult,
@@ -16,6 +17,7 @@ from commonswire.daily import (
 )
 from commonswire.fetchers.base import ReplayStore
 from commonswire.fetchers.wordpress import GlobalVoicesFetcher
+from commonswire.schema import article_id
 from fakes import FakeTransport, make_test_client
 from test_backfill import backfill_post
 from test_fetchers import gv_source
@@ -88,6 +90,10 @@ def test_daily_adds_new_marks_changed_and_removed(tmp_path):
     ]
     record = json.loads((tmp_path / "raw-daily" / "004-removed.json").read_text())
     assert record == {"url": gone, "status": 404, "checked_at": "2026-11-13T12:00:00"}
+    # The removal check asks for one article's page: the log names its id, not its address.
+    with (tmp_path / "c" / "usage_log.csv").open(encoding="utf-8") as fh:
+        logged = [r["path"] for r in csv.DictReader(fh)]
+    assert logged[-1] == article_id(gone) and urlsplit(gone).path not in logged
 
     # A rebuild from the backfill alone, then the saved daily answers replayed with no request,
     # gives the same rows as the daily run (only retrieved_at may differ).

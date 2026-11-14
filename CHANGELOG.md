@@ -68,6 +68,14 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- The request log (`data/usage_log.csv`) no longer lists article addresses. A request for one
+  article's page (a byline read from the page, or the check for a removed article) is logged
+  with the article's id (`cw_` and 16 hex digits) in place of its path; listing, API, feed,
+  robots.txt and policy-page paths are logged as before. The 4,192 earlier page-byline rows and
+  2 route-test rows were rewritten once the same way (the full log is kept, untracked, with the
+  raw data). The log is a record of politeness, not a list of articles: an article list in the
+  repository would outlive a takedown. Release archives leave the log out
+  (`.gitattributes`: `export-ignore`).
 - Registry: Global Voices' attribution policy, read again on 2026-11-14 (same text, saved as
   evidence), asks for translations only the link and the author's name, and does not mention
   translators; the note records that translators named on the site will also be credited.

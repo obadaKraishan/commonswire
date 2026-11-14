@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from datetime import datetime, timezone
 from urllib.parse import urlencode
@@ -24,7 +25,7 @@ from commonswire.pagebylines import (
     source_credited,
     split_names,
 )
-from commonswire.schema import canonical_url
+from commonswire.schema import article_id, canonical_url
 from fakes import FakeTransport, make_test_client
 from test_backfill import backfill_post
 from test_fetchers import gv_source
@@ -190,6 +191,10 @@ def test_collect_fetches_each_page_once_and_records_why(tmp_path):
     assert names_by_url(mp) == {"https://thepublicrecord.ca/a": ("Ivy Invented",)}
     assert load_page_bylines(mp)["https://thepublicrecord.ca/c"]["http_status"] == 404
     assert len(clock.sleeps) == 3 and all(gap >= 2.0 for gap in clock.sleeps)  # 2 s a request
+    # The request log names each page by its article's id, never by its address.
+    with (tmp_path / "usage_log.csv").open(encoding="utf-8") as fh:
+        logged = [r["path"] for r in csv.DictReader(fh)]
+    assert logged == ["/robots.txt"] + [article_id(u) for u in urls[:3]]
     # A second run sends nothing: saved pages are read again, and the 404 is not retried.
     calls = len(t.calls)
     reader = PageBylineReader(client, "thepublicrecord", pages, mp, source_name="The Public Record")

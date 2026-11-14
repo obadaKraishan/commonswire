@@ -25,7 +25,8 @@ decision, 2026-11-13). Any other page with no person stays held. Names are never
 from the body text.
 
 The names found are kept in ``data/interim/bylines/<source>.pages.json`` (canonical URL ->
-names); only counts go into the tracked evidence. ``commonswire build`` and ``commonswire
+names); only counts go into the tracked evidence. The request log records each page request
+with the article's id, never the page's address. ``commonswire build`` and ``commonswire
 daily`` read the names into the rows.
 """
 
@@ -43,7 +44,7 @@ from pathlib import Path
 
 from commonswire.backfill import save_once
 from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
-from commonswire.schema import canonical_url
+from commonswire.schema import article_id, canonical_url
 
 
 @dataclass(frozen=True)
@@ -387,7 +388,10 @@ class PageBylineReader:
                 return ()
             try:
                 resp = self.client.get(
-                    url, accept="text/html", note=f"page-byline:{self.source_id}"
+                    url,
+                    accept="text/html",
+                    note=f"page-byline:{self.source_id}",
+                    log_as=article_id(url),  # the tracked log never lists article addresses
                 )
             except (Blocked, Disallowed, BudgetExceeded) as exc:
                 st.stopped = f"{type(exc).__name__}: {exc}"
