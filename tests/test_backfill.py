@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import json
 
-from commonswire.backfill import backfill_wordpress, build_rows, load_category_names, save_once
+from commonswire.backfill import (
+    backfill_wordpress,
+    build_rows,
+    check_backfill,
+    load_category_names,
+    save_once,
+)
 from commonswire.fetchers.base import ReplayStore
 from commonswire.fetchers.wordpress import (
     AltNewsFetcher,
@@ -215,3 +221,108 @@ def test_cli_build_replays_the_saved_daily_answers(tmp_path, capsys):
     )
     assert ev["daily_replayed"]["new"] == 1 and ev["rows_after_daily"] == 3
     assert ev["releasable_after_daily"] == 3 and ev["validate_errors"] == 0
+
+
+def _three_pages(tmp_path):
+    pages = [[backfill_post(1)], [backfill_post(2)], [backfill_post(4)]]
+    return make(tmp_path, gv_backfill_site(pages))
+
+
+def test_a_page_whose_write_is_lost_stops_the_run_and_is_named(tmp_path, monkeypatch):
+    """The way a run lost a page when its drive dropped off the bus: the write went to the
+    cache and returned, and the file was never on disk. The run must say so and stop."""
+    import commonswire.backfill as bf
+
+    real = bf.save_once
+
+    def lose_page_2(path, body):
+        if path.name == bf.PAGE_NAME.format(2):
+            return True  # reported as written, but nothing reached the disk
+        return real(path, body)
+
+    monkeypatch.setattr(bf, "save_once", lose_page_2)
+    fetcher, client, _ = _three_pages(tmp_path)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert not p.finished
+    assert p.stopped.startswith("page 2 was fetched (") and "but is not on disk" in p.stopped
+    assert p.missing_pages == [2, 3] and p.pages_saved == 1
+    saved = json.loads((folder / "progress.json").read_text())
+    assert saved["missing_pages"] == [2, 3] and saved["stopped"] == p.stopped
+    # A rerun with a sound disk fetches only the missing pages and finishes.
+    monkeypatch.setattr(bf, "save_once", real)
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert p.finished and p.missing_pages == [] and p.pages_saved == 3
+
+
+def test_a_page_missing_at_the_end_is_named_never_silent(tmp_path):
+    fetcher, client, _ = _three_pages(tmp_path)
+    folder = tmp_path / "bf"
+    assert backfill_wordpress(fetcher, client, folder, run="r1").finished
+    (folder / "posts-p00002.json").unlink()  # lost after the run, for example on remount
+    report = check_backfill(folder)
+    assert report["missing_pages"] == [2] and report["pages_expected"] == 3
+    assert report["pages_present"] == 2 and report["posts"] == 2 and not report["complete"]
+    # The next run names the gap if it cannot close it (max_pages=0 sends nothing).
+    p = backfill_wordpress(fetcher, client, folder, run="r1", max_pages=0)
+    assert not p.finished and p.missing_pages == [2]
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert p.finished and check_backfill(folder)["complete"]
+
+
+def test_check_backfill_reports_bad_files_and_unknown_totals(tmp_path):
+    folder = tmp_path / "bf"
+    folder.mkdir()
+    (folder / "posts-p00001.json").write_text(json.dumps([backfill_post(1)]))
+    (folder / "posts-p00003.json").write_text("[]")
+    (folder / "posts-p00004.json").write_text("{not json")
+    report = check_backfill(folder)  # no progress.json: the last page seen is the end
+    assert report["pages_expected"] == 4 and report["missing_pages"] == [2]
+    assert report["empty_or_invalid"] == [3, 4] and not report["complete"]
+    assert report["total_posts"] is None and report["posts"] == 1
+    assert check_backfill(tmp_path / "none")["pages_expected"] == 0
+
+
+def test_save_once_flushes_to_disk_and_reports_a_failed_flush(tmp_path, monkeypatch):
+    import os
+
+    import commonswire.backfill as bf
+
+    synced = []
+    real_fsync = os.fsync
+    monkeypatch.setattr(bf.os, "fsync", lambda fd: synced.append(fd) or real_fsync(fd))
+    assert save_once(tmp_path / "a" / "x.json", b"[1]")
+    assert (tmp_path / "a" / "x.json").read_bytes() == b"[1]" and len(synced) == 2
+    assert not (tmp_path / "a" / "x.json.part").exists()
+
+    def gone(fd):
+        raise OSError(6, "Device not configured")
+
+    monkeypatch.setattr(bf.os, "fsync", gone)
+    import pytest
+
+    with pytest.raises(OSError):
+        save_once(tmp_path / "a" / "y.json", b"[2]")
+    assert not (tmp_path / "a" / "y.json").exists()  # never renamed into place
+
+
+def test_cli_backfill_check_sends_nothing_and_names_gaps(tmp_path, capsys):
+    from commonswire.cli import main
+
+    args = ["--root", str(tmp_path), "backfill", "globalvoices", "--run", "r1", "--check"]
+    assert main(args) == 2 and "data/raw is missing" in capsys.readouterr().err
+    folder = tmp_path / "data" / "raw" / "backfill" / "globalvoices" / "r1"
+    folder.parent.mkdir(parents=True)
+    assert main(args) == 2 and "no saved run" in capsys.readouterr().err
+    folder.mkdir()
+    for n in (1, 2, 3):
+        (folder / f"posts-p{n:05d}.json").write_text(json.dumps([backfill_post(n)]))
+    (folder / "progress.json").write_text(json.dumps({"total_pages": 3, "total_posts": 3}))
+    assert main(args) == 0
+    assert (
+        "3 of 3 pages, 3 posts (the site counted 3); missing pages: none" in capsys.readouterr().out
+    )
+    (folder / "posts-p00002.json").unlink()
+    assert main(args) == 1
+    out = capsys.readouterr().out
+    assert "2 of 3 pages" in out and "missing pages: 2;" in out and "NOT complete" in out
