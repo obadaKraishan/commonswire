@@ -1,8 +1,10 @@
-# Data card: CommonsWire 0.1.0
+# Data card: CommonsWire 0.2.0
 
-This is the text of the dataset card of version 0.1.0, as `commonswire release build --version
-0.1.0` writes it (`data/release/<version>/README.md`, the card on Hugging Face). Its metadata
-block, which Hugging Face reads for the license and the configurations, is:
+This is the text of the dataset card of version 0.2.0, as `commonswire release build --version
+0.2.0` writes it (`data/release/<version>/README.md`). Version 0.2.0 is built and checked, and
+**not yet published**; the card of version 0.1.0, the published version, is on Hugging Face
+(tag `v0.1.0`). Its metadata block, which Hugging Face reads for the license and the
+configurations, is:
 
 ```yaml
 pretty_name: CommonsWire
@@ -18,7 +20,7 @@ tags:
 - creative-commons
 - communication-research
 size_categories:
-- 10K<n<100K
+- 100K<n<1M
 configs:
 - config_name: by
   data_files:
@@ -37,15 +39,15 @@ configs:
 
 ---
 
-# CommonsWire 0.1.0
+# CommonsWire 0.2.0
 
 CommonsWire is a full-text corpus of news articles whose publishers allow their text to be
 shared again. Each row is one article: its body text as published, its metadata, its license,
 and the credit line its publisher asks for.
 
-Version 0.1.0 holds 47,585 articles (22.7 million words)
-from 6 sources, published from 2004-11-13 to 2026-11-13 and collected
-up to 2026-11-13.
+Version 0.2.0 holds 149,147 articles (55.2 million words)
+from 7 sources, published from 2004-10-27 to 2026-11-13 and collected
+up to 2026-11-14.
 
 - **Curated by:** Obada Kraishan, College of Media and Communication, Texas Tech University.
 - **License:** each article keeps its publisher's license (public domain, CC BY or CC BY-SA),
@@ -60,14 +62,25 @@ articles it holds.
   article's license on its row. More sources join in later versions.
 - **It is not every news outlet.** Most newsrooms do not allow their text to be shared again,
   and they are not here. Results from CommonsWire describe these sources, not "the news".
-- **It is small going forward.** Over the last 90 days the sources published about
-  4.7 new articles a day: 360info 0.5, The Public Record 0.5, Balkan Diskurs 0.2, Factly 2.3, Alt News 1.2. Fact-checks are most of that flow (about
-  73%).
-- **Wikinews is a closed archive.** English Wikinews stopped publishing on 2026-05-04; its
-  articles are the largest part of the back catalogue.
+- **It is small going forward.** Over the last 90 days the sources published about 6.2 new
+  articles a day: 360info 0.5, The Public Record 0.5, Balkan Diskurs 0.2, Factly 2.3, Alt News
+  1.2, Global Voices 1.4. Fact-checks are most of that flow (about 56%).
+- **Global Voices is most of it** (101,562 of 149,147 rows, 68%): results over the whole corpus
+  mostly describe it.
+- **Wikinews is a closed archive.** English Wikinews stopped publishing on 2026-05-04.
 - **It is English only.**
 - **It has no coded variables yet** (topic, frame, types of sources quoted, tone). They are
   planned for a later version.
+
+## Changes since 0.1.0
+- **A new source: Global Voices** (101,562 rows, CC BY 3.0, 2004 to 2026), an international
+  citizen-media newsroom; its writers' names come from its own story listing, which names every
+  writer of a story, and its translators apart.
+- **A new field, `translators`:** the translators the source names, apart from the writers in
+  `authors` (4,962 rows); the credit line names them ("..., by A, translated by B, ...").
+- **Rows credited only to an account are held back** (264): an account such as "Guest
+  Contributor" names no person.
+- **Near-duplicates across sources:** 1 pair in this version.
 
 ## The sources
 | Source | Kind | License | Rows | Published | Credit line template |
@@ -78,10 +91,16 @@ articles it holds.
 | Balkan Diskurs | news | CC BY 3.0 | 879 | 2014-06-04 to 2026-11-13 | `{title}, by {authors}, originally published by {source} ({url}), {license}` |
 | Factly | fact-check | CC BY 4.0 | 15,103 | 2014-12-14 to 2026-11-13 | `{title}, by {authors}, {source} ({url}), {license}` |
 | Alt News | fact-check | CC BY 3.0 | 5,803 | 2016-04-10 to 2026-11-13 | `{title}, by {authors}, {source} ({url}), {license}` |
+| Global Voices | news | CC BY 3.0 | 101,562 | 2004-10-27 to 2026-11-13 | `This story by {authors} originally appeared on {source}: {title} ({url}), {license}` |
 
 `{authors}` is the byline as the page gives it; where an article names no person and the
 source's own byline is the source itself, the credit line names the source.
-10 more rows are held back because the source asks for the author's name and the article's page names no author.
+When the source names translators (Global Voices, for 4,962 rows), `{authors}` is followed by
+", translated by" and their names; the writers stay in `authors`, and the translators are in
+`translators`.
+275 more rows are held back because the source asks for the author's name: 264 are credited
+only to an account such as "Guest Contributor", which names no person; 11 name no author on the
+article's page or in the source's story listing.
 
 Every source in the registry (included, pending and excluded), with the pages read and the
 words quoted as evidence, is in `sources.csv`.
@@ -92,7 +111,7 @@ one configuration per license class, so you can load only what your use allows:
 
 | Configuration | Licenses | Rows |
 |---|---|---|
-| `by` | Creative Commons Attribution (CC BY 2.5, 3.0 and 4.0) | 42,882 |
+| `by` | Creative Commons Attribution (CC BY 2.5, 3.0 and 4.0) | 144,444 |
 | `by-sa` | Creative Commons Attribution-ShareAlike (CC BY-SA 4.0) | 2,749 |
 | `pd` | public domain | 1,954 |
 
@@ -121,6 +140,7 @@ pd = load_dataset("obadakr/commonswire", "pd", split="train")  # public domain
 | `source_id`, `kind` | the source, as in `sources.csv`, and its kind (`news`, `fact-check`) |
 | `title` | the headline as published |
 | `authors` | the bylines as published (empty when the article names no person) |
+| `translators` | the translators the source names, apart from the writers (empty when it names none) |
 | `published_at`, `updated_at` | UTC, as the source gives them |
 | `retrieved_at` | UTC, when CommonsWire fetched the article |
 | `language` | `en` |
@@ -143,16 +163,17 @@ every file.
   reuse, and do not forbid automated collection, and when its own articles can be told apart
   from material it republishes. The evidence (page, date, exact words) is in `sources.csv`.
 - **Third-party material is left out.** Wire copy, partner stories, syndicated pieces and posts
-  under someone else's rights are dropped; 65 were dropped in this version.
+  under someone else's rights are dropped; 2,476 were dropped in this version.
 - **Text unchanged.** The body text comes from each source's API (Wikinews: from the
   Wikimedia dump, with the wiki markup removed by rule). Only whitespace inside paragraphs is
   normalized. Photos, captions, video, audio and embedded posts are not collected; they are
   often separate works the source does not license.
 - **Bylines.** From the source's API; where the API gives none and the source asks for the
-  author's name, from the byline on the article's own page, never from the body text.
+  author's name, from the byline on the article's own page or in the source's own story listing
+  (Global Voices), never from the body text.
 - **Duplicates.** Exact duplicates (the same URL or the same text) are dropped:
-  39 in this version. Near-duplicates across sources are flagged in
-  `near_duplicates`, not dropped: 0 pairs in this version.
+  107 in this version. Near-duplicates across sources are flagged in
+  `near_duplicates`, not dropped: 1 pair in this version.
 - **Politely.** One request at a time, at least 2 seconds apart, robots.txt and crawl-delays
   honored, and a user agent that names the project. Blocks are never worked around.
 
@@ -170,15 +191,19 @@ every file.
   `index.csv` of the latest version lists every article still in it.
 
 ## Limitations
-- The sources are a small, uneven set: two fact-checking sites in India, an open-access
-  research newswire, a local newsroom in Hamilton (Canada), an outlet in Bosnia and
-  Herzegovina, and a closed citizen-journalism wiki. Their mix of countries and topics is not
-  that of mainstream news.
+- The sources are a small, uneven set: an international citizen-media newsroom, two
+  fact-checking sites in India, a closed citizen-journalism wiki, a local newsroom in Hamilton
+  (Canada), an open-access research newswire, and an outlet in Bosnia and Herzegovina. Their
+  mix of countries and topics is not that of mainstream news.
+- 33% of the Global Voices rows (33,123) have fewer than 200 characters of text: short posts of
+  a sentence or two, most of them with a link, from its first years (99% of them published
+  before 2013). The median Global Voices row has 50 words. Filter by length if you need full
+  stories.
 - Wikinews text is converted from wiki markup by rule; a few articles keep a stray bar,
   bracket or brace where the wikitext itself has a slip.
-- Fact-check articles quote and describe social-media posts. The embedded posts are removed,
-  but the quoted claims stay in the text.
-- `authors` is filled for 26,833 of 47,585 rows. Wikinews articles
+- Fact-check articles and Global Voices stories quote and describe posts from social media and
+  blogs. The embedded posts are removed, but the quoted words stay in the text.
+- `authors` is filled for 128,362 of 149,147 rows. Wikinews articles
   carry no bylines, and some articles are credited to the source itself.
 - News articles name people. CommonsWire adds nothing to what was published, infers nothing
   about anyone (no gender, ethnicity or other attribute), and offers no search by person.
@@ -191,14 +216,14 @@ Questions and errors: the [issue tracker](https://github.com/obadaKraishan/commo
 Please cite the version you used, and credit the newsrooms as each row's credit line asks.
 
 ```bibtex
-@misc{commonswire_0_1_0,
+@misc{commonswire_0_2_0,
   author = {Kraishan, Obada},
   title = {CommonsWire: a full-text corpus of openly licensed news},
-  version = {0.1.0},
+  version = {0.2.0},
   year = {2026},
   howpublished = {Hugging Face},
   url = {https://huggingface.co/datasets/obadakr/commonswire}
 }
 ```
 
-Version 0.1.0, collected up to 2026-11-13. Code: https://github.com/obadaKraishan/commonswire (Apache-2.0).
+Version 0.2.0, collected up to 2026-11-14. Code: https://github.com/obadaKraishan/commonswire (Apache-2.0).

@@ -8,7 +8,8 @@ update is planned. The variables that communication and journalism researchers u
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
 **Status:** version 0.1.0, published on 2026-11-14: 47,585 articles from six sources, no
-coded variables yet.
+coded variables yet. Version 0.2.0 (149,147 articles from seven sources, Global Voices added)
+is built and checked, and not yet published.
 
 ## The dataset
 - **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
@@ -18,8 +19,13 @@ Version 0.1.0 holds the full text of 47,585 articles (22.7 million words, 2004 t
 sources: English Wikinews (a closed archive), 360info, The Public Record, Balkan Diskurs, and
 the fact-checkers Factly and Alt News. There is one configuration per license class: `by`
 (CC BY, 42,882 rows), `by-sa` (CC BY-SA, 2,749) and `pd` (public domain, 1,954). Every row
-carries its license, a link to the license and the credit line its publisher asks for. The
-dataset card (`docs/data-card.md`) has the details and the limits.
+carries its license, a link to the license and the credit line its publisher asks for.
+
+Version 0.2.0, built and not yet published, adds Global Voices (101,562 articles, CC BY 3.0,
+2004 to 2026) and a `translators` field: the translators a source names, apart from the
+writers in `authors`, and named in the credit line ("This story by A, translated by B,
+originally appeared on Global Voices: ..."). The dataset card of 0.2.0 (`docs/data-card.md`)
+has the details and the limits; the card of 0.1.0 is on Hugging Face.
 
 ```python
 from datasets import load_dataset

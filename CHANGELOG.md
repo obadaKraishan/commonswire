@@ -90,6 +90,11 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- The README and the docs describe version 0.2.0 as built and not yet published: the status
+  line, Global Voices and the `translators` field (README); the 0.2.0 card
+  (`docs/data-card.md`); series 0.2 and its column (`docs/release-layout.md`); and the weekly
+  update from 0.2.1 on, with Global Voices' new stories held until `daily` reads the first page
+  of its story listing (`docs/automation.md`).
 - A row held because its byline names only an account (such as "Guest Contributor") says so:
   "credited to an account, not a person: ... asks for the author's name"; the story listing
   records the reason as `not_a_person`, as the article-page reader does, and drops accounts
