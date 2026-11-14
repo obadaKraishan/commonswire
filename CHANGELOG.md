@@ -7,6 +7,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- The story listing kept a story's first sighting even when it was a featured teaser with no
+  credit block (the home page shows several); a story now takes its writers from the first
+  sighting that has a credit block. On the saved Global Voices walk it changed no story (11
+  stories were seen twice, none first as a teaser), and the counts now say so
+  (`seen_again`, `credits_from_later_sighting`).
+- A WordPress post whose `date_gmt` is the zero date (given as a time near the Unix epoch) has
+  no date: the post is dropped and counted as invalid, never given 1970 as its publication
+  date (one Global Voices post).
 - A backfill page could be lost silently: when the data drive dropped off the bus a moment
   after a page was written, the write had reached only the operating system's cache, the file
   was gone after the drive came back, and the run ended "not finished" with no reason given.
@@ -19,6 +27,14 @@ All notable changes to this project are documented here. The format follows
   refused the card's metadata with the relative name `LICENSES.md`.
 
 ### Added
+- Version series 0.2: the six sources of 0.1 and Global Voices (`release build --version
+  0.2.0`). Its rows gain `translators` (after `authors`): the translators the source names,
+  apart from the writers, empty for every source but Global Voices. The credit line names them
+  ("This story by A, translated by B, originally appeared on Global Voices: ..."): when an
+  article names translators, `{authors}` is followed by ", translated by" and their names, set
+  off by commas. Series 0.1 keeps its 18 columns, so a 0.1.x build keeps 0.1.0's columns;
+  `release check` refuses a version whose files do not have its series' columns, and the
+  Kaggle metadata lists each Parquet file's own columns.
 - `.zenodo.json`, the metadata Zenodo reads when it archives a GitHub release of the
   repository (in place of `CITATION.cff`): the title "CommonsWire: code and source registry, no
   article text", the creator and affiliation, Apache-2.0, keywords, a description, and links to
@@ -74,6 +90,16 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- A row held because its byline names only an account (such as "Guest Contributor") says so:
+  "credited to an account, not a person: ... asks for the author's name"; the story listing
+  records the reason as `not_a_person`, as the article-page reader does, and drops accounts
+  named as translators. The release manifest counts held rows by reason
+  (`held_rows_by_reason`).
+- The dataset card follows the release: the sources in words, largest first; which source is
+  most of the corpus; the share of short texts per source, with the reason where it is known
+  (Global Voices' early link posts); held rows by reason; the `translators` field and its
+  credit-line rule; the story listing as a byline route; and, from series 0.2, a "Changes
+  since 0.1.0" section.
 - `release zenodo` now checks the GitHub route by default: `.zenodo.json` (the fields Zenodo
   needs, in the forms its deposit metadata accepts, and agreement with `CITATION.cff`) and the
   release archive (it must carry `.zenodo.json` and neither the request log nor any collected

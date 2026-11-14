@@ -264,6 +264,35 @@ def test_build_reads_page_bylines_by_canonical_url(tmp_path):
 GV = "https://globalvoices.org"
 
 
+def test_build_takes_translators_and_says_why_a_row_is_held(tmp_path):
+    from commonswire.validate import validate_file
+
+    client, _ = make_test_client(tmp_path, FakeTransport())
+    fetcher = GlobalVoicesFetcher(client, gv_source(), ReplayStore(tmp_path / "raw"))
+    post = backfill_post(1)
+    key = canonical_url(post["link"])
+    fetcher.page_bylines = {key: ("Lu Invented",)}
+    fetcher.page_translators = {key: ("Tia Invented",)}
+    a = fetcher.build(fetcher.item_from_post(post), NOW)
+    assert a.authors == ("Lu Invented",) and a.translators == ("Tia Invented",)
+    assert "by Lu Invented, translated by Tia Invented, for Global Voices (" in a.credit_line
+    assert a.releasable
+    rows = tmp_path / "rows.jsonl"
+    rows.write_text(a.model_dump_json() + "\n")
+    assert validate_file(rows, {"globalvoices": gv_source()}).ok
+    # Credited only to an account: held, and the reason says so; no credit block: no byline.
+    fetcher.page_bylines, fetcher.page_translators = {}, {}
+    fetcher.byline_why_none = {key: "not_a_person"}
+    b = fetcher.build(fetcher.item_from_post(post), NOW)
+    assert not b.releasable and b.translators == ()
+    assert b.hold_reason == (
+        "credited to an account, not a person: Global Voices asks for the author's name"
+    )
+    fetcher.byline_why_none = {key: "no_byline"}
+    c = fetcher.build(fetcher.item_from_post(post), NOW)
+    assert c.hold_reason == "no byline: Global Voices asks for the author's name"
+
+
 def test_daily_reads_the_page_of_a_new_post_with_no_byline(tmp_path):
     client, _ = make_test_client(tmp_path, FakeTransport())
     fetcher = GlobalVoicesFetcher(client, gv_source(), ReplayStore(tmp_path / "raw"))

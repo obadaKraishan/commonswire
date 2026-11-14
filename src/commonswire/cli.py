@@ -296,10 +296,12 @@ def _wordpress_fetcher(root: Path, source_id: str, sources_path: str):  # type: 
 
 
 def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
-    """Author names kept from a users endpoint and from article pages, if any."""
+    """Author names kept from a users endpoint, a story listing and article pages, if any,
+    with the listing's translators and why a page or listing names no person."""
     import json
 
-    from commonswire.pagebylines import names_by_url, source_credited
+    from commonswire.listingbylines import translators_by_url
+    from commonswire.pagebylines import load_page_bylines, names_by_url, source_credited
 
     folder = root / "data" / "interim" / "bylines"
     users = folder / f"{fetcher.source_id}.json"
@@ -310,6 +312,13 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
     listing = folder / f"{fetcher.source_id}.listing.json"
     fetcher.page_bylines = {**names_by_url(listing), **names_by_url(pages)}
     fetcher.source_credited = source_credited(listing) | source_credited(pages)
+    fetcher.page_translators = translators_by_url(listing)
+    fetcher.byline_why_none = {
+        u: v["why_none"]
+        for path in (listing, pages)
+        for u, v in load_page_bylines(path).items()
+        if v.get("why_none")
+    }
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:

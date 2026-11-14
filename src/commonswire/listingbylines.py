@@ -10,12 +10,16 @@ article page per story would.
 Each listing page is fetched once through the polite client, newest first, and saved unchanged
 under ``data/raw/pages/<source>/listing/<run>/``. A rerun skips the pages already saved, so a
 run can be stopped and resumed. New stories published during a run push older ones to later
-pages, so a story may be seen twice (it keeps its names) but is not skipped. The walk stops at
-the first page that answers 404 or lists no story, and on any refusal.
+pages, so a story may be seen twice but is not skipped. A story keeps its first sighting that has
+a credit block: the home page (listing page 1) also shows featured teasers with no credit block,
+and such a story takes its writers from a later sighting. The walk stops at the first page that
+answers 404 or lists no story, and on any refusal.
 
 The names go to ``data/interim/bylines/<source>.listing.json`` (canonical URL -> names, in the
 format :func:`commonswire.pagebylines.names_by_url` reads); only counts go into the tracked
-evidence. Translators are kept apart from the writers and never put into ``authors``.
+evidence. Translators are kept apart from the writers (``translators``), never in ``authors``;
+an account such as "Guest Contributor" is no person, as a writer or as a translator. A story
+whose credit block names only such accounts says so (``why_none``: ``not_a_person``).
 """
 
 from __future__ import annotations
@@ -158,6 +162,12 @@ class ListingStats:
     with_writer: int = 0
     without_writer: int = 0
     translated: int = 0
+    #: Stories seen again on a later page, and how often a later sighting gave the credits
+    #: that the first one (a teaser with no credit block) lacked.
+    seen_again: int = 0
+    credits_from_later_sighting: int = 0
+    translators_not_a_person: int = 0
+    why_none: Counter[str] = field(default_factory=Counter)
     writers_per_story: Counter[str] = field(default_factory=Counter)
     http_status: Counter[str] = field(default_factory=Counter)
     bytes_fetched: int = 0
@@ -175,6 +185,10 @@ class ListingStats:
             "with_writer": self.with_writer,
             "without_writer": self.without_writer,
             "translated": self.translated,
+            "seen_again": self.seen_again,
+            "credits_from_later_sighting": self.credits_from_later_sighting,
+            "translators_not_a_person": self.translators_not_a_person,
+            "why_none": dict(sorted(self.why_none.items())),
             "writers_per_story": dict(sorted(self.writers_per_story.items())),
             "http_status": dict(sorted(self.http_status.items())),
             "bytes_fetched": self.bytes_fetched,
@@ -198,6 +212,7 @@ def collect_listing_bylines(
     markup = LISTING_MARKUP[source_id]
     st = ListingStats(source_id=source_id)
     found: dict[str, dict] = {}
+    uncredited: set[str] = set()  # stories kept from a sighting with no credit block
     for page in range(1, max_pages + 1):
         path = folder / PAGE_NAME.format(page)
         if path.exists():
@@ -243,20 +258,33 @@ def collect_listing_bylines(
             except ValueError:
                 continue
             if key in found:
-                continue
+                st.seen_again += 1
+                if key not in uncredited or not story.credits:
+                    continue  # the first sighting with a credit block stands
+                st.credits_from_later_sighting += 1
             named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
             writers = [n for n in named if is_person(n, source_name)]
             own = is_source_itself(named, source_name)
-            translators = [
-                n for label in markup.translator_labels for n in story.credits.get(label, [])
-            ]
+            listed = [n for label in markup.translator_labels for n in story.credits.get(label, [])]
+            translators = [n for n in listed if is_person(n, source_name)]
+            if writers:
+                why = ""
+            elif own:
+                why = "source_itself"
+            else:
+                why = "not_a_person" if named else "no_byline"
             found[key] = {
                 "names": list(dict.fromkeys(writers)),
                 "translators": list(dict.fromkeys(translators)),
                 "route": "listing",
-                "why_none": "" if writers else ("source_itself" if own else "no_byline"),
+                "why_none": why,
                 "http_status": 200,
+                "_dropped_translators": len(listed) - len(translators),
             }
+            if story.credits:
+                uncredited.discard(key)
+            else:
+                uncredited.add(key)
         if page % 100 == 0:
             say(f"{source_id}: listing page {page}, {len(found)} stories so far")
             _write_map(map_path, found)
@@ -264,6 +292,8 @@ def collect_listing_bylines(
     st.with_writer = sum(1 for v in found.values() if v["names"])
     st.without_writer = st.stories - st.with_writer
     st.translated = sum(1 for v in found.values() if v["translators"])
+    st.translators_not_a_person = sum(v["_dropped_translators"] for v in found.values())
+    st.why_none = Counter(v["why_none"] for v in found.values() if v["why_none"])
     st.writers_per_story = Counter(str(min(len(v["names"]), 4)) for v in found.values())
     _write_map(map_path, found)
     return st
@@ -272,7 +302,14 @@ def collect_listing_bylines(
 def _write_map(path: Path, found: dict[str, dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".part")
+    public = {k: {f: x for f, x in v.items() if not f.startswith("_")} for k, v in found.items()}
     tmp.write_text(
-        json.dumps(found, indent=1, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(public, indent=1, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
     )
     tmp.replace(path)
+
+
+def translators_by_url(path: Path) -> dict[str, tuple[str, ...]]:
+    """Canonical URL -> translators, for the stories whose listing names one."""
+    data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    return {u: tuple(v["translators"]) for u, v in data.items() if v.get("translators")}

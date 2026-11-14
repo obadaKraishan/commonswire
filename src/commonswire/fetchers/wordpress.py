@@ -65,11 +65,17 @@ RIGHTS_NOTE = re.compile(
 WIRE = re.compile(r"\b(Associated Press|Reuters|Agence France-Presse|AFP)\b|\(AP\)", re.I)
 
 
+#: WordPress writes a post's zero date ("0000-00-00 00:00:00") as a time near the Unix epoch;
+#: no news site published before this, so an earlier date is no date at all.
+EARLIEST_DATE = datetime(1991, 1, 1, tzinfo=timezone.utc)
+
+
 def _gmt(value: str | None) -> datetime | None:
+    """A WordPress ``*_gmt`` value as UTC, or None when there is none (or only a zero date)."""
     if not value:
         return None
-    dt = datetime.fromisoformat(value.replace("Z", ""))
-    return dt.replace(tzinfo=timezone.utc)
+    dt = datetime.fromisoformat(value.replace("Z", "")).replace(tzinfo=timezone.utc)
+    return dt if dt >= EARLIEST_DATE else None
 
 
 def byline_from_yoast(meta: object) -> tuple[str, ...]:
@@ -114,6 +120,10 @@ class WordPressFetcher(Fetcher):
         self.page_bylines: dict[str, tuple[str, ...]] = {}
         #: canonical URLs whose page byline names the source itself and no person.
         self.source_credited: set[str] = set()
+        #: canonical URL -> translators named apart from the writers (a story listing).
+        self.page_translators: dict[str, tuple[str, ...]] = {}
+        #: canonical URL -> why the page or listing names no person (``not_a_person``, ...).
+        self.byline_why_none: dict[str, str] = {}
 
     def backfill_url(self, page: int, per_page: int = PER_PAGE) -> str:
         """Oldest first, so posts published during a backfill do not shift the pages."""
@@ -197,6 +207,8 @@ class WordPressFetcher(Fetcher):
         if not authors and key:
             authors = self.page_bylines.get(key, ())
         byline_is_source = not authors and key in self.source_credited
+        translators = self.page_translators.get(key, ()) if key else ()
+        why_none = "" if authors or not key else self.byline_why_none.get(key, "")
         terms = [t for group in embedded.get("wp:term", []) for t in group if isinstance(t, dict)]
         categories = [
             strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "category"
@@ -223,12 +235,14 @@ class WordPressFetcher(Fetcher):
             updated_at=updated,
             language=self.language,
             authors=authors,
+            translators=translators,
             section=categories[0] if categories else "",
             hints={
                 "categories": categories,
                 "tags": tags,
                 "type": post.get("type", ""),
                 "byline_is_source": byline_is_source,
+                "byline_why_none": why_none,
             },
         )
 

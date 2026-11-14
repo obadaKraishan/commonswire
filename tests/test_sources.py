@@ -268,3 +268,26 @@ def test_quotes_must_be_word_for_word_on_a_saved_page():
 
 def test_normalize_for_match():
     assert normalize_for_match("a\u00a0b \u2018c\u2019\n\nd") == "a b 'c' d"
+
+
+def test_the_credit_line_names_translators_set_off_by_commas():
+    from commonswire.sources import render_credit
+
+    gv = "This story by {authors} originally appeared on {source}: {title} ({url}), {license}"
+    comma = "{title}, by {authors}, {source} ({url}), {license}"
+    kw = dict(title="T", source="S", url="https://s.example/t", license="CC-BY-3.0")
+    assert render_credit(gv, authors=("A",), translators=("B", "C"), **kw) == (
+        "This story by A, translated by B, C, originally appeared on S: T "
+        "(https://s.example/t), CC BY 3.0"
+    )
+    assert render_credit(comma, authors=("A",), translators=("B",), **kw) == (
+        "T, by A, translated by B, S (https://s.example/t), CC BY 3.0"
+    )
+    assert render_credit("{title} by {authors}", authors=("A",), translators=("B",), **kw) == (
+        "T by A, translated by B"
+    )
+    assert render_credit(gv, authors=("A",), translators=(" ",), **kw) == render_credit(
+        gv, authors=("A",), **kw
+    )
+    assert "by S, translated by B," in render_credit(gv, authors=(), translators=("B",), **kw)
+    assert render_credit("{title}, {source}", authors=("A",), translators=("B",), **kw) == "T, S"
