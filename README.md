@@ -7,11 +7,12 @@ its row. New versions are published by the maintainer, about weekly for now; a d
 update is planned. The variables that communication and journalism researchers usually code by
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
-**Status:** version 0.1.0: 47,585 articles from six sources, no coded variables yet.
+**Status:** version 0.1.0, published on 2026-11-14: 47,585 articles from six sources, no
+coded variables yet.
 
 ## The dataset
 - **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
-- **Kaggle:** a mirror (link added after publication)
+- **Kaggle (a mirror):** <https://www.kaggle.com/datasets/obadakraishan/commonswire>
 
 Version 0.1.0 holds the full text of 47,585 articles (22.7 million words, 2004 to 2026) from six
 sources: English Wikinews (a closed archive), 360info, The Public Record, Balkan Diskurs, and
