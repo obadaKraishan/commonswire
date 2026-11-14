@@ -16,7 +16,9 @@ near-duplicates flagged by the same rules as ``commonswire dedup``, computed her
 alone, so the files depend only on the rows and the registry: the same input gives the same
 bytes. Before anything is written, every row is checked: it validates against the schema, it is
 releasable and not third-party, it is not a removed row, and its credit line is exactly the
-source's template filled in for it.
+source's template filled in for it. Articles on the takedown list (``data/takedowns.csv``:
+the article id, the date of the request and its basis, never a URL or a name) are left out of
+every version built after the request, and counted.
 """
 
 from __future__ import annotations
@@ -47,6 +49,28 @@ NEAR_DUPLICATE_THRESHOLD = 0.6
 ROWS_PER_SHARD = 50_000
 ROW_GROUP = 2_000
 _VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+_ID = re.compile(r"^cw_[0-9a-f]{16}$")
+TAKEDOWN_FIELDS = ("id", "requested_on", "basis")
+
+
+def load_takedowns(path: Path) -> set[str]:
+    """The article ids on the takedown list; a malformed line is an error, never skipped."""
+    if not path.exists():
+        return set()
+    ids: set[str] = set()
+    with path.open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        if tuple(reader.fieldnames or ()) != TAKEDOWN_FIELDS:
+            raise ReleaseError(f"{path}: the header must be {','.join(TAKEDOWN_FIELDS)}")
+        for n, line in enumerate(reader, start=2):
+            rid = (line.get("id") or "").strip()
+            if not _ID.match(rid):
+                raise ReleaseError(
+                    f"{path}, line {n}: {rid!r} is not an article id (cw_ and 16 hex digits); "
+                    "give the id, never the URL"
+                )
+            ids.add(rid)
+    return ids
 
 #: The released columns, in order.
 COLUMNS = (
@@ -104,6 +128,7 @@ class Checks:
     exact_duplicates: Counter[str] = field(default_factory=Counter)
     held: Counter[str] = field(default_factory=Counter)
     removed: Counter[str] = field(default_factory=Counter)
+    taken_down: Counter[str] = field(default_factory=Counter)
     invalid: list[str] = field(default_factory=list)
     credit_mismatch: list[str] = field(default_factory=list)
     third_party: list[str] = field(default_factory=list)
@@ -167,6 +192,7 @@ def collect(
 ) -> Release:
     """Read, deduplicate, check and group the rows of a version (nothing is written)."""
     sources = series_sources(version)
+    takedowns = load_takedowns(root / "data" / "takedowns.csv")
     rows_dir = root / "data" / "interim" / "rows"
     missing = [s for s in sources if not (rows_dir / f"{s}.jsonl").exists()]
     if missing:
@@ -208,6 +234,9 @@ def collect(
     for rid in exact.kept_ids:
         d = data[rid]
         src = registry[d["source_id"]]
+        if rid in takedowns:
+            checks.taken_down[d["source_id"]] += 1
+            continue
         if d.get("status") == "removed":
             checks.removed[d["source_id"]] += 1
             continue
@@ -401,6 +430,7 @@ def write_release(
         **release.counts(),
         "held_rows_not_released": dict(sorted(release.checks.held.items())),
         "removed_rows_not_released": dict(sorted(release.checks.removed.items())),
+        "taken_down_rows_not_released": dict(sorted(release.checks.taken_down.items())),
         "exact_duplicates_dropped": dict(sorted(release.checks.exact_duplicates.items())),
         "near_duplicate_threshold": NEAR_DUPLICATE_THRESHOLD,
         "near_duplicate_pairs_across_sources": release.near_duplicate_pairs,
@@ -415,8 +445,10 @@ def write_release(
 
 def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
     """Check a written release against its manifest (and the corpus report, if given):
-    every file's size and hash, the row counts in the Parquet files, and every row's id, license
-    class and credit line filled in. Returns the problems found (empty when all is well)."""
+    every file's size and hash, the row counts in the Parquet files, each id once, each row in
+    its license's configuration, and each credit line exactly its source's template (from the
+    release's own sources.csv) filled in. Returns the problems found (empty when all is
+    well)."""
     import pyarrow.parquet as pq
 
     problems: list[str] = []
@@ -432,13 +464,16 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
     for path in sorted(out.rglob("*")):
         if path.is_file() and str(path.relative_to(out)) not in listed:
             problems.append(f"{path.relative_to(out)} is not in the manifest")
+    from commonswire.sources import load_sources
+
+    registry = load_sources(out / "sources.csv")
     seen: set[str] = set()
     by_source: Counter[str] = Counter()
+    columns = ["id", "source_id", "title", "authors", "url", "license", "credit_line"]
     for config, names in manifest["configurations"].items():
         n = 0
         for name in names:
-            table = pq.read_table(out / name, columns=["id", "source_id", "license", "credit_line"])
-            for r in table.to_pylist():
+            for r in pq.read_table(out / name, columns=columns).to_pylist():
                 n += 1
                 by_source[r["source_id"]] += 1
                 if r["id"] in seen:
@@ -446,8 +481,17 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
                 seen.add(r["id"])
                 if license_class(r["license"]) != config:
                     problems.append(f"{r['id']} ({r['license']}) is in the {config} configuration")
-                if not r["credit_line"] or "{" in r["credit_line"]:
-                    problems.append(f"{r['id']} has an unfilled credit line")
+                src = registry.get(r["source_id"])
+                want = src and render_credit(
+                    src.credit_line,
+                    title=r["title"],
+                    authors=r["authors"],
+                    source=src.name,
+                    url=r["url"],
+                    license=r["license"],
+                )
+                if r["credit_line"] != want:
+                    problems.append(f"{r['id']}: the credit line is not its source's template")
         if n != manifest["rows_by_configuration"][config]:
             problems.append(
                 f"{config}: {n} rows in the files, {manifest['rows_by_configuration'][config]} in "
@@ -457,6 +501,7 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
         for s in manifest["sources"]:
             v = corpus_report["sources"].get(s, {})
             removed = manifest["removed_rows_not_released"].get(s, 0)
+            removed += manifest.get("taken_down_rows_not_released", {}).get(s, 0)
             want = v.get("releasable_rows", 0) - removed
             if by_source[s] != want:
                 problems.append(

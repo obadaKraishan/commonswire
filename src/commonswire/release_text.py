@@ -128,21 +128,22 @@ configs:
 
 CommonsWire is a full-text corpus of news articles whose publishers allow their text to be
 shared again. Each row is one article: its body text as published, its metadata, its license,
-and the credit line its publisher asks for. Version {release.version} holds
-{_n(f["rows"])} articles ({f["words"] / 1e6:.1f} million words) from
-{len(release.sources)} sources, published from {f["first"]} to {f["last"]}, collected up to
-{f["as_of"]}.
+and the credit line its publisher asks for.
+
+Version {release.version} holds {_n(f["rows"])} articles ({f["words"] / 1e6:.1f} million words)
+from {len(release.sources)} sources, published from {f["first"]} to {f["last"]} and collected
+up to {f["as_of"]}.
 
 CommonsWire is not affiliated with, endorsed by or sponsored by any of the newsrooms whose
 articles it holds.
 
 ## What it is, and what it is not
-- **It is** the complete own-content archive of each source below, as far as the source's API
-  or dump gives it, with every article's license on its row.
+- **It is** each source's own articles, as far as its API or dump gives them, with every
+  article's license on its row. More sources join in later versions.
 - **It is not every news outlet.** Most newsrooms do not allow their text to be shared again,
   and they are not here. Results from CommonsWire describe these sources, not "the news".
 - **It is small going forward.** Over the last {FLOW_DAYS} days the sources published about
-  {f["flow"]:.1f} new articles a day ({flows}). Fact-checks are most of that flow (about
+  {f["flow"]:.1f} new articles a day: {flows}. Fact-checks are most of that flow (about
   {fact_share}%).
 - **Wikinews is a closed archive.** English Wikinews stopped publishing on 2026-05-04; its
   articles are the largest part of the back catalogue.
@@ -156,9 +157,11 @@ articles it holds.
 {src_lines}
 
 `{{authors}}` is the byline as the page gives it; where an article names no person and the
-source's own byline is the source itself, the credit line names the source. {held_note}
-Every source in the registry, with the pages read and the words quoted as evidence, is in
-`sources.csv`.
+source's own byline is the source itself, the credit line names the source.
+{held_note}
+
+Every source in the registry (included, pending and excluded), with the pages read and the
+words quoted as evidence, is in `sources.csv`.
 
 ## Configurations and licenses
 Each row carries its own `license`, `license_url` and `credit_line`. The rows are split into
@@ -222,18 +225,24 @@ every file.
   often separate works the source does not license.
 - **Bylines.** From the source's API; where the API gives none and the source asks for the
   author's name, from the byline on the article's own page, never from the body text.
-- **Duplicates.** {_n(f["exact_duplicates"])} exact duplicates (the same URL or the same text)
-  were dropped. Near-duplicates across sources are flagged, not dropped: {_n(f["near_pairs"])}
-  pairs in this version.
+- **Duplicates.** Exact duplicates (the same URL or the same text) are dropped:
+  {_n(f["exact_duplicates"])} in this version. Near-duplicates across sources are flagged in
+  `near_duplicates`, not dropped: {_n(f["near_pairs"])} pairs in this version.
 - **Politely.** One request at a time, at least 2 seconds apart, robots.txt and crawl-delays
   honored, and a user agent that names the project. Blocks are never worked around.
 
 ## Removals and corrections
-Sources are checked for changed and removed articles. A changed article gets its new text
-and status `changed` in the next version; a removed article is dropped from the next version.
-Publishers, writers and people named in an article can ask for a removal or a correction with
-the [takedown and correction form]({ISSUE_FORM}). Requests are answered within 14 days. If you
-keep a copy of CommonsWire, please apply removals to it too.
+- **At the source.** Each update looks again at the last 30 days of every source that still
+  publishes: an article
+  edited at its source gets its new text and status `changed` in the next version, and an
+  article removed at its source is dropped from the next version. Older articles are not
+  checked again yet; a monthly check is planned.
+- **On request.** Publishers, writers and people named in an article can ask for a removal or a
+  correction with the [takedown and correction form]({ISSUE_FORM}). Requests are answered
+  within 14 days. An article taken down goes on a list of ids (`data/takedowns.csv` in the
+  code repository, with no URL or name) and is left out of every later version.
+- **Your copy.** If you keep a copy of CommonsWire, please apply removals to it too:
+  `index.csv` of the latest version lists every article still in it.
 
 ## Limitations
 - The sources are a small, uneven set: two fact-checking sites in India, an open-access
@@ -244,14 +253,14 @@ keep a copy of CommonsWire, please apply removals to it too.
   bracket or brace where the wikitext itself has a slip.
 - Fact-check articles quote and describe social-media posts. The embedded posts are removed,
   but the quoted claims stay in the text.
-- `authors` is filled for {_n(f["with_byline"])} of {_n(f["rows"])} rows; Wikinews articles
-  carry no bylines.
+- `authors` is filled for {_n(f["with_byline"])} of {_n(f["rows"])} rows. Wikinews articles
+  carry no bylines, and some articles are credited to the source itself.
 - News articles name people. CommonsWire adds nothing to what was published, infers nothing
   about anyone (no gender, ethnicity or other attribute), and offers no search by person.
 
 ## Contact
-Questions, errors and requests: the [issue tracker]({REPO}/issues), or the
-[takedown and correction form]({ISSUE_FORM}) for removals.
+Questions and errors: the [issue tracker]({REPO}/issues). Removals and corrections: the
+[takedown and correction form]({ISSUE_FORM}).
 
 ## Citation
 Please cite the version you used, and credit the newsrooms as each row's credit line asks.

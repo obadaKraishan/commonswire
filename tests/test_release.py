@@ -252,6 +252,9 @@ def test_verify_finds_changed_missing_and_extra_files_and_count_mismatches(tmp_p
     assert "LICENSES.md differs from the manifest" in problems
     assert "stray.txt is not in the manifest" in problems
     assert "index.csv is missing" in problems
+    reg = (out / "sources.csv").read_text().replace("{title}, {source}", "{title}: {source}")
+    (out / "sources.csv").write_text(reg)
+    assert any("the credit line is not its source's template" in p for p in verify(out))
     manifest = json.loads((out / "manifest.json").read_text())
     manifest["rows_by_configuration"]["pd"] = 2
     (out / "manifest.json").write_text(json.dumps(manifest))
@@ -362,3 +365,37 @@ def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
     capsys.readouterr()
     assert main([*base, "build", "--version", "9.9.1", "--sources", reg]) == 1
     assert "check failed: 1 rows credit mismatch" in capsys.readouterr().err
+
+
+def test_the_takedown_list_keeps_articles_out_and_must_be_well_formed(tmp_path, series):
+    from commonswire.release import load_takedowns
+
+    corpus(tmp_path)
+    registry = load_sources(registry_csv(tmp_path))
+    first = collect(tmp_path, "9.9.0", registry)
+    gone = first.rows["pd"][0]["id"]
+    path = tmp_path / "data" / "takedowns.csv"
+    path.write_text(f"id,requested_on,basis\n{gone},2026-11-14,publisher\n")
+    assert load_takedowns(path) == {gone}
+    r = collect(tmp_path, "9.9.0", registry)
+    assert r.rows["pd"] == [] and dict(r.checks.taken_down) == {"gamma": 1}
+    out = tmp_path / "out"
+    m = write_release(
+        r, out, registry_csv(tmp_path), registry, card=card(r, registry, 0), licenses_md=""
+    )
+    assert m["taken_down_rows_not_released"] == {"gamma": 1}
+    report = {
+        "sources": {
+            "alpha": {"releasable_rows": 4},
+            "beta": {"releasable_rows": 2},
+            "gamma": {"releasable_rows": 1},
+        }
+    }
+    assert verify(out, report) == []
+    path.write_text("id,requested_on,basis\nhttps://gamma.example/story-1,2026-11-14,x\n")
+    with pytest.raises(ReleaseError, match="give the id, never the URL"):
+        load_takedowns(path)
+    path.write_text("url,date\n")
+    with pytest.raises(ReleaseError, match="the header must be id,requested_on,basis"):
+        load_takedowns(path)
+    assert load_takedowns(tmp_path / "none.csv") == set()
