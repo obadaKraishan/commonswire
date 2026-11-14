@@ -1,0 +1,190 @@
+name: Weekly update
+
+# Builds the next CommonsWire version from the one published on Hugging Face, with the
+# repository's own `commonswire update`, and (once switched on) delivers it. See
+# docs/automation.md for what each step does and how to switch it on.
+#
+# OFF FOR NOW, on purpose: the weekly schedule below is commented out, and DELIVERY_ENABLED
+# is "false", so a run started by hand is a dry run. It reads the sources and builds and
+# checks the version on the runner, then uploads nothing, opens no pull request and no issue.
+#
+# Every action is pinned to a full commit SHA (the comment gives the version); Dependabot
+# proposes updates. No job runs on pull requests, so a pull request from a fork never reaches
+# this workflow or its secrets. Logs and the job summary carry counts, ids and hosts only:
+# nothing here uploads an artifact (a public repository's artifacts can be downloaded).
+
+on:
+  workflow_dispatch:
+    inputs:
+      allow_skipped:
+        description: "Sources that may be skipped without a stop (comma-separated source ids)"
+        required: false
+        default: ""
+  # The weekly run, switched on by the maintainer (docs/automation.md, "Switching it on").
+  # A minute past the hour's start, which GitHub says is its busiest moment.
+  # schedule:
+  #   - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+
+permissions: {}
+
+concurrency:
+  group: weekly-update
+  cancel-in-progress: false
+
+env:
+  # "true" lets a ready (non-dry-run) build be delivered, as vars.CW_DELIVERY_MODE says:
+  # "pull-request" (the default when the variable is unset) or "automatic".
+  DELIVERY_ENABLED: "false"
+  DATASET: obadakr/commonswire
+
+jobs:
+  update:
+    name: Build and check the next version
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # Holds the secrets the delivery steps read (HF_TOKEN), with deployments limited to main.
+    environment: release
+    permissions:
+      contents: read
+      issues: read # to count open takedown requests
+    outputs:
+      status: ${{ steps.update.outputs.status }}
+      version: ${{ steps.update.outputs.version }}
+      published: ${{ steps.automatic.outcome == 'success' }}
+      delivery_enabled: ${{ env.DELIVERY_ENABLED }}
+      report: ${{ steps.update.outputs.report }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+
+      - name: Install the project and the publishing tools (locked)
+        run: uv sync --locked --all-extras --group publish
+
+      - name: Count what must stop the run (open takedown requests and dataset pull requests)
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          takedowns="$(gh issue list --repo "$GITHUB_REPOSITORY" --label takedown --state open \
+            --json number --jq length)"
+          prs="$(uv run --no-sync python -I -c '
+          import os
+          from huggingface_hub import HfApi
+          prs = HfApi().get_repo_discussions(os.environ["DATASET"], repo_type="dataset",
+              discussion_type="pull_request", discussion_status="open")
+          print(sum(1 for _ in prs))')"
+          echo "open takedown requests: $takedowns; open pull requests on the dataset: $prs"
+          echo "takedowns=$takedowns" >> "$GITHUB_OUTPUT"
+          echo "prs=$prs" >> "$GITHUB_OUTPUT"
+
+      - name: Download the latest published version (anonymous)
+        run: |
+          uv run --no-sync hf download "$DATASET" --repo-type dataset \
+            --local-dir "$RUNNER_TEMP/prev" > /dev/null
+          rm -rf "$RUNNER_TEMP/prev/.cache"
+          du -sh "$RUNNER_TEMP/prev"
+
+      - name: Build and check the next version
+        id: update
+        env:
+          OPEN_TAKEDOWNS: ${{ steps.open.outputs.takedowns }}
+          OPEN_PRS: ${{ steps.open.outputs.prs }}
+          ALLOW_SKIPPED: ${{ inputs.allow_skipped }}
+        run: |
+          dry="--dry-run"
+          [ "$DELIVERY_ENABLED" = "true" ] && dry=""
+          set +e
+          uv run --no-sync commonswire update \
+            --from "$RUNNER_TEMP/prev" --out "$RUNNER_TEMP/next" --work "$RUNNER_TEMP/work" \
+            --open-takedowns "$OPEN_TAKEDOWNS" --open-dataset-prs "$OPEN_PRS" \
+            --allow-skipped "$ALLOW_SKIPPED" $dry
+          code=$?
+          set -e
+          summary="$RUNNER_TEMP/work/summary.json"
+          if [ ! -f "$summary" ]; then
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit "$code"
+          fi
+          python3 -I - "$summary" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          s = json.load(open(sys.argv[1]))
+          print(f"status={s['status']}")
+          print(f"version={s['version']}")
+          print(f"ready={'true' if s['ready_to_deliver'] else 'false'}")
+          PY
+          {
+            echo "report<<CW_REPORT_END"
+            cat "$RUNNER_TEMP/work/summary.md"
+            echo "CW_REPORT_END"
+          } >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/work/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          # 0 ready, 3 stopped (reported by the next job), 4 nothing new; anything else failed.
+          case "$code" in 0|3|4) exit 0 ;; *) exit "$code" ;; esac
+
+      - name: Check the card with Hugging Face's own validator
+        if: steps.update.outputs.status == 'ready'
+        run: |
+          uv run --no-sync python -I - "$RUNNER_TEMP/next/README.md" <<'PY'
+          import sys
+          from huggingface_hub import DatasetCard
+          DatasetCard(open(sys.argv[1], encoding="utf-8").read()).validate(repo_type="dataset")
+          print("the card passes Hugging Face's validation")
+          PY
+
+      - name: Deliver as a pull request on the dataset (mode pull-request)
+        if: >-
+          env.DELIVERY_ENABLED == 'true' && steps.update.outputs.ready == 'true' &&
+          vars.CW_DELIVERY_MODE != 'automatic'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          uv run --no-sync hf upload "$DATASET" "$RUNNER_TEMP/next" . --repo-type dataset \
+            --delete "data/**" --create-pr \
+            --commit-message "CommonsWire $VERSION" \
+            --commit-description "$(cat "$RUNNER_TEMP/work/summary.md")"
+
+      - name: Publish and tag (mode automatic)
+        id: automatic
+        if: >-
+          env.DELIVERY_ENABLED == 'true' && steps.update.outputs.ready == 'true' &&
+          vars.CW_DELIVERY_MODE == 'automatic'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          uv run --no-sync hf upload "$DATASET" "$RUNNER_TEMP/next" . --repo-type dataset \
+            --delete "data/**" \
+            --commit-message "CommonsWire $VERSION" \
+            --commit-description "$(cat "$RUNNER_TEMP/work/summary.md")"
+          uv run --no-sync hf repos tag create "$DATASET" "v$VERSION" --repo-type dataset \
+            --message "CommonsWire $VERSION"
+
+  mirror:
+    name: Mirror to Kaggle (mode automatic)
+    needs: update
+    if: needs.update.outputs.published == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/kaggle-mirror.yml
+    # Its job reads its secrets from the "release" environment (environment secrets cannot be
+    # passed from a calling job).
+    secrets: inherit
+
+  report:
+    name: Report a stop or a failure
+    needs: update
+    if: always() && (needs.update.result != 'success' || needs.update.outputs.status == 'stopped')
+    permissions:
+      issues: write
+    uses: ./.github/workflows/failure-issue.yml
+    with:
+      title: "Weekly update stopped"
+      body: ${{ needs.update.outputs.report || 'The update job failed before it wrote a summary; see the run.' }}
+      enabled: ${{ needs.update.outputs.delivery_enabled == 'true' }}
