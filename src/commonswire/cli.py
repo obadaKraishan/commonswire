@@ -925,7 +925,11 @@ def cmd_release_zenodo(args: argparse.Namespace) -> int:
         print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
         return 2
     folder = zenodo_folder(
-        out, root / "data" / "release" / f"{args.version}-zenodo", root, overwrite=args.overwrite
+        out,
+        root / "data" / "release" / f"{args.version}-zenodo",
+        root,
+        overwrite=args.overwrite,
+        commit=args.commit,
     )
     print(f"wrote {folder} (zenodo-metadata.json and {len(list(folder.iterdir())) - 1} files)")
     return 0
@@ -1085,6 +1089,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rz.add_argument("--version", required=True)
     rz.add_argument("--overwrite", action="store_true", help="rewrite the folder's files")
+    rz.add_argument(
+        "--commit", default="HEAD", help="the commit whose code the record holds (default: HEAD)"
+    )
     rz.set_defaults(func=cmd_release_zenodo)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")

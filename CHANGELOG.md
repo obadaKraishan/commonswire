@@ -68,6 +68,13 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- `release zenodo` prepares a record with no article index: `index.csv` (the article URLs) is
+  left out, since a Zenodo record cannot be withdrawn; `--commit` archives the code of the
+  commit that built the version, and the record links that commit's tree. `release kaggle`
+  writes the file and column descriptions of every table, the provenance, a weekly update
+  frequency and a plain cover image (three bars, one per configuration, no text) for Kaggle's
+  `datasets metadata --update`, which is the only route Kaggle reads them from. A pack folder
+  that holds a file the pack no longer writes is refused, not left half-updated.
 - The README gives the Kaggle mirror's link and the publication date of version 0.1.0
   (2026-11-14); the request log records the Global Voices backfill and the byline-route tests.
 - The README and the docs say only what version 0.1.0 does: new versions are published by the

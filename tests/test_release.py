@@ -296,7 +296,10 @@ def test_kaggle_and_zenodo_folders(tmp_path, series):
     assert meta["description"].startswith("# CommonsWire")
     names = sorted(p.name for p in k.iterdir())
     assert "commonswire-by.parquet" in names and "manifest.json" in names
-    assert {r["path"] for r in meta["resources"]} == set(names) - {"dataset-metadata.json"}
+    assert {r["path"] for r in meta["resources"]} == set(names) - {
+        "dataset-metadata.json",
+        "dataset-cover-image.png",
+    }
     assert (k / "commonswire-pd.parquet").read_bytes() == (
         out / "data/pd/train-00000-of-00001.parquet"
     ).read_bytes()
@@ -311,11 +314,10 @@ def test_kaggle_and_zenodo_folders(tmp_path, series):
     assert sorted(p.name for p in z.iterdir()) == [
         "LICENSES.md",
         "README.md",
-        "index.csv",
         "manifest.json",
         "sources.csv",
         "zenodo-metadata.json",
-    ]
+    ]  # no index.csv: a permanent record lists no article
 
 
 def test_zenodo_folder_archives_the_code_of_a_git_checkout(tmp_path, series):
@@ -332,10 +334,33 @@ def test_zenodo_folder_archives_the_code_of_a_git_checkout(tmp_path, series):
         ["-c", "user.name=t", "-c", "user.email=t@example.org", "commit", "-qm", "x"],
     ):
         subprocess.run(["git", "-C", str(repo), *cmd], check=True)
-    z = zenodo_folder(out, tmp_path / "z", repo)
-    assert (z / "commonswire-code-9.9.0.tar.gz").stat().st_size > 0
-    notes = json.loads((z / "zenodo-metadata.json").read_text())["metadata"]["notes"]
-    assert notes.startswith("Code commit: ") and "to be added" not in notes
+    first = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    (repo / "b.py").write_text("print('later')\n")
+    for cmd in (
+        ["add", "b.py"],
+        ["-c", "user.name=t", "-c", "user.email=t@example.org", "commit", "-qm", "y"],
+    ):
+        subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+    z = zenodo_folder(out, tmp_path / "z", repo, commit=first[:7])
+    import tarfile
+
+    with tarfile.open(z / "commonswire-code-9.9.0.tar.gz") as tar:
+        names = tar.getnames()
+    assert "commonswire-9.9.0/a.py" in names and "commonswire-9.9.0/b.py" not in names
+    meta = json.loads((z / "zenodo-metadata.json").read_text())["metadata"]
+    assert meta["notes"].startswith(f"Code commit: {first}.")
+    assert meta["related_identifiers"][1]["identifier"].endswith(f"/tree/{first}")
+    assert "no list of articles" in meta["description"]
+    z2 = zenodo_folder(out, tmp_path / "z2", repo, commit="no-such-commit")
+    assert not (z2 / "commonswire-code-9.9.0.tar.gz").exists()
+    assert (
+        len(
+            json.loads((z2 / "zenodo-metadata.json").read_text())["metadata"]["related_identifiers"]
+        )
+        == 1
+    )
 
 
 def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
@@ -412,3 +437,56 @@ def test_the_takedown_list_keeps_articles_out_and_must_be_well_formed(tmp_path, 
     with pytest.raises(ReleaseError, match="the header must be id,requested_on,basis"):
         load_takedowns(path)
     assert load_takedowns(tmp_path / "none.csv") == set()
+
+
+def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_path, series):
+    import struct
+    import zlib
+
+    from commonswire.release import COLUMNS
+    from commonswire.release_pack import (
+        INDEX_COLUMNS,
+        ROW_COLUMNS,
+        SOURCE_COLUMNS,
+        cover_image,
+    )
+    from commonswire.sources import SOURCE_FIELDS
+
+    assert [c[0] for c in ROW_COLUMNS] == list(COLUMNS)  # every released column, in order
+    assert [c[0] for c in SOURCE_COLUMNS] == list(SOURCE_FIELDS)
+    assert [c[0] for c in INDEX_COLUMNS][:2] == ["id", "source_id"]
+    corpus(tmp_path)
+    _, out, m = build(tmp_path)
+    k = kaggle_folder(out, tmp_path / "k")
+    meta = json.loads((k / "dataset-metadata.json").read_text())
+    assert meta["expectedUpdateFrequency"] == "weekly" and meta["isPrivate"] is False
+    assert "sources.csv" in meta["userSpecifiedSources"] and "alpha" in meta["userSpecifiedSources"]
+    by = {r["path"]: r for r in meta["resources"]}
+    fields = by["commonswire-by.parquet"]["schema"]["fields"]
+    assert [f["name"] for f in fields] == list(COLUMNS)
+    assert all(f["description"] and f["type"] for f in fields)
+    assert by["index.csv"]["schema"]["fields"][2]["name"] == "configuration"
+    assert len(by["sources.csv"]["schema"]["fields"]) == len(SOURCE_FIELDS)
+    assert "schema" not in by["README.md"] and by["README.md"]["description"]
+    png = (k / "dataset-cover-image.png").read_bytes()
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+    width, height = struct.unpack(">II", png[16:24])
+    assert (width, height) == (1120, 560) and width >= 560 and height >= 280
+    assert png == cover_image(m["rows_by_configuration"])  # the same input, the same image
+    idat = png[png.index(b"IDAT") + 4 : png.index(b"IEND") - 8]
+    assert len(zlib.decompress(idat)) == height * (1 + width * 3)
+    assert cover_image({"by": 1, "by-sa": 0, "pd": 0}, (40, 20))[:8] == png[:8]
+
+
+def test_pack_folders_refuse_stale_files(tmp_path, series):
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    z = tmp_path / "z"
+    z.mkdir()
+    (z / "index.csv").write_text("an older pack's article list")
+    with pytest.raises(
+        FileExistsError, match=r"holds files this pack does not write \(index.csv\)"
+    ):
+        zenodo_folder(out, z, tmp_path, overwrite=True)
+    with pytest.raises(FileExistsError, match="not empty"):
+        zenodo_folder(out, z, tmp_path)
