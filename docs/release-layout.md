@@ -39,9 +39,18 @@ manifest.json                                       row counts; size and SHA-256
 ```
 
 `release kaggle` copies these files under flat names (`commonswire-by.parquet`, ...) into
-`data/release/X.Y.Z-kaggle/` with `dataset-metadata.json`. `release zenodo` writes
-`data/release/X.Y.Z-zenodo/`: the code (`git archive`), `sources.csv`, `index.csv`, the card,
-`LICENSES.md`, the manifest and `zenodo-metadata.json`, and **no article text**.
+`data/release/X.Y.Z-kaggle/` with `dataset-metadata.json` and a plain cover image.
+
+**Zenodo** archives a GitHub release of the repository (code and registry milestones only, not
+every dataset version): the code and the source registry, **no article text and no index of the
+articles**. Its metadata is `.zenodo.json`, which Zenodo reads in place of `CITATION.cff`.
+`release zenodo --version X.Y.Z` checks that file (the fields Zenodo needs, in the forms its
+deposit metadata accepts, links to the dataset on Hugging Face and Kaggle, and agreement with
+`CITATION.cff`) and checks that the release archive carries neither the request log
+(`.gitattributes`: `export-ignore`) nor any collected data. The fallback, a deposit by hand on
+Zenodo's website, is `release zenodo --version X.Y.Z --website`: it writes
+`data/release/X.Y.Z-zenodo/` with the code (`git archive`), `sources.csv`, the card,
+`LICENSES.md`, the manifest and `zenodo-metadata.json`.
 
 ## Columns
 | Column | Type | Notes |

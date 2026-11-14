@@ -11,20 +11,29 @@
   the file descriptions sent with ``create``). The cover image is plain: three bars, one per
   configuration, as long as its row count, with no text and no newsroom's name or logo. The
   dataset id is left as ``KAGGLE_USERNAME/commonswire``; the publish step fills in the account.
-- **Zenodo** (``data/release/<version>-zenodo/``): **no article text and no article index.** A
-  Zenodo record cannot be withdrawn, which does not fit the promise to remove an article on
-  request, so it holds neither the text nor the list of article URLs (``index.csv``). It holds
-  the code (a ``git archive`` of the commit that built the version), the source registry, the
-  dataset card, ``LICENSES.md`` and the manifest, with ``zenodo-metadata.json`` for the deposit.
+- **Zenodo, the GitHub route** (the default): Zenodo archives a GitHub release of the
+  repository, reading its metadata from ``.zenodo.json`` (which it reads in place of
+  ``CITATION.cff``). :func:`check_zenodo_json` checks that file against what Zenodo's deposit
+  metadata accepts and against ``CITATION.cff``, and :func:`archive_problems` checks that the
+  release archive carries ``.zenodo.json`` and neither the request log nor any raw, interim or
+  release data. A release archive holds the code and the source registry, no article text.
+- **Zenodo, the website deposit** (the fallback, ``data/release/<version>-zenodo/``): **no
+  article text and no article index.** A Zenodo record cannot be withdrawn, which does not fit
+  the promise to remove an article on request, so it holds neither the text nor the list of
+  article URLs (``index.csv``). It holds the code (a ``git archive`` of the commit that built
+  the version), the source registry, the dataset card, ``LICENSES.md`` and the manifest, with
+  ``zenodo-metadata.json`` for the deposit.
 """
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import shutil
 import struct
 import subprocess
+import tarfile
 import zlib
 from pathlib import Path
 
@@ -39,6 +48,78 @@ COVER_SIZE = (1120, 560)  # 2:1, at least Kaggle's 560 by 280
 CREATOR = {"name": "Kraishan, Obada", "affiliation": "Texas Tech University"}
 KEYWORDS = ["news", "journalism", "corpus", "creative commons", "communication research"]
 ZENODO_FILES = ("sources.csv", "README.md", "LICENSES.md", "manifest.json")
+KAGGLE_URL = "https://www.kaggle.com/datasets/obadakraishan/commonswire"
+ZENODO_JSON = ".zenodo.json"
+#: Zenodo's deposit metadata (developers.zenodo.org, "Deposit metadata"), as read on
+#: 2026-11-14: the upload types, the relation types and the HTML tags a description may use.
+ZENODO_UPLOAD_TYPES = frozenset(
+    [
+        "publication",
+        "poster",
+        "presentation",
+        "dataset",
+        "image",
+        "video",
+        "software",
+        "lesson",
+        "physicalobject",
+        "other",
+    ]
+)
+ZENODO_RELATIONS = frozenset(
+    [
+        "isCitedBy",
+        "cites",
+        "isSupplementTo",
+        "isSupplementedBy",
+        "isDescribedBy",
+        "isNewVersionOf",
+        "isPreviousVersionOf",
+        "isPartOf",
+        "hasPart",
+        "isReferencedBy",
+        "references",
+        "isDocumentedBy",
+        "documents",
+        "isDerivedFrom",
+        "isSourceOf",
+        "requires",
+        "isRequiredBy",
+    ]
+)
+ZENODO_HTML = frozenset(
+    [
+        "a",
+        "abbr",
+        "acronym",
+        "b",
+        "blockquote",
+        "br",
+        "code",
+        "caption",
+        "div",
+        "em",
+        "i",
+        "li",
+        "ol",
+        "p",
+        "pre",
+        "span",
+        "strike",
+        "strong",
+        "sub",
+        "table",
+        "tbody",
+        "thead",
+        "th",
+        "td",
+        "tr",
+        "u",
+        "ul",
+    ]
+)
+#: Paths a release archive must never carry: the request log, and any collected data.
+NOT_IN_ARCHIVE = re.compile(r"^[^/]+/data/(usage_log\.csv$|raw/|interim/|release/)")
 _FRONT = re.compile(r"\A---\n.*?\n---\n+", re.S)
 
 #: The released columns, in order, with their Kaggle type and description.
@@ -333,3 +414,112 @@ def zenodo_folder(
         json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     return folder
+
+
+def _citation_fields(text: str) -> dict[str, str]:
+    """The top-level title and license of a CITATION.cff, and its first author's names and
+    affiliation (enough to compare with .zenodo.json; no YAML parser needed)."""
+    out: dict[str, str] = {}
+    in_authors = False
+    for line in text.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        top = not line.startswith((" ", "-"))
+        if top:
+            in_authors = line.startswith("authors:")
+        m = re.match(r"^(title|license):\s*\"?(.*?)\"?\s*$", line)
+        if m and top:
+            out[m.group(1)] = m.group(2)
+        m = re.match(r"^\s*-?\s*(family-names|given-names|affiliation):\s*\"?(.*?)\"?\s*$", line)
+        if m and in_authors:
+            out.setdefault(m.group(1), m.group(2))
+    return out
+
+
+def check_zenodo_json(repo: Path) -> list[str]:
+    """What is wrong with the repository's ``.zenodo.json`` for Zenodo's GitHub route (empty
+    when nothing is): the fields Zenodo needs, in the forms its deposit metadata accepts, a
+    title that says the record holds no article text, links to the dataset on Hugging Face and
+    Kaggle, and the same title, license and creator as ``CITATION.cff``."""
+    path = repo / ZENODO_JSON
+    if not path.exists():
+        return [f"{path} is missing; Zenodo would fall back to CITATION.cff and GitHub's data"]
+    try:
+        meta = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"{path}, line {exc.lineno}: not valid JSON ({exc.msg})"]
+    if not isinstance(meta, dict):
+        return [f"{path}: the file must hold one JSON object"]
+    problems = [
+        f"{path}: {key} is missing or empty"
+        for key in ("title", "upload_type", "description", "creators", "license", "keywords")
+        if not meta.get(key)
+    ]
+    title = str(meta.get("title", ""))
+    if "no article text" not in title:
+        problems.append(f"{path}: the title must say that the record holds no article text")
+    if meta.get("upload_type") and meta["upload_type"] not in ZENODO_UPLOAD_TYPES:
+        problems.append(f"{path}: upload_type {meta['upload_type']!r} is not one Zenodo knows")
+    for n, c in enumerate(meta.get("creators") or [], 1):
+        if not isinstance(c, dict) or ", " not in str(c.get("name", "")):
+            problems.append(f"{path}: creator {n} needs a name of the form 'Family, Given'")
+    tags = {
+        t.lower() for t in re.findall(r"</?\s*([A-Za-z][A-Za-z0-9]*)", meta.get("description", ""))
+    }
+    if tags - ZENODO_HTML:
+        problems.append(
+            f"{path}: the description uses HTML that Zenodo does not allow: "
+            + ", ".join(sorted(tags - ZENODO_HTML))
+        )
+    links = set()
+    for n, r in enumerate(meta.get("related_identifiers") or [], 1):
+        if not isinstance(r, dict) or r.get("relation") not in ZENODO_RELATIONS:
+            problems.append(f"{path}: related identifier {n} has a relation Zenodo does not know")
+            continue
+        if not str(r.get("identifier", "")).startswith("https://"):
+            problems.append(f"{path}: related identifier {n} is not an https link")
+        links.add(r.get("identifier"))
+    for url, what in ((HF_URL, "the Hugging Face dataset"), (KAGGLE_URL, "the Kaggle mirror")):
+        if url not in links:
+            problems.append(f"{path}: no related identifier links {what} ({url})")
+    cff_path = repo / "CITATION.cff"
+    if cff_path.exists():
+        cff = _citation_fields(cff_path.read_text(encoding="utf-8"))
+        creator = (meta.get("creators") or [{}])[0]
+        name = f"{cff.get('family-names', '')}, {cff.get('given-names', '')}"
+        pairs = (
+            ("title", cff.get("title", ""), title),
+            ("license", cff.get("license", "").lower(), str(meta.get("license", "")).lower()),
+            ("creator", name, creator.get("name", "") if isinstance(creator, dict) else ""),
+            (
+                "affiliation",
+                cff.get("affiliation", ""),
+                creator.get("affiliation", "") if isinstance(creator, dict) else "",
+            ),
+        )
+        for field_name, want, got in pairs:
+            if want != got:
+                problems.append(
+                    f"{path}: the {field_name} ({got!r}) differs from CITATION.cff ({want!r})"
+                )
+    return problems
+
+
+def archive_names(repo: Path, commit: str = "HEAD") -> list[str]:
+    """The files a ``git archive`` of ``commit`` holds (what a GitHub release would carry),
+    under the prefix ``commonswire/``."""
+    data = subprocess.run(
+        ["git", "-C", str(repo), "archive", "--format=tar", "--prefix=commonswire/", commit],
+        check=True,
+        capture_output=True,
+    ).stdout
+    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        return [m.name for m in tar.getmembers() if m.isfile()]
+
+
+def archive_problems(names: list[str]) -> list[str]:
+    """What a release archive must not carry (the request log, collected data), and must."""
+    problems = [f"{n} is in the archive" for n in names if NOT_IN_ARCHIVE.match(n)]
+    if not any(n.endswith("/" + ZENODO_JSON) and n.count("/") == 1 for n in names):
+        problems.append(f"{ZENODO_JSON} is not in the archive (commit it first)")
+    return problems

@@ -85,7 +85,7 @@ Building a dataset version from the built rows (no requests):
 uv run commonswire release build --version 0.1.0   # data/release/0.1.0/
 uv run commonswire release check --version 0.1.0   # files, hashes, counts, credit lines
 uv run commonswire release kaggle --version 0.1.0  # a folder for the Kaggle mirror
-uv run commonswire release zenodo --version 0.1.0  # a folder for a record with no article text
+uv run commonswire release zenodo --version 0.1.0  # checks .zenodo.json for Zenodo's GitHub route
 ```
 
 ## Takedowns and corrections

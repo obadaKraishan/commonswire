@@ -19,6 +19,12 @@ All notable changes to this project are documented here. The format follows
   refused the card's metadata with the relative name `LICENSES.md`.
 
 ### Added
+- `.zenodo.json`, the metadata Zenodo reads when it archives a GitHub release of the
+  repository (in place of `CITATION.cff`): the title "CommonsWire: code and source registry, no
+  article text", the creator and affiliation, Apache-2.0, keywords, a description, and links to
+  the dataset on Hugging Face and its Kaggle mirror. Releases are made for code and registry
+  milestones only. `CITATION.cff` now describes the repository the same way (same title,
+  license and creator) and cites the published dataset, version 0.1.0 of 2026-11-14.
 - The release build (`commonswire release build --version X.Y.Z`): a dataset version written
   from the built rows with no request, into `data/release/X.Y.Z/`: one Parquet configuration per
   license class (`pd`, `by`, `by-sa`; `by` is the default), releasable rows only, exact
@@ -68,6 +74,11 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- `release zenodo` now checks the GitHub route by default: `.zenodo.json` (the fields Zenodo
+  needs, in the forms its deposit metadata accepts, and agreement with `CITATION.cff`) and the
+  release archive (it must carry `.zenodo.json` and neither the request log nor any collected
+  data), and prints the maintainer's steps. The folder for a deposit by hand on Zenodo's
+  website is the fallback, `release zenodo --website`.
 - The request log (`data/usage_log.csv`) no longer lists article addresses. A request for one
   article's page (a byline read from the page, or the check for a removed article) is logged
   with the article's id (`cw_` and 16 hex digits) in place of its path; listing, API, feed,

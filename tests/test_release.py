@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from commonswire import release as rel
+from commonswire import release_pack as rel_pack
 from commonswire.cli import main
 from commonswire.release import ReleaseError, collect, series_sources, verify, write_release
 from commonswire.release_pack import (
@@ -369,7 +370,7 @@ def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
     base = ["--root", str(tmp_path), "release"]
     assert main([*base, "check", "--version", "9.9.0"]) == 2
     assert main([*base, "kaggle", "--version", "9.9.0"]) == 2
-    assert main([*base, "zenodo", "--version", "9.9.0"]) == 2
+    assert main([*base, "zenodo", "--version", "9.9.0", "--website"]) == 2
     capsys.readouterr()
     assert main([*base, "build", "--version", "9.9.0", "--sources", reg]) == 0
     out = capsys.readouterr().out
@@ -380,10 +381,16 @@ def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
     assert main([*base, "build", "--version", "9.9.0", "--sources", reg, "--overwrite"]) == 0
     assert main([*base, "check", "--version", "9.9.0"]) == 0
     assert main([*base, "kaggle", "--version", "9.9.0"]) == 0
-    assert main([*base, "zenodo", "--version", "9.9.0"]) == 0
-    assert "zenodo-metadata.json and" in capsys.readouterr().out
+    assert main([*base, "zenodo", "--version", "9.9.0", "--website"]) == 0
+    out = capsys.readouterr().out
+    assert "zenodo-metadata.json and" in out and "This is the fallback" in out
     assert main([*base, "kaggle", "--version", "9.9.0", "--overwrite"]) == 0
-    assert main([*base, "zenodo", "--version", "9.9.0", "--overwrite"]) == 0
+    assert main([*base, "zenodo", "--version", "9.9.0", "--website", "--overwrite"]) == 0
+    # Without --website: the GitHub route, which needs .zenodo.json and a git checkout.
+    capsys.readouterr()
+    assert main([*base, "zenodo", "--version", "9.9.0"]) == 1
+    out = capsys.readouterr().out
+    assert ".zenodo.json is missing" in out and "no git archive of HEAD" in out
     assert main([*base, "build", "--version", "0.9.0", "--sources", reg]) == 2
     # A corpus report that disagrees makes the check fail.
     ev = tmp_path / "data" / "evidence" / "corpus"
@@ -490,3 +497,110 @@ def test_pack_folders_refuse_stale_files(tmp_path, series):
         zenodo_folder(out, z, tmp_path, overwrite=True)
     with pytest.raises(FileExistsError, match="not empty"):
         zenodo_folder(out, z, tmp_path)
+
+
+GOOD_ZENODO = {
+    "title": "Invented: code and source registry, no article text",
+    "upload_type": "software",
+    "description": "<p>Invented <strong>code</strong>, <code>no text</code>.</p>",
+    "creators": [{"name": "Invented, Ana", "affiliation": "Invented University"}],
+    "license": "Apache-2.0",
+    "keywords": ["invented"],
+    "related_identifiers": [
+        {"identifier": rel_pack.HF_URL, "relation": "isSupplementTo", "scheme": "url"},
+        {"identifier": rel_pack.KAGGLE_URL, "relation": "isSupplementTo", "scheme": "url"},
+    ],
+}
+GOOD_CFF = """# a comment
+cff-version: 1.2.0
+title: "Invented: code and source registry, no article text"
+authors:
+  - family-names: Invented
+    given-names: Ana
+    affiliation: "Invented University"
+license: Apache-2.0
+preferred-citation:
+  title: "Another title"
+  authors:
+    - family-names: Other
+"""
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({}, None),
+        ({"title": "Invented code"}, "no article text"),
+        ({"upload_type": "programme"}, "upload_type"),
+        ({"creators": [{"name": "Ana Invented"}]}, "'Family, Given'"),
+        ({"description": "<p>a <script>x</script></p>"}, "does not allow: script"),
+        ({"related_identifiers": []}, "the Kaggle mirror"),
+        (
+            {"related_identifiers": [{"identifier": "x", "relation": "isRelatedTo"}]},
+            "relation Zenodo does not know",
+        ),
+        ({"license": "MIT"}, "the license ('mit') differs from CITATION.cff"),
+        ({"license": ""}, "license is missing"),
+    ],
+)
+def test_check_zenodo_json(tmp_path, change, message):
+    (tmp_path / "CITATION.cff").write_text(GOOD_CFF)
+    (tmp_path / ".zenodo.json").write_text(json.dumps({**GOOD_ZENODO, **change}))
+    problems = rel_pack.check_zenodo_json(tmp_path)
+    if message is None:
+        assert problems == []
+    else:
+        assert any(message in p for p in problems), problems
+
+
+def test_check_zenodo_json_reads_the_file_and_the_citation(tmp_path):
+    assert "is missing" in rel_pack.check_zenodo_json(tmp_path)[0]
+    (tmp_path / ".zenodo.json").write_text("{\n  'title': 1\n}")
+    assert "line 2: not valid JSON" in rel_pack.check_zenodo_json(tmp_path)[0]
+    (tmp_path / ".zenodo.json").write_text("[]")
+    assert "one JSON object" in rel_pack.check_zenodo_json(tmp_path)[0]
+    (tmp_path / ".zenodo.json").write_text(json.dumps(GOOD_ZENODO))
+    assert rel_pack.check_zenodo_json(tmp_path) == []  # no CITATION.cff: nothing to compare
+    (tmp_path / "CITATION.cff").write_text(GOOD_CFF.replace("Invented University", "Elsewhere"))
+    assert "affiliation" in rel_pack.check_zenodo_json(tmp_path)[0]
+
+
+def test_the_repositorys_own_zenodo_json_and_citation_agree():
+    from commonswire._paths import repo_root
+
+    assert rel_pack.check_zenodo_json(repo_root()) == []
+
+
+def test_archive_leaves_out_the_request_log_and_needs_zenodo_json(tmp_path):
+    import subprocess
+
+    repo = tmp_path / "repo"
+    (repo / "data" / "interim").mkdir(parents=True)
+    (repo / "a.py").write_text("print('invented')\n")
+    (repo / "data" / "usage_log.csv").write_text("time,host\n")
+    (repo / "data" / "sources.csv").write_text("source_id\n")
+    (repo / ".gitattributes").write_text("data/usage_log.csv export-ignore\n")
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.org"]
+    subprocess.run([*git, "init", "-q"], check=True)
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "x"], check=True)
+    names = rel_pack.archive_names(repo)
+    assert "commonswire/data/sources.csv" in names
+    assert "commonswire/data/usage_log.csv" not in names
+    assert rel_pack.archive_problems(names) == [
+        ".zenodo.json is not in the archive (commit it first)"
+    ]
+    bad = [
+        *names,
+        "commonswire/.zenodo.json",
+        "commonswire/data/usage_log.csv",
+        "commonswire/data/raw/x.json",
+    ]
+    assert rel_pack.archive_problems(bad) == [
+        "commonswire/data/usage_log.csv is in the archive",
+        "commonswire/data/raw/x.json is in the archive",
+    ]
+    (repo / ".zenodo.json").write_text(json.dumps(GOOD_ZENODO))
+    subprocess.run([*git, "add", ".zenodo.json"], check=True)
+    subprocess.run([*git, "commit", "-qm", "y"], check=True)
+    assert main(["--root", str(repo), "release", "zenodo", "--version", "9.9.0"]) == 0

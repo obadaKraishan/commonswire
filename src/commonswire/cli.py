@@ -917,9 +917,46 @@ def cmd_release_kaggle(args: argparse.Namespace) -> int:
 
 
 def cmd_release_zenodo(args: argparse.Namespace) -> int:
-    from commonswire.release_pack import zenodo_folder
+    """The GitHub route by default: check .zenodo.json and the release archive, and print the
+    maintainer's steps. With --website, the fallback: a folder for a deposit by hand."""
+    import subprocess
+
+    from commonswire.release_pack import (
+        archive_names,
+        archive_problems,
+        check_zenodo_json,
+        zenodo_folder,
+    )
 
     root = Path(args.root)
+    if not args.website:
+        problems = check_zenodo_json(root)
+        try:
+            names = archive_names(root, args.commit)
+        except (OSError, subprocess.CalledProcessError):
+            names = []
+            problems.append(f"no git archive of {args.commit} in {root} (not a git checkout?)")
+        else:
+            problems += archive_problems(names)
+        for problem in problems:
+            print(f"check failed: {problem}")
+        if problems:
+            print("Zenodo (GitHub route): fix the problems above before the GitHub release.")
+            return 1
+        print(
+            f"Zenodo (GitHub route): .zenodo.json passes, and the archive of {args.commit} holds "
+            f"{len(names)} files, .zenodo.json among them, and no request log or collected data."
+            "\nNothing is uploaded. The maintainer's steps:"
+            "\n  1. In Zenodo, switch the repository on (profile menu, GitHub, Sync now, then the"
+            "\n     switch next to the repository), before the release: Zenodo archives new"
+            "\n     releases only."
+            f"\n  2. On GitHub, publish the release v{args.version} (a full release, not a draft)."
+            "\n  3. The DOI appears on the new Zenodo record and next to the repository on"
+            "\n     Zenodo's GitHub page; add it to CITATION.cff, the README and the card then."
+            f"\nFallback, a deposit by hand: commonswire release zenodo --version {args.version} "
+            "--website"
+        )
+        return 0
     out = root / "data" / "release" / args.version
     if not (out / "manifest.json").exists():
         print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
@@ -932,6 +969,7 @@ def cmd_release_zenodo(args: argparse.Namespace) -> int:
         commit=args.commit,
     )
     print(f"wrote {folder} (zenodo-metadata.json and {len(list(folder.iterdir())) - 1} files)")
+    print("This is the fallback; the GitHub route (without --website) is the default.")
     return 0
 
 
@@ -1085,10 +1123,16 @@ def build_parser() -> argparse.ArgumentParser:
     rk.add_argument("--overwrite", action="store_true", help="rewrite the folder's files")
     rk.set_defaults(func=cmd_release_kaggle)
     rz = rel_sub.add_parser(
-        "zenodo", help="prepare a Zenodo record of a version, with no article text (no upload)"
+        "zenodo",
+        help="check .zenodo.json and the release archive for Zenodo's GitHub route (no upload)",
     )
-    rz.add_argument("--version", required=True)
-    rz.add_argument("--overwrite", action="store_true", help="rewrite the folder's files")
+    rz.add_argument("--version", required=True, help="the release, as in its tag vVERSION")
+    rz.add_argument(
+        "--website",
+        action="store_true",
+        help="the fallback: prepare a folder for a deposit by hand on Zenodo's website",
+    )
+    rz.add_argument("--overwrite", action="store_true", help="with --website: rewrite the files")
     rz.add_argument(
         "--commit", default="HEAD", help="the commit whose code the record holds (default: HEAD)"
     )

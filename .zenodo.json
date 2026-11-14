@@ -1,0 +1,37 @@
+{
+  "title": "CommonsWire: code and source registry, no article text",
+  "upload_type": "software",
+  "description": "<p>The code and the source registry of CommonsWire, a full-text corpus of news articles whose publishers allow their text to be shared again (public domain and Creative Commons licenses). <strong>This record holds no article text and no index of the articles.</strong></p><p>It holds the Python package that collects and builds the corpus (one request at a time, robots.txt and crawl-delays honored, blocks never worked around), the source registry (<code>data/sources.csv</code>: every source checked, the pages read, the dates, the exact words quoted as evidence of its terms, and its status), the documentation, and the takedown list (article ids only).</p><p>The articles are on Hugging Face (<a href=\"https://huggingface.co/datasets/obadakr/commonswire\">obadakr/commonswire</a>), with a mirror on Kaggle, where an article can be removed on request, which a permanent record cannot do. Each article keeps its publisher's license and credit line on its row.</p><p>The code and the registry are CommonsWire's own work under the Apache License 2.0; the short quotes in the registry are the publishers' words, quoted as evidence of their terms.</p>",
+  "creators": [
+    {
+      "name": "Kraishan, Obada",
+      "affiliation": "College of Media and Communication, Texas Tech University"
+    }
+  ],
+  "license": "Apache-2.0",
+  "access_right": "open",
+  "keywords": [
+    "news",
+    "journalism",
+    "corpus",
+    "creative commons",
+    "communication research",
+    "source registry",
+    "open licenses"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://huggingface.co/datasets/obadakr/commonswire",
+      "relation": "isSupplementTo",
+      "resource_type": "dataset",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://www.kaggle.com/datasets/obadakraishan/commonswire",
+      "relation": "isSupplementTo",
+      "resource_type": "dataset",
+      "scheme": "url"
+    }
+  ],
+  "notes": "A new version of this record is made only for code and registry milestones, from a GitHub release. The dataset's own versions are published on Hugging Face and Kaggle."
+}
