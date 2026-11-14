@@ -10,7 +10,7 @@ collected later cannot slip into an older series:
 | Series | Sources |
 |---|---|
 | 0.1.x | English Wikinews, 360info, The Public Record, Balkan Diskurs, Factly, Alt News |
-| 0.2.x | the 0.1.x sources and Global Voices (0.2.0 is built, not yet published) |
+| 0.2.x | the 0.1.x sources and Global Voices (0.2.0 published on 2026-11-14) |
 
 Series 0.2 adds one column, `translators`, after `authors`; series 0.1 keeps the 18 columns
 version 0.1.0 was published with, and `release check` refuses files whose columns are not
@@ -20,7 +20,7 @@ their series' columns.
 One configuration per license class (`docs/licenses.md`), so a user can take only what their
 own use allows. `by` is the default.
 
-| Configuration | Licenses | Rows in 0.1.0 | Rows in 0.2.0 (built) |
+| Configuration | Licenses | Rows in 0.1.0 | Rows in 0.2.0 |
 |---|---|---|---|
 | `by` | CC BY 2.5, 3.0 and 4.0 | 42,882 | 144,444 |
 | `by-sa` | CC BY-SA 4.0 | 2,749 | 2,749 |

@@ -1,8 +1,8 @@
 # Method (DRAFT)
 
-**DRAFT: not accepted yet.** This describes plans, not what version 0.1.0 does: how
+**DRAFT: not accepted yet.** This describes plans, not what version 0.2.0 does: how
 CommonsWire will code and validate its variables and how it will keep the corpus current.
-Version 0.1.0 has no coded variables, and its updates are made by hand
+Version 0.2.0 has no coded variables, and its updates are made by hand
 (`docs/automation.md`, section 0). None of the coding below has been run.
 
 ## 1. Unit and scope

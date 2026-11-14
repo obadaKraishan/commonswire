@@ -1,7 +1,7 @@
 # Licenses
 
 The license classes and the release split below were accepted on 2026-11-13 (maintainer's
-decision), and version 0.1.0 is built on them. This is not legal advice.
+decision), and versions 0.1.0 and 0.2.0 are built on them. This is not legal advice.
 
 ## 1. The code
 The CommonsWire software (`src/`, `tests/`) and the reference tables (`data/sources.csv`,
@@ -28,12 +28,12 @@ own use allows.
 
 | Class | Licenses | What the dataset itself must do | How the schema meets it | What users must do |
 |---|---|---|---|---|
-| `pd` | `public-domain` (in version 0.1.0: English Wikinews articles published before 2005-09-25, which Wikinews' own copyright page places in the public domain; in general also, for example, US federal government works), `CC0-1.0` | Nothing is required by law; CommonsWire still credits the source as a courtesy and says where the public-domain status comes from | `license`, `credit_line`, `url`; the data card names the basis | Nothing required. Public-domain status under US law may not hold in every country; users outside the US should check their own law |
+| `pd` | `public-domain` (in versions 0.1.0 and 0.2.0: English Wikinews articles published before 2005-09-25, which Wikinews' own copyright page places in the public domain; in general also, for example, US federal government works), `CC0-1.0` | Nothing is required by law; CommonsWire still credits the source as a courtesy and says where the public-domain status comes from | `license`, `credit_line`, `url`; the data card names the basis | Nothing required. Public-domain status under US law may not hold in every country; users outside the US should check their own law |
 | `by` | CC BY 2.0, 2.5, 3.0 and 4.0 (and their ports) | Keep, for every article: the creator and source credit, the title, a link to the article, the license name and a link to the license, and a note that the text was taken from its page without photos, captions or embeds and with no words changed | `credit_line` (credit, title, link, license name), `license` and `license_url`, the data card's "changes" note | Keep each row's credit line and license with anything they share; say if they changed the text |
 | `by-sa` | CC BY-SA 2.0 to 4.0 | As `by`. Share-alike binds adaptations of the text, not a collection that holds the text unchanged; each BY-SA row stays BY-SA | As `by`; the class is its own configuration so users can see which rows are BY-SA | As `by`, and release any adaptation of a BY-SA text (a translation, an edited version) under BY-SA |
 | `nc-nd` | CC BY-NC, BY-ND, BY-NC-ND, BY-NC-SA, only for sources with `status=include` (that is, sources whose pages allow bulk, automatic reuse) | As `by`, never change the text, and never sell access to the class | As `by`; text is stored unchanged; the class is distributed free of charge, in its own configuration, with its NC and ND terms in the data card | Use it only for noncommercial purposes (NC); do not share changed versions of the text (ND) |
 
-- **Version 0.1.0 holds only `pd`, `by` and `by-sa` rows.** NonCommercial and NoDerivatives
+- **Versions 0.1.0 and 0.2.0 hold only `pd`, `by` and `by-sa` rows.** NonCommercial and NoDerivatives
   sources that are silent on bulk reuse stay `pending`, so `nc-nd` is not built until a source
   allows bulk reuse in writing.
 - **Coded variables** (topic, frame, types of sources, tone) are planned for a later version.
@@ -85,4 +85,4 @@ republishers to pick stories one at a time and not to republish automatically.
 
 ## 6. Models
 When coded values are published, they will come from models under Apache-2.0 or MIT, and each
-value will record the model and its license. Version 0.1.0 has no coded values.
+value will record the model and its license. Versions 0.1.0 and 0.2.0 have no coded values.
