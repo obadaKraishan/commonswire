@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- A backfill page could be lost silently: when the data drive dropped off the bus a moment
+  after a page was written, the write had reached only the operating system's cache, the file
+  was gone after the drive came back, and the run ended "not finished" with no reason given.
+  Raw answers are now flushed to the disk (file and folder) before `save_once` returns, each
+  page is looked up again after it is saved (a page that is not on disk stops the run and is
+  named), and a run that ends with any page missing names the pages (`missing_pages`).
+  `commonswire backfill SOURCE --run RUN --check` checks a saved run for gaps with no request.
 - The dataset card's `license_link` is the full https URL of `LICENSES.md` in the Hugging Face
   dataset: the Hub accepts a file name there only when it is `LICENSE` or `LICENSE.md`, and
   refused the card's metadata with the relative name `LICENSES.md`.

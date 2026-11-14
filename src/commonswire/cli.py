@@ -313,12 +313,27 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:
-    from commonswire.backfill import backfill_wordpress
+    from commonswire.backfill import backfill_wordpress, check_backfill
 
     root = Path(args.root)
     if not (root / "data" / "raw").exists():
         print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
         return 2
+    if args.check:
+        folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+        if not folder.is_dir():
+            print(f"no saved run at {folder}", file=sys.stderr)
+            return 2
+        r = check_backfill(folder)
+        missing = ", ".join(str(n) for n in r["missing_pages"][:20]) or "none"  # type: ignore[index]
+        bad = ", ".join(str(n) for n in r["empty_or_invalid"]) or "none"  # type: ignore[union-attr]
+        print(
+            f"{args.source_id} {args.run}: {r['pages_present']} of {r['pages_expected']} pages, "
+            f"{r['posts']} posts (the site counted {r['total_posts'] or '?'}); missing pages: "
+            f"{missing}; empty or invalid: {bad}; "
+            + ("complete" if r["complete"] else "NOT complete")
+        )
+        return 0 if r["complete"] else 1
     fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
     client.byte_budget = args.max_mb * 1024 * 1024
     folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
@@ -990,6 +1005,9 @@ def build_parser() -> argparse.ArgumentParser:
     bf.add_argument("--max-mb", type=int, default=300, help="stop after this many megabytes")
     bf.add_argument("--max-pages", type=int, help="stop after this many new pages")
     bf.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bf.add_argument(
+        "--check", action="store_true", help="check a saved run for missing pages (no requests)"
+    )
     bf.set_defaults(func=cmd_backfill)
 
     bd = sub.add_parser("build", help="build rows from a saved backfill (no requests)")

@@ -3,8 +3,14 @@
 ``backfill_wordpress`` asks a WordPress site for its posts oldest first (so posts published
 during the run do not shift the pages), 100 at a time, with only the fields rows need. Every
 answer is saved once under ``data/raw/backfill/<source>/<run>/`` (written to a temporary name,
-then renamed), and ``progress.json`` records the totals. A run can be stopped at any time: a
-rerun skips the pages already saved.
+flushed to the disk, then renamed), and ``progress.json`` records the totals. A run can be
+stopped at any time: a rerun skips the pages already saved.
+
+A page counted as fetched is always either on disk or reported. After each save the file is
+looked up again (a write that never reached the disk, as when an external drive drops off the
+bus, stops the run and names the page), and at the end every page from 1 to the last is
+checked: a gap is named in ``stopped`` and ``missing_pages``, never left silent.
+``check_backfill`` runs the same check on a saved run with no request.
 
 ``build_rows`` turns the saved answers into rows with no request at all: third-party material
 is dropped and counted, repeated URLs are dropped and counted, and every row is checked by the
@@ -37,14 +43,85 @@ def _header(headers: object, name: str) -> str:
 
 
 def save_once(path: Path, body: bytes) -> bool:
-    """Write a raw answer once (temporary name, then rename). False if it already exists."""
+    """Write a raw answer once: to a temporary name, flushed to the disk, renamed, and the
+    folder flushed, so the answer is on disk when this returns, or an OSError is raised (for
+    example when the drive has gone away). False if the file already exists."""
     if path.exists():
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".part")
-    tmp.write_bytes(body)
+    with tmp.open("wb") as fh:
+        fh.write(body)
+        fh.flush()
+        os.fsync(fh.fileno())
     os.replace(tmp, path)
+    _fsync_folder(path.parent)
     return True
+
+
+def _fsync_folder(folder: Path) -> None:
+    """Flush a folder's entries (the rename) to the disk."""
+    fd = os.open(folder, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _on_disk(path: Path, size: int) -> bool:
+    try:
+        return path.stat().st_size == size
+    except OSError:
+        return False
+
+
+def _page_number(path: Path) -> int | None:
+    m = re.match(r"^posts-p(\d+)\.json$", path.name)
+    return int(m.group(1)) if m else None
+
+
+def missing_pages(folder: Path, total_pages: int | None) -> list[int]:
+    """The page numbers from 1 to the last (``total_pages``, or the highest saved) that have
+    no file."""
+    have = {n for p in folder.glob("posts-p*.json") if (n := _page_number(p)) is not None}
+    last = total_pages if total_pages is not None else max(have, default=0)
+    return [n for n in range(1, last + 1) if n not in have]
+
+
+def check_backfill(folder: Path) -> dict[str, object]:
+    """A saved run, checked with no request: every page file from 1 to the last is there and
+    holds a non-empty list of posts. The last page is ``total_pages`` in ``progress.json``, or
+    the highest page saved when there is no progress file."""
+    progress = {}
+    if (folder / "progress.json").exists():
+        progress = json.loads((folder / "progress.json").read_text())
+    total_pages = progress.get("total_pages")
+    pages = sorted(
+        (n, p) for p in folder.glob("posts-p*.json") if (n := _page_number(p)) is not None
+    )
+    missing = missing_pages(folder, total_pages) if folder.exists() else []
+    bad: list[int] = []
+    posts = 0
+    for n, path in pages:
+        try:
+            data = json.loads(path.read_bytes())
+        except ValueError:
+            bad.append(n)
+            continue
+        if not isinstance(data, list) or not data:
+            bad.append(n)
+            continue
+        posts += len(data)
+    expected = total_pages if total_pages is not None else (pages[-1][0] if pages else 0)
+    return {
+        "pages_expected": expected,
+        "pages_present": len(pages),
+        "missing_pages": missing,
+        "empty_or_invalid": bad,
+        "posts": posts,
+        "total_posts": progress.get("total_posts"),
+        "complete": bool(expected) and not missing and not bad,
+    }
 
 
 @dataclass
@@ -59,6 +136,8 @@ class Progress:
     requests_this_run: int = 0
     finished: bool = False
     stopped: str = ""
+    #: Page numbers from 1 to the last with no file at the end of the run (the first 50).
+    missing_pages: list[int] = field(default_factory=list)
     updated_at: str = ""
 
     def save(self, folder: Path) -> None:
@@ -137,6 +216,12 @@ def backfill_wordpress(
             if not isinstance(posts, list) or not posts:
                 break
             save_once(path, resp.body)
+            if not _on_disk(path, len(resp.body)):
+                progress.stopped = (
+                    f"page {page} was fetched ({len(resp.body):,} bytes) but is not on disk; "
+                    "check the data drive, then run the backfill again"
+                )
+                break
             done_this_run += 1
             progress.save(folder)
             if page % 25 == 0:
@@ -150,10 +235,17 @@ def backfill_wordpress(
         progress.stopped = f"budget: {exc}"
     except FetchError as exc:
         progress.stopped = f"error: {exc}"
+    except OSError as exc:
+        progress.stopped = f"could not write to {folder}: {exc}"
     progress.pages_saved = len(list(folder.glob("posts-p*.json")))
-    progress.finished = not progress.stopped and (
-        progress.total_pages is None or progress.pages_saved >= progress.total_pages
-    )
+    missing = missing_pages(folder, progress.total_pages)
+    progress.missing_pages = missing[:50]
+    if missing and not progress.stopped:
+        shown = ", ".join(str(n) for n in missing[:10])
+        progress.stopped = f"{len(missing)} pages missing: {shown}" + (
+            ", ..." if len(missing) > 10 else ""
+        )
+    progress.finished = not progress.stopped and not missing
     progress.save(folder)
     return progress
 
