@@ -173,6 +173,8 @@ class BuildResult:
     seen: int = 0
     kept: int = 0
     releasable: int = 0
+    #: Releasable rows with no personal author, whose page byline names the source itself.
+    credited_to_source: int = 0
     dropped: Counter[str] = field(default_factory=Counter)
     raw_files: int = 0
     raw_bytes: int = 0
@@ -186,6 +188,7 @@ class BuildResult:
             "seen": self.seen,
             "kept": self.kept,
             "releasable": self.releasable,
+            "credited_to_source": self.credited_to_source,
             "dropped": dict(sorted(self.dropped.items())),
             "raw_files": self.raw_files,
             "raw_bytes": self.raw_bytes,
@@ -244,6 +247,9 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
                 result.rows_bytes += len(line.encode("utf-8"))
                 result.kept += 1
                 result.releasable += int(article.releasable)
+                result.credited_to_source += int(
+                    article.releasable and not article.authors and fetcher.requires_byline
+                )
                 day = article.published_at.date().isoformat()
                 result.first = min(result.first or day, day)
                 result.last = max(result.last or day, day)

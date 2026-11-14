@@ -299,15 +299,17 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
     """Author names kept from a users endpoint and from article pages, if any."""
     import json
 
-    from commonswire.pagebylines import names_by_url
+    from commonswire.pagebylines import names_by_url, source_credited
 
     folder = root / "data" / "interim" / "bylines"
     users = folder / f"{fetcher.source_id}.json"
     if users.exists():
         data = json.loads(users.read_text())
         fetcher.byline_map = {int(k): tuple(v) for k, v in data.items() if v}
-    listing = names_by_url(folder / f"{fetcher.source_id}.listing.json")
-    fetcher.page_bylines = {**listing, **names_by_url(folder / f"{fetcher.source_id}.pages.json")}
+    pages = folder / f"{fetcher.source_id}.pages.json"
+    listing = folder / f"{fetcher.source_id}.listing.json"
+    fetcher.page_bylines = {**names_by_url(listing), **names_by_url(pages)}
+    fetcher.source_credited = source_credited(listing) | source_credited(pages)
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:
@@ -341,6 +343,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     import json
 
     from commonswire.backfill import build_rows
+    from commonswire.daily import load_rows, replay_daily
     from commonswire.sources import load_sources
     from commonswire.validate import validate_file
 
@@ -349,18 +352,36 @@ def cmd_build(args: argparse.Namespace) -> int:
     folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
     out = root / "data" / "interim" / "rows" / f"{args.source_id}.jsonl"
     result = build_rows(fetcher, folder, out)
+    daily = replay_daily(fetcher, out, root / "data" / "raw" / "daily" / args.source_id)
     check = validate_file(out, load_sources(Path(args.sources)))
+    rows = load_rows(out)
     info = result.summary()
     info.update(
-        run=args.run, validate_errors=len(check.errors), validate_warnings=len(check.warnings)
+        run=args.run,
+        validate_errors=len(check.errors),
+        validate_warnings=len(check.warnings),
+        daily_replayed={
+            "days": daily.days,
+            "files": daily.files,
+            "new": daily.new,
+            "changed": daily.changed,
+            "removed": daily.removed,
+            "unchanged_modified": daily.unchanged_modified,
+            "dropped": dict(sorted(daily.dropped.items())),
+        },
+        rows_after_daily=len(rows),
+        releasable_after_daily=sum(1 for r in rows.values() if r["releasable"]),
     )
     path = root / "data" / "evidence" / "backfill" / f"{args.source_id}.build.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
         f"{args.source_id}: seen {result.seen}, kept {result.kept} ({result.releasable} "
-        f"releasable), dropped {sum(result.dropped.values())}; validate: {len(check.errors)} "
-        f"errors, {len(check.warnings)} warnings"
+        f"releasable, {result.credited_to_source} credited to the source itself), dropped "
+        f"{sum(result.dropped.values())}; daily answers replayed: {daily.files} files over "
+        f"{daily.days} days, {daily.new} new, {daily.changed} changed, {daily.removed} removed; "
+        f"{len(rows)} rows now; validate: {len(check.errors)} errors, "
+        f"{len(check.warnings)} warnings"
     )
     for msg in check.errors[:5]:
         print(f"  error: {msg}")

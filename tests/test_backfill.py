@@ -13,6 +13,7 @@ from commonswire.fetchers.wordpress import (
     GlobalVoicesFetcher,
     PublicRecordFetcher,
 )
+from commonswire.schema import canonical_url
 from commonswire.sources import parse_row
 from commonswire.validate import validate_file
 from fakes import FakeTransport, make_test_client
@@ -187,3 +188,30 @@ def test_cli_bylines_from_an_open_users_endpoint(tmp_path, monkeypatch, capsys):
         main(["--root", str(tmp_path), "bylines", "altnews", "--run", "r", "--sources", str(reg)])
         == 1
     )
+
+
+def test_cli_build_replays_the_saved_daily_answers(tmp_path, capsys):
+    from commonswire.cli import main
+
+    run = tmp_path / "data" / "raw" / "backfill" / "globalvoices" / "r1"
+    run.mkdir(parents=True)
+    (run / "categories-p001.json").write_text(json.dumps([{"id": 1, "name": "World"}]))
+    (run / "posts-p00001.json").write_text(json.dumps([backfill_post(1), backfill_post(2)]))
+    names = {canonical_url(backfill_post(n)["link"]): {"names": ["A. Writer"]} for n in (1, 2, 5)}
+    bylines = tmp_path / "data" / "interim" / "bylines"
+    bylines.mkdir(parents=True)
+    (bylines / "globalvoices.listing.json").write_text(json.dumps(names))
+    day = tmp_path / "data" / "raw" / "daily" / "globalvoices" / "2026-11-13"
+    day.mkdir(parents=True)
+    (day / "001-new-p1.json").write_text(json.dumps([backfill_post(5)]))
+    gone = {"url": backfill_post(2)["link"], "status": 404, "checked_at": "2026-11-13T12:00:00"}
+    (day / "002-removed.json").write_text(json.dumps(gone))
+    assert main(["--root", str(tmp_path), "build", "globalvoices", "--run", "r1"]) == 0
+    out = capsys.readouterr().out
+    assert "kept 2 (2 releasable, 0 credited to the source itself)" in out
+    assert "2 files over 1 days, 1 new, 0 changed, 1 removed; 3 rows now" in out
+    ev = json.loads(
+        (tmp_path / "data" / "evidence" / "backfill" / "globalvoices.build.json").read_text()
+    )
+    assert ev["daily_replayed"]["new"] == 1 and ev["rows_after_daily"] == 3
+    assert ev["releasable_after_daily"] == 3 and ev["validate_errors"] == 0

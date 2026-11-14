@@ -6,7 +6,14 @@ import json
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
-from commonswire.daily import DailyResult, daily_wordpress, load_rows, load_state, save_state
+from commonswire.daily import (
+    DailyResult,
+    daily_wordpress,
+    load_rows,
+    load_state,
+    replay_daily,
+    save_state,
+)
 from commonswire.fetchers.base import ReplayStore
 from commonswire.fetchers.wordpress import GlobalVoicesFetcher
 from fakes import FakeTransport, make_test_client
@@ -72,7 +79,42 @@ def test_daily_adds_new_marks_changed_and_removed(tmp_path):
     assert removed["text"] == "" and removed["title"]
     assert state["last_run"] == "2026-11-13T12:00:00"
     assert "1 new, 1 changed, 1 removed" in res.line()
-    assert len(list((tmp_path / "raw-daily").glob("*.json"))) == 3
+    saved = sorted(f.name for f in (tmp_path / "raw-daily").glob("*.json"))
+    assert saved == [
+        "001-new-p1.json",
+        "002-modified-p1.json",
+        "003-listing-p1.json",
+        "004-removed.json",
+    ]
+    record = json.loads((tmp_path / "raw-daily" / "004-removed.json").read_text())
+    assert record == {"url": gone, "status": 404, "checked_at": "2026-11-13T12:00:00"}
+
+    # A rebuild from the backfill alone, then the saved daily answers replayed with no request,
+    # gives the same rows as the daily run (only retrieved_at may differ).
+    after_daily = load_rows(rows_path)
+    (tmp_path / "again").mkdir()
+    _, rebuilt = setup(tmp_path / "again")
+    daily = tmp_path / "daily-root"
+    (daily / "2026-11-13").mkdir(parents=True)
+    for f in (tmp_path / "raw-daily").glob("*.json"):
+        (daily / "2026-11-13" / f.name).write_bytes(f.read_bytes())
+    (daily / "2026-11-13" / "notes.txt").write_text("not an answer")
+    (daily / "empty-day").mkdir()
+    fetcher.client = None  # no request can leave
+    rep = replay_daily(fetcher, rebuilt, daily)
+    assert (rep.days, rep.files, rep.new, rep.changed, rep.removed) == (1, 4, 1, 1, 1)
+    assert rep.unchanged_modified == 1
+    replayed = load_rows(rebuilt)
+
+    def strip(rows):
+        return {k: {f: v for f, v in r.items() if f != "retrieved_at"} for k, r in rows.items()}
+
+    assert strip(replayed) == strip(after_daily)
+    # Replaying twice ends in the same rows (build always replays onto fresh backfill rows);
+    # a missing folder is no replay at all.
+    replay_daily(fetcher, rebuilt, daily)
+    assert strip(load_rows(rebuilt)) == strip(after_daily)
+    assert replay_daily(fetcher, rebuilt, tmp_path / "none").files == 0
 
 
 def test_daily_without_rows_or_when_refused(tmp_path):
