@@ -1,0 +1,278 @@
+"""Bylines from a source's paged story listing, for sources whose API gives no author names.
+
+Global Voices closes its WordPress users endpoint and refuses author lookups by id, so its API
+answers carry an author number but no name. Its paged story listing (``/page/N/``) shows every
+story with a credit block: "Written by" with the writers' names (all of them, where the feed
+names only one), and "Translated by" for translations. One listing page names the writers of
+about 21 stories, so the whole archive takes about a twenty-first of the requests that one
+article page per story would.
+
+Each listing page is fetched once through the polite client, newest first, and saved unchanged
+under ``data/raw/pages/<source>/listing/<run>/``. A rerun skips the pages already saved, so a
+run can be stopped and resumed. New stories published during a run push older ones to later
+pages, so a story may be seen twice (it keeps its names) but is not skipped. The walk stops at
+the first page that answers 404 or lists no story, and on any refusal.
+
+The names go to ``data/interim/bylines/<source>.listing.json`` (canonical URL -> names, in the
+format :func:`commonswire.pagebylines.names_by_url` reads); only counts go into the tracked
+evidence. Translators are kept apart from the writers and never put into ``authors``.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from collections import Counter
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from html import unescape
+from html.parser import HTMLParser
+from pathlib import Path
+
+from commonswire.backfill import save_once
+from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
+from commonswire.pagebylines import is_person
+from commonswire.schema import canonical_url
+
+PAGE_NAME = "p{:05d}.html"
+_SPACE = re.compile(r"\s+")
+_VOID = frozenset(
+    {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
+)
+
+
+@dataclass(frozen=True)
+class ListingMarkup:
+    """Where a source's listing puts each story and its credits.
+
+    ``story`` is the class of the element holding the story's title link, ``credit`` the class
+    of each credit block after it, ``label`` the class of the block's label ("Written by"), and
+    the names are the links inside the block.
+    """
+
+    url: str  # the listing page, with {page}
+    story: str
+    credit: str
+    label: str
+    writer_labels: tuple[str, ...] = ("written by",)
+    translator_labels: tuple[str, ...] = ("translated by",)
+
+
+LISTING_MARKUP: dict[str, ListingMarkup] = {
+    # <div class="post-title"><a href="https://globalvoices.org/2026/11/05/...">TITLE</a></div>
+    # ... <div class="text-credits-container"><div class="text-credits-section">
+    # <span class="credit-label">Written by</span> <a class="user-link" ...>NAME</a></div>
+    "globalvoices": ListingMarkup(
+        url="https://globalvoices.org/page/{page}/",
+        story="post-title",
+        credit="text-credits-section",
+        label="credit-label",
+    ),
+}
+
+
+@dataclass
+class Story:
+    url: str
+    credits: dict[str, list[str]] = field(default_factory=dict)
+
+
+class _ListingParser(HTMLParser):
+    """Collects each story's link and the names in the credit blocks that follow it."""
+
+    def __init__(self, markup: ListingMarkup) -> None:
+        super().__init__(convert_charrefs=True)
+        self.m = markup
+        self.stories: list[Story] = []
+        self._stack: list[tuple[str, frozenset[str]]] = []
+        self._story: int | None = None  # stack depth of the open title block
+        self._story_taken = False
+        self._credit: int | None = None  # stack depth of the open credit block
+        self._label: str | None = None
+        self._in_label: int | None = None
+        self._in_name: int | None = None
+        self._buf: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in _VOID:
+            return
+        a = {k.lower(): (v or "") for k, v in attrs}
+        classes = frozenset(a.get("class", "").split())
+        self._stack.append((tag, classes))
+        if self.m.story in classes and self._story is None:
+            self._story, self._story_taken = len(self._stack), False
+        if tag == "a" and self._story is not None and not self._story_taken and a.get("href"):
+            self.stories.append(Story(url=a["href"]))
+            self._story_taken = True
+            return
+        if self.m.credit in classes and self._credit is None:
+            self._credit, self._label = len(self._stack), None
+        elif self._credit is not None and self.m.label in classes:
+            self._in_label, self._buf = len(self._stack), []
+        elif self._credit is not None and tag == "a" and self._label is not None:
+            self._in_name, self._buf = len(self._stack), []
+
+    def handle_data(self, data: str) -> None:
+        if self._in_label is not None or self._in_name is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in _VOID or not any(t == tag for t, _ in self._stack):
+            return  # a stray end tag
+        while self._stack:
+            top, _ = self._stack.pop()
+            depth = len(self._stack) + 1
+            text = _SPACE.sub(" ", unescape("".join(self._buf))).strip()
+            if self._in_label is not None and depth <= self._in_label:
+                self._label, self._in_label = text.lower().rstrip(":"), None
+            if self._in_name is not None and depth <= self._in_name:
+                if text and self.stories and self._label is not None:
+                    self.stories[-1].credits.setdefault(self._label, []).append(text)
+                self._in_name = None
+            if self._credit is not None and depth <= self._credit:
+                self._credit = None
+            if self._story is not None and depth <= self._story:
+                self._story = None
+            if top == tag:
+                break
+
+
+def read_listing(html: str, markup: ListingMarkup) -> list[Story]:
+    """The stories on one listing page, with the names in each credit block."""
+    parser = _ListingParser(markup)
+    parser.feed(html)
+    parser.close()
+    return parser.stories
+
+
+@dataclass
+class ListingStats:
+    """Counts only: what a run fetched and found."""
+
+    source_id: str
+    pages_fetched: int = 0
+    pages_already_saved: int = 0
+    last_page: int = 0
+    stories_seen: int = 0
+    stories: int = 0
+    with_writer: int = 0
+    without_writer: int = 0
+    translated: int = 0
+    writers_per_story: Counter[str] = field(default_factory=Counter)
+    http_status: Counter[str] = field(default_factory=Counter)
+    bytes_fetched: int = 0
+    end: str = ""
+    stopped: str = ""
+
+    def summary(self) -> dict[str, object]:
+        return {
+            "source_id": self.source_id,
+            "pages_fetched": self.pages_fetched,
+            "pages_already_saved": self.pages_already_saved,
+            "last_page": self.last_page,
+            "stories_seen": self.stories_seen,
+            "stories": self.stories,
+            "with_writer": self.with_writer,
+            "without_writer": self.without_writer,
+            "translated": self.translated,
+            "writers_per_story": dict(sorted(self.writers_per_story.items())),
+            "http_status": dict(sorted(self.http_status.items())),
+            "bytes_fetched": self.bytes_fetched,
+            "end": self.end,
+            "stopped": self.stopped,
+        }
+
+
+def collect_listing_bylines(
+    client: PoliteClient | None,
+    source_id: str,
+    folder: Path,
+    map_path: Path,
+    *,
+    source_name: str = "",
+    max_pages: int = 6000,
+    say: Callable[[str], None] = lambda _m: None,
+) -> ListingStats:
+    """Walk the listing from page 1, fetching each page once (none with ``client`` None), and
+    write the names of every story's writers to ``map_path``."""
+    markup = LISTING_MARKUP[source_id]
+    st = ListingStats(source_id=source_id)
+    found: dict[str, dict] = {}
+    for page in range(1, max_pages + 1):
+        path = folder / PAGE_NAME.format(page)
+        if path.exists():
+            st.pages_already_saved += 1
+        else:
+            if client is None:
+                st.end = f"page {page} is not saved (replay)"
+                break
+            try:
+                resp = client.get(
+                    markup.url.format(page=page),
+                    accept="text/html",
+                    note=f"listing-byline:{source_id}",
+                )
+            except (Blocked, Disallowed, BudgetExceeded) as exc:
+                st.stopped = f"{type(exc).__name__}: {exc}"
+                break
+            except FetchError as exc:
+                st.stopped = f"error: {exc}"
+                break
+            st.pages_fetched += 1
+            st.bytes_fetched += len(resp.body)
+            st.http_status[str(resp.status)] += 1
+            if resp.status == 404:
+                st.end = f"page {page} answered 404: past the last page"
+                break
+            if resp.status != 200 or resp.truncated:
+                st.stopped = f"page {page} answered HTTP {resp.status}" + (
+                    " (cut short)" if resp.truncated else ""
+                )
+                break
+            stories = read_listing(resp.text, markup)
+            if not stories:
+                st.end = f"page {page} lists no story"
+                break
+            save_once(path, resp.body)
+        stories = read_listing(path.read_bytes().decode("utf-8", errors="replace"), markup)
+        st.last_page = page
+        for story in stories:
+            st.stories_seen += 1
+            try:
+                key = canonical_url(story.url)
+            except ValueError:
+                continue
+            if key in found:
+                continue
+            named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
+            writers = [n for n in named if is_person(n, source_name)]
+            own = bool(named) and all(n.lower() == source_name.lower() for n in named)
+            translators = [
+                n for label in markup.translator_labels for n in story.credits.get(label, [])
+            ]
+            found[key] = {
+                "names": list(dict.fromkeys(writers)),
+                "translators": list(dict.fromkeys(translators)),
+                "route": "listing",
+                "why_none": "" if writers else ("source_itself" if own else "no_byline"),
+                "http_status": 200,
+            }
+        if page % 100 == 0:
+            say(f"{source_id}: listing page {page}, {len(found)} stories so far")
+            _write_map(map_path, found)
+    st.stories = len(found)
+    st.with_writer = sum(1 for v in found.values() if v["names"])
+    st.without_writer = st.stories - st.with_writer
+    st.translated = sum(1 for v in found.values() if v["translators"])
+    st.writers_per_story = Counter(str(min(len(v["names"]), 4)) for v in found.values())
+    _write_map(map_path, found)
+    return st
+
+
+def _write_map(path: Path, found: dict[str, dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".part")
+    tmp.write_text(
+        json.dumps(found, indent=1, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    tmp.replace(path)

@@ -306,7 +306,8 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
     if users.exists():
         data = json.loads(users.read_text())
         fetcher.byline_map = {int(k): tuple(v) for k, v in data.items() if v}
-    fetcher.page_bylines = names_by_url(folder / f"{fetcher.source_id}.pages.json")
+    listing = names_by_url(folder / f"{fetcher.source_id}.listing.json")
+    fetcher.page_bylines = {**listing, **names_by_url(folder / f"{fetcher.source_id}.pages.json")}
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:
@@ -721,6 +722,53 @@ def cmd_page_bylines(args: argparse.Namespace) -> int:
     return 0 if not st.stopped else 1
 
 
+def cmd_listing_bylines(args: argparse.Namespace) -> int:
+    """Writers' names from a source's paged story listing (each listing page fetched once)."""
+    import json
+
+    from commonswire.http import make_client
+    from commonswire.listingbylines import LISTING_MARKUP, collect_listing_bylines
+    from commonswire.sources import load_sources
+
+    root = Path(args.root)
+    sid = args.source_id
+    if sid not in LISTING_MARKUP:
+        print(
+            f"no listing markup is known for {sid}; there is for: {', '.join(LISTING_MARKUP)}",
+            file=sys.stderr,
+        )
+        return 2
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    client = None
+    if not args.replay:
+        client = make_client(root, byte_budget=args.max_mb * 1024 * 1024)
+    st = collect_listing_bylines(
+        client,
+        sid,
+        root / "data" / "raw" / "pages" / sid / "listing" / args.run,
+        root / "data" / "interim" / "bylines" / f"{sid}.listing.json",
+        source_name=load_sources(Path(args.sources))[sid].name,
+        max_pages=args.max_pages,
+        say=lambda m: print(m, flush=True),
+    )
+    info = st.summary()
+    info["run"] = args.run
+    path = root / "data" / "evidence" / "bylines" / f"{sid}.listing.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"{sid}: {st.last_page} listing pages ({st.pages_fetched} fetched, "
+        f"{st.pages_already_saved} already saved, {st.bytes_fetched:,} bytes); {st.stories} "
+        f"stories, {st.with_writer} with a writer's name, {st.without_writer} without"
+        + (f"; ended: {st.end}" if st.end else "")
+        + (f"; stopped: {st.stopped}" if st.stopped else "")
+    )
+    print(f"next: commonswire build {sid} --run RUN, to put the names into the rows")
+    return 1 if st.stopped else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -837,6 +885,16 @@ def build_parser() -> argparse.ArgumentParser:
     pb.add_argument("--max-mb", type=int, default=1000, help="stop after this many megabytes")
     pb.add_argument("--replay", action="store_true", help="read saved pages only, no requests")
     pb.set_defaults(func=cmd_page_bylines)
+    lb = sub.add_parser(
+        "listing-bylines", help="writers' names from a source's paged story listing"
+    )
+    lb.add_argument("source_id")
+    lb.add_argument("--run", default=_today())
+    lb.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    lb.add_argument("--max-pages", type=int, default=6000, help="read at most this many pages")
+    lb.add_argument("--max-mb", type=int, default=1200, help="stop after this many megabytes")
+    lb.add_argument("--replay", action="store_true", help="read saved pages only, no requests")
+    lb.set_defaults(func=cmd_listing_bylines)
     by = sub.add_parser("bylines", help="author names from a WordPress users endpoint")
     by.add_argument("source_id")
     by.add_argument("--run", default=_today())
