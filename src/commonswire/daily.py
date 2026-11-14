@@ -9,8 +9,14 @@ For each collected WordPress source:
   of those days, and whose URL then answers 404 or 410: the row keeps its metadata, loses its
   text and gets status ``removed``.
 
-Every API answer is saved once under ``data/raw/daily/<source>/<date>/``. The state (the last
-run per source) is in ``data/interim/daily/state.json``. Wikinews is closed and is skipped.
+Every API answer is saved once under ``data/raw/daily/<source>/<date>/``, numbered in the
+order it came, and so is a small record of every removal found (``NNN-removed.json``: the URL
+and its status). The state (the last run per source) is in ``data/interim/daily/state.json``.
+Wikinews is closed and is skipped.
+
+:func:`replay_daily` applies the saved answers again, day by day and in their order, to rows
+rebuilt from a backfill, with no request: ``commonswire build`` runs it, so a rebuild keeps
+the rows that ``daily`` added, changed or removed (maintainer's decision, 2026-11-13).
 """
 
 from __future__ import annotations
@@ -18,6 +24,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -155,8 +162,10 @@ def daily_wordpress(
             resp = client.get(d["url"], accept="text/html", note=f"daily:{res.source_id}")
             res.requests += 1
             if resp.status in (404, 410):
-                rows[rid] = {**d, "text": "", "content_hash": text_hash(""), "status": "removed"}
-                Article.model_validate(rows[rid])
+                pager.n += 1
+                record = {"url": d["url"], "status": resp.status, "checked_at": _iso(now)}
+                save_once(raw / f"{pager.n:03d}-removed.json", json.dumps(record).encode())
+                rows[rid] = _removed(d)
                 res.removed += 1
     except (Blocked, Disallowed) as exc:
         res.note = f"refused: {exc}"
@@ -164,6 +173,62 @@ def daily_wordpress(
         res.note = f"stopped: {exc}"
     write_rows(rows_path, rows)
     state["last_run"] = _iso(now)
+    return res
+
+
+def _removed(row: dict) -> dict:
+    out = {**row, "text": "", "content_hash": text_hash(""), "status": "removed"}
+    Article.model_validate(out)
+    return out
+
+
+#: The saved daily answers: ``001-new-p1.json``, ``002-modified-p1.json``,
+#: ``003-listing-p1.json``, ``004-removed.json``.
+DAILY_FILE = re.compile(r"^(\d+)-(new|modified|listing|removed)(?:-p\d+)?\.json$")
+
+
+@dataclass
+class ReplayResult(DailyResult):
+    days: int = 0
+    files: int = 0
+
+
+def replay_daily(fetcher: WordPressFetcher, rows_path: Path, daily: Path) -> ReplayResult:
+    """Apply the saved daily answers under ``daily`` (one folder a day) to the rows in
+    ``rows_path``, oldest day first and in the order they were saved, with no request.
+
+    New and modified posts go through the same rules as in ``daily`` (third-party material
+    dropped, bylines from the saved names, a changed text marked ``changed``); a saved removal
+    marks its row ``removed``. A row's ``retrieved_at`` is the time its answer was saved.
+    Listing answers are not replayed: what they said is in the removal records.
+    """
+    res = ReplayResult(source_id=fetcher.source_id)
+    if not daily.is_dir():
+        return res
+    rows = load_rows(rows_path)
+    by_url = {d["url"]: i for i, d in rows.items()}
+    for day in sorted(p for p in daily.iterdir() if p.is_dir()):
+        files = []
+        for f in day.glob("*.json"):
+            m = DAILY_FILE.match(f.name)
+            if m:
+                files.append((int(m.group(1)), f.name, m.group(2), f))
+        if not files:
+            continue
+        res.days += 1
+        for _, _, label, f in sorted(files):
+            res.files += 1
+            saved = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc).replace(microsecond=0)
+            data = json.loads(f.read_bytes())
+            if label in ("new", "modified"):
+                for post in data if isinstance(data, list) else []:
+                    _take(fetcher, post, rows, by_url, res, saved, new=label == "new")
+            elif label == "removed" and isinstance(data, dict):
+                rid = by_url.get(str(data.get("url", "")))
+                if rid and rows[rid]["status"] != "removed":
+                    rows[rid] = _removed(rows[rid])
+                    res.removed += 1
+    write_rows(rows_path, rows)
     return res
 
 
@@ -194,6 +259,8 @@ def _take(
         if names:
             item = dataclasses.replace(item, authors=names)
             res.page_bylines += 1
+        elif pages.credits_source(item.url):
+            item = dataclasses.replace(item, hints={**item.hints, "byline_is_source": True})
     try:
         art = fetcher.build(item, now.replace(microsecond=0))
     except ValueError:

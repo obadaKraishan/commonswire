@@ -21,6 +21,7 @@ from commonswire.pagebylines import (
     load_page_bylines,
     names_by_url,
     page_file,
+    source_credited,
     split_names,
 )
 from commonswire.schema import canonical_url
@@ -103,7 +104,11 @@ def test_the_visible_byline_block_is_final_and_some_sources_have_no_fallback():
     )
     # The page credits the source itself: its metadata does not overrule that.
     r = byline_from_page(poster + own, SITE_MARKUP["balkandiskurs"], "Balkan Diskurs")
-    assert (r.names, r.route, r.why_none) == ((), "", "not_a_person")
+    assert (r.names, r.route, r.why_none) == ((), "", "source_itself")
+    # The source and an account together: no person and not the source alone, so held.
+    mixed = own.replace("Balkan Diskurs</a>", "Balkan Diskurs</a> | <a href='/x/'>admin</a>")
+    r = byline_from_page(mixed, SITE_MARKUP["balkandiskurs"], "Balkan Diskurs")
+    assert r.why_none == "not_a_person"
     # No byline block, and this source's JSON-LD names the poster: no name.
     r = byline_from_page(poster, SITE_MARKUP["balkandiskurs"], "Balkan Diskurs")
     assert (r.names, r.why_none) == ((), "no_byline")
@@ -113,7 +118,7 @@ def test_the_visible_byline_block_is_final_and_some_sources_have_no_fallback():
         "</span></div>"
     )
     r = byline_from_page(poster + tpr, SITE_MARKUP["thepublicrecord"], "The Public Record")
-    assert (r.names, r.why_none) == ((), "not_a_person")
+    assert (r.names, r.why_none) == ((), "source_itself")
     r = byline_from_page(poster, SITE_MARKUP["thepublicrecord"], "The Public Record")
     assert (r.names, r.route) == (("Poster Account",), "jsonld")
 
@@ -294,3 +299,94 @@ def test_cli_page_bylines_checks_its_inputs_and_replays(tmp_path, capsys):
     (tmp_path / "data" / "raw").mkdir(parents=True)
     assert main(["--root", str(tmp_path), "page-bylines", "thepublicrecord"]) == 2
     assert "no rows yet" in capsys.readouterr().err
+
+
+BD = "https://balkandiskurs.com/en"
+OWN_PAGE = (
+    '<div class="single-meta"><p class="byline author vcard"><a href="/en/profile/bd/">'
+    "Balkan Diskurs</a></p></div><p>Invented body.</p>"
+)
+
+
+def _bd_fetcher(tmp_path):
+    from commonswire.fetchers.wordpress import BalkanDiskursFetcher
+    from commonswire.sources import parse_row
+    from test_sources import row
+
+    src = parse_row(
+        row(
+            source_id="balkandiskurs",
+            name="Balkan Diskurs",
+            license="CC-BY-3.0",
+            credit_line=(
+                "{title}, by {authors}, originally published by {source} ({url}), {license}"
+            ),
+        )
+    )
+    client, _ = make_test_client(tmp_path, FakeTransport())
+    return BalkanDiskursFetcher(client, src, ReplayStore(tmp_path / "raw"))
+
+
+def test_a_page_that_credits_the_source_itself_is_released_naming_the_source(tmp_path):
+    urls = [f"{BD}/a/", f"{BD}/b/", f"{BD}/c/"]
+    t = FakeTransport().add(f"{BD.rsplit('/', 1)[0]}/robots.txt", (404, ""))
+    t.add(urls[0], (200, OWN_PAGE))
+    t.add(urls[1], (200, BALKAN_PAGE))
+    t.add(urls[2], (200, "<p>No byline.</p>"))
+    client, _ = make_test_client(tmp_path, t)
+    mp = tmp_path / "m.json"
+    reader = PageBylineReader(
+        client, "balkandiskurs", tmp_path / "p", mp, source_name="Balkan Diskurs"
+    )
+    st = collect_page_bylines(reader, _rows(tmp_path, urls))
+    assert st.no_person == {"source_itself": 1, "no_byline": 1} and st.with_person == 1
+    assert reader.credits_source(urls[0]) and not reader.credits_source(urls[2])
+    assert source_credited(mp) == {f"{BD}/a"}
+    assert source_credited(tmp_path / "missing.json") == set()
+
+    fetcher = _bd_fetcher(tmp_path / "f")
+    fetcher.page_bylines = names_by_url(mp)
+    fetcher.source_credited = source_credited(mp)
+    built = {}
+    for n, u in enumerate(urls):
+        post = dict(backfill_post(n + 1), link=u)
+        built[u] = fetcher.build(fetcher.item_from_post(post), NOW)
+    own = built[urls[0]]
+    assert own.releasable and own.authors == () and not own.hold_reason
+    assert own.credit_line.startswith(f"{own.title}, by Balkan Diskurs, originally published by")
+    assert built[urls[1]].authors == ("Ana Invented", "Bo Made-Up")
+    assert not built[urls[2]].releasable  # an empty byline stays held
+    assert built[urls[2]].hold_reason.startswith("no byline")
+
+
+def test_daily_releases_a_new_post_whose_page_credits_the_source(tmp_path):
+    fetcher = _bd_fetcher(tmp_path)
+    rows_path = tmp_path / "rows.jsonl"
+    first = dict(backfill_post(1), link=f"{BD}/old/")
+    rows_path.write_text(fetcher.build(fetcher.item_from_post(first), NOW).model_dump_json() + "\n")
+    newest = max(r["published_at"] for r in load_rows(rows_path).values())[:19]
+    fields = fetcher.backfill_fields
+
+    def url(**params):
+        q = urlencode({"per_page": "100", "page": "1", **params})
+        return f"{BD}/wp-json/wp/v2/posts?{q}"
+
+    new = [dict(backfill_post(5), link=f"{BD}/own/")]
+    t = FakeTransport().add("https://balkandiskurs.com/robots.txt", (404, ""))
+    t.add(url(after=newest, orderby="date", order="asc", _fields=fields), (200, json.dumps(new)))
+    t.add(url(modified_after=newest, _fields=fields), (200, "[]"))
+    t.add(url(after="2026-10-14T12:00:00", _fields="id,link"), (200, json.dumps(new)))
+    t.add(f"{BD}/own/", (200, OWN_PAGE))
+    client, _ = make_test_client(tmp_path / "c", t)
+    fetcher.client = client
+    reader = PageBylineReader(
+        client,
+        "balkandiskurs",
+        tmp_path / "pages",
+        tmp_path / "m.json",
+        source_name="Balkan Diskurs",
+    )
+    res = daily_wordpress(fetcher, client, rows_path, tmp_path / "d", {}, NOW, page_bylines=reader)
+    assert (res.new, res.held, res.page_bylines) == (1, 0, 0)
+    got = next(r for r in load_rows(rows_path).values() if r["url"].endswith("/own/"))
+    assert got["releasable"] and got["authors"] == []

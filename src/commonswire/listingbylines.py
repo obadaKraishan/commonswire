@@ -31,7 +31,7 @@ from pathlib import Path
 
 from commonswire.backfill import save_once
 from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
-from commonswire.pagebylines import is_person
+from commonswire.pagebylines import is_person, is_source_itself
 from commonswire.schema import canonical_url
 
 PAGE_NAME = "p{:05d}.html"
@@ -246,7 +246,7 @@ def collect_listing_bylines(
                 continue
             named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
             writers = [n for n in named if is_person(n, source_name)]
-            own = bool(named) and all(n.lower() == source_name.lower() for n in named)
+            own = is_source_itself(named, source_name)
             translators = [
                 n for label in markup.translator_labels for n in story.credits.get(label, [])
             ]

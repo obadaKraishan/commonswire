@@ -196,7 +196,9 @@ class Fetcher(ABC):
             license=lic,
         )
         hold = ""
-        if self.requires_byline and not item.authors:
+        # A page whose own byline names the source itself is released with no personal
+        # author; the credit line then names the source (maintainer's decision, 2026-11-13).
+        if self.requires_byline and not item.authors and not item.hints.get("byline_is_source"):
             hold = f"no byline: {self.source.name} asks for the author's name"
         return make_article(
             releasable=not hold,

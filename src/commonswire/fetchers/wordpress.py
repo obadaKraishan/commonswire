@@ -112,6 +112,8 @@ class WordPressFetcher(Fetcher):
         self.byline_map: dict[int, tuple[str, ...]] = {}
         #: canonical URL -> byline read from the article page (``commonswire page-bylines``).
         self.page_bylines: dict[str, tuple[str, ...]] = {}
+        #: canonical URLs whose page byline names the source itself and no person.
+        self.source_credited: set[str] = set()
 
     def backfill_url(self, page: int, per_page: int = PER_PAGE) -> str:
         """Oldest first, so posts published during a backfill do not shift the pages."""
@@ -186,11 +188,15 @@ class WordPressFetcher(Fetcher):
             authors = byline_from_yoast(post.get("yoast_head_json"))
         if not authors and isinstance(post.get("author"), int):
             authors = self.byline_map.get(post["author"], ())
-        if not authors and self.page_bylines and post.get("link"):
+        key = ""
+        if post.get("link"):
             try:
-                authors = self.page_bylines.get(canonical_url(post["link"]), ())
+                key = canonical_url(post["link"])
             except ValueError:
-                authors = ()
+                key = ""
+        if not authors and key:
+            authors = self.page_bylines.get(key, ())
+        byline_is_source = not authors and key in self.source_credited
         terms = [t for group in embedded.get("wp:term", []) for t in group if isinstance(t, dict)]
         categories = [
             strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "category"
@@ -218,7 +224,12 @@ class WordPressFetcher(Fetcher):
             language=self.language,
             authors=authors,
             section=categories[0] if categories else "",
-            hints={"categories": categories, "tags": tags, "type": post.get("type", "")},
+            hints={
+                "categories": categories,
+                "tags": tags,
+                "type": post.get("type", ""),
+                "byline_is_source": byline_is_source,
+            },
         )
 
     def third_party_reason(self, item: Item) -> str | None:

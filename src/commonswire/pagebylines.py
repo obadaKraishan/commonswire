@@ -18,8 +18,11 @@ byline block, only that block counts: a page whose visible byline credits the so
 not given a name from its metadata. And a source whose metadata names the account that posted
 the article rather than its writer (``metadata_fallback=False``) is read from its byline block
 only. A name that is the source's own name or an account such as "admin" or "editorial team"
-names no person: the row stays held, and the reason is counted. Names are never inferred from
-the body text.
+names no person, and the reason is counted. When the visible byline block names the source
+itself and nothing else (``why_none`` is ``source_itself``), that is the page's own word: the
+row is released with no personal author, and its credit line names the source (maintainer's
+decision, 2026-11-13). Any other page with no person stays held. Names are never inferred
+from the body text.
 
 The names found are kept in ``data/interim/bylines/<source>.pages.json`` (canonical URL ->
 names); only counts go into the tracked evidence. ``commonswire build`` and ``commonswire
@@ -227,7 +230,7 @@ class PageByline:
 
     names: tuple[str, ...]
     route: str  # site, jsonld, meta, twitter, or "" when none
-    why_none: str = ""  # no_byline, not_a_person, or ""
+    why_none: str = ""  # no_byline, not_a_person, source_itself, or ""
     #: Whether the JSON-LD people agree with the site's byline block (None: nothing to compare).
     jsonld_agrees: bool | None = None
 
@@ -266,6 +269,7 @@ def byline_from_page(
         others = []
     jsonld_people = tuple(dict.fromkeys(n for n in people if is_person(n, source_name)))
     seen_any = bool(others)
+    own = False
     for route, names in routes:
         if not names:
             continue
@@ -276,7 +280,18 @@ def byline_from_page(
             if route == "site" and jsonld_people:
                 agrees = set(kept) == set(jsonld_people)
             return PageByline(names=kept, route=route, jsonld_agrees=agrees)
+        if route == "site" and markup is not None and parser.site_block_found:
+            own = is_source_itself(names, source_name)
+    if own:
+        return PageByline(names=(), route="", why_none="source_itself")
     return PageByline(names=(), route="", why_none="not_a_person" if seen_any else "no_byline")
+
+
+def is_source_itself(names: Iterable[str], source_name: str) -> bool:
+    """True when every name in a byline is the source's own name (and there is one)."""
+    own = source_name.lower().strip()
+    names = [n.lower().strip() for n in names]
+    return bool(own) and bool(names) and all(n == own for n in names)
 
 
 @dataclass
@@ -323,6 +338,11 @@ def load_page_bylines(path: Path) -> dict[str, dict]:
 def names_by_url(path: Path) -> dict[str, tuple[str, ...]]:
     """Canonical URL -> names, for the URLs whose page names a person."""
     return {u: tuple(v["names"]) for u, v in load_page_bylines(path).items() if v.get("names")}
+
+
+def source_credited(path: Path) -> set[str]:
+    """The canonical URLs whose page byline names the source itself and no person."""
+    return {u for u, v in load_page_bylines(path).items() if v.get("why_none") == "source_itself"}
 
 
 class PageBylineReader:
@@ -413,6 +433,10 @@ class PageBylineReader:
         else:
             st.no_person[result.why_none] += 1
         return result.names
+
+    def credits_source(self, url: str) -> bool:
+        """True when the page of ``url``, already read, credits the source itself."""
+        return self.found.get(canonical_url(url), {}).get("why_none") == "source_itself"
 
     def save(self) -> None:
         self.map_path.parent.mkdir(parents=True, exist_ok=True)
