@@ -47,6 +47,11 @@ Version 0.1.0 holds 47,585 articles (22.7 million words)
 from 6 sources, published from 2004-11-13 to 2026-11-13 and collected
 up to 2026-11-13.
 
+- **Curated by:** Obada Kraishan, College of Media and Communication, Texas Tech University.
+- **License:** each article keeps its publisher's license (public domain, CC BY or CC BY-SA),
+  on its row; see `LICENSES.md`.
+- **Contact:** the [issue tracker](https://github.com/obadaKraishan/commonswire/issues).
+
 CommonsWire is not affiliated with, endorsed by or sponsored by any of the newsrooms whose
 articles it holds.
 
@@ -94,9 +99,9 @@ one configuration per license class, so you can load only what your use allows:
 ```python
 from datasets import load_dataset
 
-by = load_dataset("obadakr/commonswire", "by", split="train")  # CC BY
+by = load_dataset("obadakr/commonswire", "by", split="train")        # CC BY
 by_sa = load_dataset("obadakr/commonswire", "by-sa", split="train")  # CC BY-SA
-pd = load_dataset("obadakr/commonswire", "pd", split="train")  # public domain
+pd = load_dataset("obadakr/commonswire", "pd", split="train")        # public domain
 ```
 
 **What you must do** (this is a summary, not legal advice; `LICENSES.md` has more):

@@ -51,7 +51,7 @@ manifest.json                                       row counts; size and SHA-256
 | `kind` | string | `news` or `fact-check` in 0.1.0 |
 | `title` | string | as published |
 | `authors` | list of strings | bylines as published |
-| `published_at`, `updated_at`, `retrieved_at` | timestamp (UTC, seconds) | `updated_at` may be null |
+| `published_at`, `updated_at`, `retrieved_at` | timestamp (UTC; whole seconds, stored in milliseconds) | `updated_at` may be null |
 | `language` | string | `en` |
 | `section` | string | the source's own section, if any |
 | `url` | string | the article at its source |
