@@ -10,18 +10,22 @@ collected later cannot slip into an older series:
 | Series | Sources |
 |---|---|
 | 0.1.x | English Wikinews, 360info, The Public Record, Balkan Diskurs, Factly, Alt News |
-| 0.2.x | planned: the 0.1.x sources and Global Voices |
+| 0.2.x | the 0.1.x sources and Global Voices (0.2.0 is built, not yet published) |
+
+Series 0.2 adds one column, `translators`, after `authors`; series 0.1 keeps the 18 columns
+version 0.1.0 was published with, and `release check` refuses files whose columns are not
+their series' columns.
 
 ## Configurations
 One configuration per license class (`docs/licenses.md`), so a user can take only what their
 own use allows. `by` is the default.
 
-| Configuration | Licenses | Rows in 0.1.0 |
-|---|---|---|
-| `by` | CC BY 2.5, 3.0 and 4.0 | 42,882 |
-| `by-sa` | CC BY-SA 4.0 | 2,749 |
-| `pd` | Public domain (Wikinews before 2005-09-25) | 1,954 |
-| `nc-nd` | NonCommercial or NoDerivatives | not built; no source in version 1 has these licenses |
+| Configuration | Licenses | Rows in 0.1.0 | Rows in 0.2.0 (built) |
+|---|---|---|---|
+| `by` | CC BY 2.5, 3.0 and 4.0 | 42,882 | 144,444 |
+| `by-sa` | CC BY-SA 4.0 | 2,749 | 2,749 |
+| `pd` | Public domain (Wikinews before 2005-09-25) | 1,954 | 1,954 |
+| `nc-nd` | NonCommercial or NoDerivatives | not built | not built; no source in version 1 has these licenses |
 
 Released rows are releasable, not third-party, not removed at their source and not on the
 takedown list (`data/takedowns.csv`). Exact duplicates are dropped and near-duplicates flagged,
@@ -57,9 +61,10 @@ Zenodo's website, is `release zenodo --version X.Y.Z --website`: it writes
 |---|---|---|
 | `id` | string | `cw_` and 16 hex digits of the SHA-256 of the canonical URL |
 | `source_id` | string | as in `sources.csv` |
-| `kind` | string | `news` or `fact-check` in 0.1.0 |
+| `kind` | string | `news` or `fact-check` in 0.1.0 and 0.2.0 |
 | `title` | string | as published |
 | `authors` | list of strings | bylines as published |
+| `translators` | list of strings | from series 0.2: the translators the source names, apart from the writers (empty for every source but Global Voices); the credit line names them |
 | `published_at`, `updated_at`, `retrieved_at` | timestamp (UTC; whole seconds, stored in milliseconds) | `updated_at` may be null |
 | `language` | string | `en` |
 | `section` | string | the source's own section, if any |
