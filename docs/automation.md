@@ -1,9 +1,34 @@
-# Automation (DRAFT: a design, nothing is built)
+# Automation
 
-**DRAFT.** This describes how CommonsWire would update itself. None of it runs yet, and every
-publishing step stays behind the maintainer's release approval.
+The daily fetch and the release build exist as local commands. The scheduled jobs in sections
+1 to 3 are still a design (**DRAFT**), and every publishing step stays behind the maintainer's
+release approval.
 
-## 1. The daily fetch on GitHub Actions
+## 0. Until the jobs run: the manual weekly update
+Once a week, on the maintainer's machine with the data drive mounted, three steps:
+
+```bash
+uv run commonswire daily                                 # new, changed, removed articles
+uv run commonswire release build --version 0.1.N         # the next version, from the rows
+# then the maintainer's upload step: the new version to Hugging Face (old Parquet files
+# replaced, the version tagged) and a new Kaggle version
+```
+
+- `daily` asks each source's API for posts published or modified since the last run, through
+  the polite client, and checks the last 30 days for removed articles. Its answers are saved
+  once, so `commonswire build` can always rebuild the same rows.
+- `release build` writes `data/release/0.1.N/` and checks it (`docs/release-layout.md`). The
+  version number goes up by one each week (0.1.1, 0.1.2, ...); a new source starts a new series
+  (0.2.0). Before the upload, `commonswire release kaggle --version 0.1.N` prepares the Kaggle
+  folder.
+- A published version is never rebuilt; the next week gets the next number.
+
+**What the jobs (session S5) will automate:** the daily fetch on a schedule (section 1), the
+weekly release build and its checks, the upload behind the release approval (section 3), and a
+monthly check of older articles for removals and corrections, which `daily` does not cover yet
+(it looks back 30 days).
+
+## 1. The daily fetch on GitHub Actions (DRAFT)
 - **Schedule:** one workflow a day (cron, early UTC), plus a manual trigger.
 - **What it does:** for each source with `status=include`, ask the source's API or feed for
   articles published since the last fetch, through the same polite client as every other
@@ -24,7 +49,7 @@ publishing step stays behind the maintainer's release approval.
   each source's API listing (dates and ids only); a monthly job does the same for the past year
   and checks a rotating share of older URLs (`docs/method.md` §4).
 
-## 2. Where the coding could run, and what it costs
+## 2. Where the coding could run, and what it costs (DRAFT)
 Coding is never run in a development session. Each option below would run as a script with
 its own log of tokens and cost.
 
@@ -66,7 +91,7 @@ If the pending sources with explicit bulk permission are accepted (KFF Health Ne
 the States Newsroom outlets), the daily volume grows several times over; it stays small next to
 the backfill.
 
-## 3. Release cadence
+## 3. Release cadence (DRAFT)
 | Where | Cadence | What |
 |---|---|---|
 | Hugging Face (`obadakr/commonswire`) | Weekly commits to start (daily once the pipeline is stable) | One configuration per license class (`pd`, `by`, `by-sa`), Parquet files by month, the data card, release notes with counts of new, changed and removed rows |

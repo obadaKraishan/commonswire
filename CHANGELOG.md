@@ -7,6 +7,28 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- The release build (`commonswire release build --version X.Y.Z`): a dataset version written
+  from the built rows with no request, into `data/release/X.Y.Z/`: one Parquet configuration per
+  license class (`pd`, `by`, `by-sa`; `by` is the default), releasable rows only, exact
+  duplicates dropped and near-duplicates flagged within the version's fixed list of sources
+  (series 0.1.x: Wikinews, 360info, The Public Record, Balkan Diskurs, Factly, Alt News),
+  `index.csv` (ids, URLs, hashes and licenses, no text), the registry as `sources.csv`,
+  `LICENSES.md`, the dataset card with its Hugging Face metadata (`license: other`, with
+  `LICENSES.md` as the license link, since every row keeps its own license) and a manifest with
+  the size and SHA-256 of every file. Every row is checked first (schema, releasable, not
+  third-party or removed, credit line exactly its template filled in); the same input gives the
+  same bytes. `release check` verifies a written version; `release kaggle` prepares the Kaggle
+  mirror's folder (license `other`, the only single value Kaggle accepts that fits mixed
+  licenses); `release zenodo` prepares a record with the code, the registry, the card and the
+  index, and no article text. Nothing is uploaded by any of them.
+- A takedown list (`data/takedowns.csv`: article id, date of the request and its basis, never a
+  URL or a name): the release build leaves those articles out of every later version.
+- Bylines from a paged story listing (`commonswire listing-bylines`), for Global Voices: its
+  listing names every story's writers, co-authors included, about 21 stories a page, so the
+  archive takes about 5,000 requests instead of one article page per story.
+- `daily` saves a small record of each removal it finds, and `build` replays the saved daily
+  answers after the backfill, so a rebuild keeps the rows that `daily` added, changed or
+  removed (maintainer's decision, 2026-11-13).
 - Bylines from article pages (`commonswire page-bylines`), for sources whose attribution
   policy asks for the author's name and whose API gives none (The Public Record, Balkan Diskurs,
   360info): the page of each row with no byline is fetched once and saved, and the name is read
@@ -34,6 +56,17 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- A page whose own byline names the source itself, and no person, is released with no personal
+  author, and its credit line names the source, as the page does (maintainer's decision,
+  2026-11-13): 90 Balkan Diskurs articles. Pages with an empty byline or no byline block stay
+  held (10 rows).
+- Pacing: a process that has not yet read a host's robots.txt waits the crawl-delay another
+  process last recorded for that host, so its first request never comes in under the delay.
+- The registry asks its open questions of "the maintainer" rather than by first name; the
+  request log's notes carry no internal labels.
+- Docs: `docs/data-card.md` is now the text of the 0.1.0 dataset card; `docs/release-layout.md`
+  describes the layout as built; `docs/automation.md` gives the manual weekly update; the README
+  has a dataset section with placeholders for the links; `CITATION.cff` cites the dataset.
 - The Wikinews markup stripper keeps the words of templates that show them in the sentence
   (`{{w}}`, `{{wikt}}`, `{{nowrap}}`, translated quotes): before, every template was removed, so
   the names and terms Wikinews writes as `{{w|...}}` links were missing from about a third of

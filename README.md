@@ -6,8 +6,26 @@ collects articles only from sources whose own pages allow their text to be share
 communication and journalism researchers usually code by hand: topic, frame, the types of
 sources quoted, and tone.
 
-**Status:** early development. Nothing has been released yet. The source registry, the article
-schema and the first fetchers are being built and checked.
+**Status:** version 0.1.0 is built and checked, and not yet published. It holds 47,585
+articles from six sources, with no coded variables yet.
+
+## The dataset
+- **Hugging Face:** `obadakr/commonswire` (link added when it is published)
+- **Kaggle:** a mirror (link added when it is published)
+
+Version 0.1.0 holds the full text of 47,585 articles (22.7 million words, 2004 to 2026) from six
+sources: English Wikinews (a closed archive), 360info, The Public Record, Balkan Diskurs, and
+the fact-checkers Factly and Alt News. There is one configuration per license class: `by`
+(CC BY, 42,882 rows), `by-sa` (CC BY-SA, 2,749) and `pd` (public domain, 1,954). Every row
+carries its license, a link to the license and the credit line its publisher asks for. The
+dataset card (`docs/data-card.md`) has the details and the limits.
+
+```python
+from datasets import load_dataset
+
+articles = load_dataset("obadakr/commonswire", "by", split="train")
+print(articles[0]["title"], articles[0]["credit_line"])
+```
 
 ## What it is
 - **Full text, not links.** Each row holds the article's body text as published, without
@@ -35,7 +53,9 @@ schema and the first fetchers are being built and checked.
 CommonsWire needs Python 3.10 or later and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync
+git clone https://github.com/obadaKraishan/commonswire
+cd commonswire
+uv sync --extra corpus
 uv run commonswire --help
 uv run commonswire sources check        # validate the source registry
 uv run commonswire validate FILE.jsonl  # validate a file of articles
@@ -52,11 +72,23 @@ uv run commonswire dedup                # exact duplicates dropped, near-duplica
 uv run commonswire daily                # new, changed and removed articles since the last run
 uv run commonswire corpus-report        # counts only
 uv run commonswire store                # Parquet by source and year
+uv run commonswire listing-bylines SOURCE  # bylines from a paged story listing
+```
+
+Building a dataset version from the built rows (no requests):
+
+```bash
+uv run commonswire release build --version 0.1.0   # data/release/0.1.0/
+uv run commonswire release check --version 0.1.0   # files, hashes, counts, credit lines
+uv run commonswire release kaggle --version 0.1.0  # a folder for the Kaggle mirror
+uv run commonswire release zenodo --version 0.1.0  # a record with no article text
 ```
 
 ## Takedowns and corrections
 Publishers, writers and people named in an article can ask for it to be removed or corrected
-with the takedown form in this repository's issues.
+with the [takedown and correction form](https://github.com/obadaKraishan/commonswire/issues/new?template=takedown.yml).
+An article taken down is listed by id in `data/takedowns.csv` and left out of every later
+version.
 
 ## License
 The code and the reference tables are licensed under the Apache License 2.0 (see `LICENSE` and
