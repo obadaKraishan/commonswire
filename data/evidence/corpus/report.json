@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-13T19:44:30+00:00",
+  "as_of": "2026-11-14T00:22:47+00:00",
   "near_duplicate_threshold": 0.6,
   "sources": {
     "360info": {
@@ -91,7 +91,7 @@
       "near_duplicate_flags": 0,
       "per_day_last_90_days": 0.24,
       "raw_gb": 0.009,
-      "releasable_rows": 789,
+      "releasable_rows": 879,
       "rows_gb": 0.007,
       "rows_kept": 880,
       "share_with_byline": 0.897,
@@ -226,7 +226,7 @@
     },
     "per_day_last_90_days": 4.72,
     "raw_gb": 0.358,
-    "releasable_rows": 47495,
+    "releasable_rows": 47585,
     "rows_gb": 0.208,
     "rows_kept": 47595,
     "words_total": 22692627

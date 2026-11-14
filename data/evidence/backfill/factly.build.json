@@ -1,4 +1,14 @@
 {
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 1,
+    "dropped": {},
+    "files": 6,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 3
+  },
   "dropped": {
     "invalid:Value error, text is empty; only a removed article may have no text": 36,
     "invalid:Value error, text still holds HTML tags; give plain text": 3,
@@ -10,6 +20,8 @@
   "raw_bytes": 190587048,
   "raw_files": 155,
   "releasable": 15111,
+  "releasable_after_daily": 15111,
+  "rows_after_daily": 15111,
   "rows_bytes": 85965524,
   "run": "2026-11-13",
   "seen": 15160,
