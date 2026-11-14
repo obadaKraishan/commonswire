@@ -982,6 +982,68 @@ def cmd_release_zenodo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_update(args: argparse.Namespace) -> int:
+    """The weekly update: the next version from a published one (see commonswire.update)."""
+    import json
+    from datetime import datetime
+
+    from commonswire.release import ReleaseError
+    from commonswire.update import redact, run_update
+
+    root = Path(args.root)
+    prev, out = Path(args.from_dir).resolve(), Path(args.out).resolve()
+    if not (prev / "manifest.json").exists():
+        print(f"no version at {prev} (no manifest.json)", file=sys.stderr)
+        return 2
+    if prev == out or prev in out.parents or out in prev.parents:
+        print("--out must be a folder of its own, apart from --from", file=sys.stderr)
+        return 2
+    work = Path(args.work)
+    try:
+        result = run_update(
+            root,
+            prev,
+            out,
+            work,
+            registry_path=Path(args.sources),
+            takedowns_path=Path(args.takedowns),
+            baseline_path=Path(args.baseline),
+            version=args.version,
+            answers=Path(args.answers) if args.answers else None,
+            usage_log=Path(args.usage_log) if args.usage_log else None,
+            lock_dir=Path(args.locks) if args.locks else None,
+            now=datetime.fromisoformat(args.now) if args.now else None,
+            window=args.window,
+            max_mb=args.max_mb,
+            max_mb_per_source=args.max_mb_per_source,
+            max_shrink=args.max_shrink,
+            open_takedowns=args.open_takedowns,
+            open_dataset_prs=args.open_dataset_prs,
+            allow_skipped=frozenset(filter(None, (args.allow_skipped or "").split(","))),
+            dry_run=args.dry_run,
+            offline=args.offline,
+            say=lambda m: print(redact(m), flush=True),
+        )
+    except ReleaseError as exc:
+        print(redact(str(exc)), file=sys.stderr)
+        return 2
+    summary = Path(args.summary) if args.summary else work / "summary.json"
+    summary.parent.mkdir(parents=True, exist_ok=True)
+    summary.write_text(json.dumps(result.summary(), indent=2, sort_keys=True) + "\n")
+    summary.with_suffix(".md").write_text(result.markdown())
+    for reason in result.stop_reasons:
+        print(f"stop: {reason}")
+    for note in result.notes:
+        print(f"note: {note}")
+    print(
+        f"update {result.from_version} -> {result.version}: {result.status}"
+        + (" (dry run: nothing can be delivered)" if result.dry_run else "")
+        + f"; {result.rows_before:,} rows before, {result.rows_after:,} after; "
+        f"{result.size_bytes / 1e6:.1f} MB; {result.seconds:.0f} s; summary in {summary}"
+    )
+    return {"ready": 0, "unchanged": 4}.get(result.status, 3)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -1146,6 +1208,42 @@ def build_parser() -> argparse.ArgumentParser:
         "--commit", default="HEAD", help="the commit whose code the record holds (default: HEAD)"
     )
     rz.set_defaults(func=cmd_release_zenodo)
+
+    up = sub.add_parser(
+        "update", help="the weekly update: the next version from a published one (no upload)"
+    )
+    up.add_argument("--from", dest="from_dir", required=True, help="the published version")
+    up.add_argument("--out", required=True, help="the new version's folder (new or empty)")
+    up.add_argument("--version", help="the new version (default: the next patch number)")
+    up.add_argument(
+        "--work", default="update-work", help="the run's own folder: answers, log, summary"
+    )
+    up.add_argument("--answers", help="where answers are saved once (default: WORK/answers)")
+    up.add_argument("--usage-log", help="the request log (default: WORK/usage_log.csv)")
+    up.add_argument("--locks", help="the pacer's lock folder (default: WORK/locks)")
+    up.add_argument("--summary", help="the summary file (default: WORK/summary.json, and .md)")
+    up.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    up.add_argument("--takedowns", default=str(repo_root() / "data" / "takedowns.csv"))
+    up.add_argument("--baseline", default=str(repo_root() / "data" / "update-baseline.json"))
+    up.add_argument("--window", type=int, default=30, help="days looked back (default: 30)")
+    up.add_argument("--max-mb", type=float, default=300, help="the run's byte budget, in MB")
+    up.add_argument("--max-mb-per-source", type=float, default=100, help="each source's, in MB")
+    up.add_argument(
+        "--max-shrink", type=float, default=0.01, help="stop if rows fall by more (0.01 = 1%%)"
+    )
+    up.add_argument("--open-takedowns", type=int, default=0, help="open takedown requests")
+    up.add_argument(
+        "--open-dataset-prs", type=int, default=0, help="open pull requests on the dataset"
+    )
+    up.add_argument("--allow-skipped", help="sources that may be skipped without a stop")
+    up.add_argument("--now", help="the run's time (ISO 8601; default: now)")
+    up.add_argument(
+        "--dry-run", action="store_true", help="mark the build as never to be delivered"
+    )
+    up.add_argument(
+        "--offline", action="store_true", help="replay the saved answers; send no request"
+    )
+    up.set_defaults(func=cmd_update)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")

@@ -7,10 +7,47 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `commonswire update`: the weekly update in one command, from a published version in a
+  folder (downloaded or local) to the next version, built and checked, in another folder,
+  with no state of its own. It reads each source that still publishes over the last 30 days
+  (the posts published then, the older posts edited then, and the pages of rows that left the
+  listing) by `daily`'s rules, keeps the bylines of released rows from the previous version,
+  and builds the next version as the previous rows plus the new ones, with the changed ones
+  replaced, minus the removed ones and the takedown list, through `release build`'s checks and
+  `release check`. It stops before any request on a registry or series change, an open
+  takedown request or an open pull request on the dataset, and after the build on a source
+  that refused, failed or ran over its budget (skipped and named), a failed check, or a version
+  that shrinks by more than 1%. `--dry-run` marks a build as never to be delivered. Every
+  answer is saved once, so `--offline` replays a run with no request. It prints and writes
+  counts, ids and hosts only. It uploads nothing.
+- New Global Voices stories take their writers and translators from the listing's first
+  pages (`listingbylines.listing_credits`): page 1 on, until every new story is found with a
+  credit block or the pages list only older stories, so they are released with their credit
+  instead of held.
+- The manifest of a version built by `update` carries what the next update needs: the ids of
+  held rows (with source, day and reason; no address, no name), the count of third-party posts
+  dropped, and the update's counts and requests per host and day (`update`). Version 0.2.0's
+  held rows and count are in `data/update-baseline.json`, checked against its manifest and
+  card.
+- The dataset card of an updated version says what changed since the version it was built
+  from ("This update").
+- The polite client can save every answer once and serve it again with no request
+  (`AnswerCache`), and can refuse to send anything (`offline`).
+- A `publish` dependency group (locked) with the Hugging Face and Kaggle command-line tools
+  for the workflows, and `six`, which Kaggle's tool imports without declaring.
+
 - The Zenodo DOI of the code and the source registry, `10.5281/zenodo.24231835` (all versions; Zenodo
   archived the GitHub release `v0.2.0` as `10.5281/zenodo.24231836`): a badge and a "How to
   cite" section in the README, `doi` and `identifiers` in `CITATION.cff`, and a line in the
   dataset card from the next version on.
+
+### Changed
+- The card says that an article edited at its source is updated however old it is (the
+  edited-since listing covers every age); only removals are checked for the last 30 days.
+
+### Fixed
+- A byte budget used up at robots.txt was taken for an unreachable robots.txt and reported as
+  a refusal; it is now reported as the budget.
 
 ## [0.2.0] - 2026-11-14
 

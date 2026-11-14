@@ -352,3 +352,41 @@ def test_requests_transport_streams_never_follows_redirects_and_caps_size():
     assert sess.kwargs["allow_redirects"] is False and sess.kwargs["stream"] is True
     whole = requests_transport(_FakeSession(_FakeResp([b"ab"])))("https://a.org", {}, 5.0, 10)  # type: ignore[arg-type]
     assert whole.body == b"ab" and not whole.truncated
+
+
+def test_answer_cache_serves_saved_answers_with_no_request_and_replays_refusals(tmp_path):
+    from commonswire.http import AnswerCache
+
+    t = FakeTransport().add("https://news.example.org/robots.txt", (200, "User-agent: *\n"))
+    t.add("https://news.example.org/a", (200, "page a", {"X-WP-Total": "3", "Set-Cookie": "x"}))
+    t.add("https://news.example.org/no", (403, "no"))
+    t.add("https://news.example.org/busy", (503, "busy"))
+    cache = AnswerCache(tmp_path / "cache")
+    client, _ = make_test_client(tmp_path, t, cache=cache)
+    assert client.get("https://news.example.org/a").body == b"page a"
+    with pytest.raises(Blocked):
+        client.get("https://news.example.org/no")
+    assert client.get("https://news.example.org/busy").status == 503  # retried, then kept
+    sent = len(t.calls)
+    again, _ = make_test_client(tmp_path / "2", FakeTransport(), cache=AnswerCache(cache.folder))
+    hit = again.get("https://news.example.org/a")
+    assert hit.body == b"page a" and dict(hit.headers) == {"X-WP-Total": "3"}
+    with pytest.raises(Blocked):
+        again.get("https://news.example.org/no")
+    assert again.get("https://news.example.org/busy").status == 503
+    assert again.cache.hits == 4 and again.usage_log.recent == []  # robots.txt too; no log
+    assert len(t.calls) == sent
+    offline = AnswerCache(cache.folder, offline=True)
+    lone, _ = make_test_client(tmp_path / "3", FakeTransport(), cache=offline)
+    with pytest.raises(FetchError, match="offline replay sends nothing"):
+        lone.get("https://news.example.org/never")
+    cache.put("https://news.example.org/a", RawResponse("u", 500, {}, b"other"))
+    assert cache.get("https://news.example.org/a").body == b"page a"  # written once
+
+
+def test_a_used_up_budget_at_robots_is_the_budget_not_a_block(tmp_path):
+
+    client, _ = make_test_client(tmp_path, FakeTransport(), byte_budget=0)
+    with pytest.raises(BudgetExceeded):
+        client.get("https://news.example.org/a")
+    assert "news.example.org" not in client._robots

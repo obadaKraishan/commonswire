@@ -253,38 +253,7 @@ def collect_listing_bylines(
         st.last_page = page
         for story in stories:
             st.stories_seen += 1
-            try:
-                key = canonical_url(story.url)
-            except ValueError:
-                continue
-            if key in found:
-                st.seen_again += 1
-                if key not in uncredited or not story.credits:
-                    continue  # the first sighting with a credit block stands
-                st.credits_from_later_sighting += 1
-            named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
-            writers = [n for n in named if is_person(n, source_name)]
-            own = is_source_itself(named, source_name)
-            listed = [n for label in markup.translator_labels for n in story.credits.get(label, [])]
-            translators = [n for n in listed if is_person(n, source_name)]
-            if writers:
-                why = ""
-            elif own:
-                why = "source_itself"
-            else:
-                why = "not_a_person" if named else "no_byline"
-            found[key] = {
-                "names": list(dict.fromkeys(writers)),
-                "translators": list(dict.fromkeys(translators)),
-                "route": "listing",
-                "why_none": why,
-                "http_status": 200,
-                "_dropped_translators": len(listed) - len(translators),
-            }
-            if story.credits:
-                uncredited.discard(key)
-            else:
-                uncredited.add(key)
+            _take_story(story, markup, source_name, found, uncredited, st)
         if page % 100 == 0:
             say(f"{source_id}: listing page {page}, {len(found)} stories so far")
             _write_map(map_path, found)
@@ -297,6 +266,137 @@ def collect_listing_bylines(
     st.writers_per_story = Counter(str(min(len(v["names"]), 4)) for v in found.values())
     _write_map(map_path, found)
     return st
+
+
+def _take_story(
+    story: Story,
+    markup: ListingMarkup,
+    source_name: str,
+    found: dict[str, dict],
+    uncredited: set[str],
+    st: ListingStats,
+) -> str | None:
+    """Record one sighting of a story; returns its canonical URL (None if it has none). A story
+    keeps its first sighting that has a credit block."""
+    try:
+        key = canonical_url(story.url)
+    except ValueError:
+        return None
+    if key in found:
+        st.seen_again += 1
+        if key not in uncredited or not story.credits:
+            return key  # the first sighting with a credit block stands
+        st.credits_from_later_sighting += 1
+    named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
+    writers = [n for n in named if is_person(n, source_name)]
+    own = is_source_itself(named, source_name)
+    listed = [n for label in markup.translator_labels for n in story.credits.get(label, [])]
+    translators = [n for n in listed if is_person(n, source_name)]
+    if writers:
+        why = ""
+    elif own:
+        why = "source_itself"
+    else:
+        why = "not_a_person" if named else "no_byline"
+    found[key] = {
+        "names": list(dict.fromkeys(writers)),
+        "translators": list(dict.fromkeys(translators)),
+        "route": "listing",
+        "why_none": why,
+        "http_status": 200,
+        "_dropped_translators": len(listed) - len(translators),
+    }
+    if story.credits:
+        uncredited.discard(key)
+    else:
+        uncredited.add(key)
+    return key
+
+
+#: A story's date in its address (``/2026/11/05/slug/``), when the source puts it there.
+_URL_DATE = re.compile(r"/(\d{4})/(\d{2})/(\d{2})/")
+
+
+def _url_day(url: str) -> str | None:
+    m = _URL_DATE.search(url)
+    return "-".join(m.groups()) if m else None
+
+
+def listing_credits(
+    client: PoliteClient,
+    source_id: str,
+    wanted: dict[str, str],
+    *,
+    source_name: str = "",
+    max_pages: int = 20,
+) -> tuple[dict[str, dict], ListingStats]:
+    """The credits of a few new stories, read from the listing's first pages.
+
+    ``wanted`` maps each story's canonical URL to its publication day (``YYYY-MM-DD``). The
+    pages are read from page 1, once each, until every wanted story has been seen with a credit
+    block, or a page lists only stories dated two days or more before the oldest wanted one
+    (from the dates in their addresses), or ``max_pages`` pages are read. The walk also stops
+    at a 404, a page that lists no story, and any refusal (``stats.stopped``). Returns the
+    entries of the wanted stories found (as in the listing map: ``names``, ``translators``,
+    ``why_none``) and counts only."""
+    from datetime import date, timedelta
+
+    markup = LISTING_MARKUP[source_id]
+    st = ListingStats(source_id=source_id)
+    found: dict[str, dict] = {}
+    uncredited: set[str] = set()
+    if not wanted:
+        return {}, st
+    floor = (date.fromisoformat(min(wanted.values())) - timedelta(days=2)).isoformat()
+    for page in range(1, max_pages + 1):
+        try:
+            resp = client.get(
+                markup.url.format(page=page),
+                accept="text/html",
+                note=f"listing-byline:{source_id}",
+            )
+        except (Blocked, Disallowed, BudgetExceeded) as exc:
+            st.stopped = f"{type(exc).__name__}: {exc}"
+            break
+        except FetchError as exc:
+            st.stopped = f"error: {exc}"
+            break
+        st.pages_fetched += 1
+        st.bytes_fetched += len(resp.body)
+        st.http_status[str(resp.status)] += 1
+        if resp.status == 404:
+            st.end = f"page {page} answered 404: past the last page"
+            break
+        if resp.status != 200 or resp.truncated:
+            st.stopped = f"page {page} answered HTTP {resp.status}" + (
+                " (cut short)" if resp.truncated else ""
+            )
+            break
+        stories = read_listing(resp.text, markup)
+        if not stories:
+            st.end = f"page {page} lists no story"
+            break
+        st.last_page = page
+        for story in stories:
+            st.stories_seen += 1
+            _take_story(story, markup, source_name, found, uncredited, st)
+        if all(k in found and k not in uncredited for k in wanted):
+            st.end = f"every wanted story found by page {page}"
+            break
+        days = [d for s in stories if (d := _url_day(s.url))]
+        if days and max(days) < floor:
+            st.end = f"page {page} lists only stories older than the wanted ones"
+            break
+    else:
+        st.end = f"stopped after {max_pages} pages"
+    entries = {k: {f: x for f, x in v.items() if not f.startswith("_")} for k, v in found.items()}
+    got = {k: entries[k] for k in wanted if k in entries}
+    st.stories = len(got)
+    st.with_writer = sum(1 for v in got.values() if v["names"])
+    st.without_writer = st.stories - st.with_writer
+    st.translated = sum(1 for v in got.values() if v["translators"])
+    st.why_none = Counter(v["why_none"] for v in got.values() if v["why_none"])
+    return got, st
 
 
 def _write_map(path: Path, found: dict[str, dict]) -> None:

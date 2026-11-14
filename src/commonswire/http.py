@@ -161,10 +161,12 @@ def requests_transport(session: requests.Session | None = None) -> Transport:
 
 
 class UsageLog:
-    """Appends one row per request attempt to a CSV file."""
+    """Appends one row per request attempt to a CSV file, and keeps this process's rows in
+    ``recent`` (for a run's own summary by host and day)."""
 
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
+        self.recent: list[dict[str, object]] = []
 
     def write(
         self, url: str, status: int | str, nbytes: int, note: str = "", log_as: str = ""
@@ -189,6 +191,73 @@ class UsageLog:
             if new:
                 writer.writeheader()
             writer.writerow(row)
+        self.recent.append(row)
+
+
+#: The response headers an answer cache keeps (enough to replay paging and redirects).
+CACHED_HEADERS = ("content-type", "location", "retry-after", "x-wp-total", "x-wp-totalpages")
+
+
+class AnswerCache:
+    """Every final answer of a run saved once under ``folder``, keyed by the SHA-256 of its URL
+    (``<key>.body`` and ``<key>.json`` with the status and a few headers).
+
+    A request whose answer is saved is served from the folder: no request is sent, nothing is
+    logged and the pacer does not wait, so a run that stops can be resumed and a finished run
+    replayed without fetching anything twice. With ``offline`` a missing answer is an error and
+    nothing is ever sent.
+    """
+
+    def __init__(self, folder: Path, *, offline: bool = False) -> None:
+        self.folder = Path(folder)
+        self.offline = offline
+        self.hits = 0
+
+    def _paths(self, url: str) -> tuple[Path, Path]:
+        import hashlib
+
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        return self.folder / f"{key}.body", self.folder / f"{key}.json"
+
+    def get(self, url: str) -> RawResponse | None:
+        import json
+
+        body_path, meta_path = self._paths(url)
+        if not meta_path.exists() or not body_path.exists():
+            return None
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        self.hits += 1
+        return RawResponse(
+            url=url,
+            status=int(meta["status"]),
+            headers=dict(meta.get("headers") or {}),
+            body=body_path.read_bytes(),
+            truncated=bool(meta.get("truncated")),
+        )
+
+    def put(self, url: str, raw: RawResponse) -> None:
+        import json
+
+        body_path, meta_path = self._paths(url)
+        if meta_path.exists():
+            return  # written once, never overwritten
+        headers = {k: v for k, v in raw.headers.items() if k.lower() in CACHED_HEADERS}
+        meta = {"url": url, "status": raw.status, "headers": headers, "truncated": raw.truncated}
+        _write_once(body_path, raw.body)
+        # The record last, so a half-written answer is never served.
+        _write_once(meta_path, json.dumps(meta, sort_keys=True).encode("utf-8"))
+
+
+def _write_once(path: Path, data: bytes) -> None:
+    import os
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".part")
+    with tmp.open("wb") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
 
 
 class Pacer:
@@ -321,6 +390,8 @@ class PoliteClient:
     max_retries: int = MAX_RETRIES
     jitter: Callable[[], float] = random.random
     bytes_used: int = 0
+    #: Saved answers to serve instead of sending (``AnswerCache``); None sends every request.
+    cache: AnswerCache | None = None
     _robots: dict[str, RobotsRule] = field(default_factory=dict)
 
     def robots(self, url: str) -> RobotsRule:
@@ -334,6 +405,8 @@ class PoliteClient:
                 rule = parse_robots(host, resp.status, resp.text)
             except Blocked as exc:
                 rule = RobotsRule(host=host, status=exc.status, blocked=True)
+            except BudgetExceeded:
+                raise  # the run's own limit, not the site's answer
             except FetchError:
                 rule = RobotsRule(host=host, status="error", unreachable=True)
             self._robots[host] = rule
@@ -392,6 +465,12 @@ class PoliteClient:
     def _send_once(
         self, url: str, *, accept: str, max_bytes: int, note: str, log_as: str = ""
     ) -> RawResponse:
+        if self.cache is not None:
+            saved = self.cache.get(url)
+            if saved is not None:
+                return _refuse_or_return(url, saved)
+            if self.cache.offline:
+                raise FetchError(f"{url} has no saved answer (an offline replay sends nothing)")
         if self.byte_budget is not None and self.bytes_used >= self.byte_budget:
             raise BudgetExceeded(
                 f"the byte budget of {self.byte_budget:,} bytes is used up; "
@@ -425,12 +504,11 @@ class PoliteClient:
                         log_as=log_as,
                     )
             if raw is not None:
-                if raw.status in (401, 403, 451):
-                    raise Blocked(url, raw.status, "refused")
-                if raw.status == 200 and looks_like_bot_wall(raw.body):
-                    raise Blocked(url, raw.status, "bot check page")
-                if raw.status != 429 and raw.status < 500:
-                    return raw
+                final = raw.status != 429 and raw.status < 500
+                if self.cache is not None and (final or attempt >= self.max_retries):
+                    self.cache.put(url, raw)
+                if final:
+                    return _refuse_or_return(url, raw)
             if attempt >= self.max_retries:
                 if raw is not None:
                     return raw
@@ -440,6 +518,15 @@ class PoliteClient:
                 wait = max(wait, _retry_after(raw.headers))
             self.sleep(min(wait, RETRY_AFTER_CAP))
             attempt += 1
+
+
+def _refuse_or_return(url: str, raw: RawResponse) -> RawResponse:
+    """The answer, unless it refuses scripted access (then :class:`Blocked`, never a retry)."""
+    if raw.status in (401, 403, 451):
+        raise Blocked(url, raw.status, "refused")
+    if raw.status == 200 and looks_like_bot_wall(raw.body):
+        raise Blocked(url, raw.status, "bot check page")
+    return raw
 
 
 def _retry_after(headers: Mapping[str, str]) -> float:
@@ -475,10 +562,18 @@ def make_client(
     *,
     byte_budget: int | None = None,
     transport: Transport | None = None,
+    usage_log: UsageLog | Path | None = None,
+    lock_dir: Path | None = None,
+    cache: AnswerCache | None = None,
 ) -> PoliteClient:
-    """A client that logs to ``data/usage_log.csv`` and paces through ``data/interim/``."""
-    log = UsageLog(root / "data" / "usage_log.csv")
-    pacer = Pacer(root / "data" / "interim" / "locks")
-    if transport is None:
-        return PoliteClient(usage_log=log, pacer=pacer, byte_budget=byte_budget)
-    return PoliteClient(usage_log=log, pacer=pacer, transport=transport, byte_budget=byte_budget)
+    """A client that logs to ``data/usage_log.csv`` and paces through ``data/interim/``
+    (or the log, lock folder and answer cache given)."""
+    if isinstance(usage_log, UsageLog):
+        log = usage_log
+    else:
+        log = UsageLog(usage_log or root / "data" / "usage_log.csv")
+    pacer = Pacer(lock_dir or root / "data" / "interim" / "locks")
+    kwargs: dict[str, object] = {"byte_budget": byte_budget, "cache": cache}
+    if transport is not None:
+        kwargs["transport"] = transport
+    return PoliteClient(usage_log=log, pacer=pacer, **kwargs)  # type: ignore[arg-type]

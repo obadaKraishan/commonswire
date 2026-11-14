@@ -194,3 +194,56 @@ def test_cli_listing_bylines_checks_inputs_replays_and_feeds_build(tmp_path, cap
     assert fetcher.page_bylines == {f"{GV}/2026/01/01/a": ("Ana Invented",)}
     assert fetcher.byline_why_none == {f"{GV}/2026/01/01/b": "no_byline"}
     assert fetcher.page_translators == {}
+
+
+def test_listing_credits_reads_only_the_pages_a_week_needs(tmp_path):
+    from commonswire.listingbylines import listing_credits
+    from commonswire.schema import canonical_url
+
+    def dated(day, slug, writers=(), translators=()):
+        html = story(slug, writers, translators)
+        return html.replace("/2026/01/01/", f"/{day.replace('-', '/')}/")
+
+    pages = [
+        page(
+            dated("2026-11-18", "a", ["Ana Invented"], ["Di Translator"]), dated("2026-11-17", "b")
+        ),
+        page(dated("2026-11-16", "c", ["Guest Contributor"])),
+        page(dated("2026-10-01", "old", ["Bo Made-Up"])),
+        page(dated("2026-09-01", "older", ["Bo Made-Up"])),
+    ]
+    wanted = {
+        canonical_url(f"{GV}/2026/11/18/a/"): "2026-11-18",
+        canonical_url(f"{GV}/2026/11/16/c/"): "2026-11-16",
+        canonical_url(f"{GV}/2026/11/15/missing/"): "2026-11-15",
+    }
+    client, _ = make_test_client(tmp_path, site(pages))
+    got, st = listing_credits(client, "globalvoices", wanted, source_name="Global Voices")
+    a = got[canonical_url(f"{GV}/2026/11/18/a/")]
+    assert a["names"] == ["Ana Invented"] and a["translators"] == ["Di Translator"]
+    assert got[canonical_url(f"{GV}/2026/11/16/c/")]["why_none"] == "not_a_person"
+    assert st.pages_fetched == 3 and "older than the wanted ones" in st.end
+    assert (st.stories, st.with_writer, st.translated) == (2, 1, 1)
+    # Every wanted story found: no further page; nothing wanted: no request at all.
+    client, _ = make_test_client(tmp_path / "b", site(pages))
+    got, st = listing_credits(client, "globalvoices", dict(list(wanted.items())[:1]))
+    assert st.pages_fetched == 1 and st.end.startswith("every wanted story found")
+    assert listing_credits(client, "globalvoices", {})[1].pages_fetched == 0
+    # The cap, a 404, a page with no story, a refusal and an error each end the walk.
+    client, _ = make_test_client(tmp_path / "c", site(pages[:2] * 3))
+    _, st = listing_credits(client, "globalvoices", wanted, max_pages=2)
+    assert st.end == "stopped after 2 pages"
+    client, _ = make_test_client(tmp_path / "d", site(pages[:1]))
+    _, st = listing_credits(client, "globalvoices", wanted)
+    assert st.end.startswith("page 2 answered 404")
+    client, _ = make_test_client(tmp_path / "e", site([page()]))
+    assert listing_credits(client, "globalvoices", wanted)[1].end == "page 1 lists no story"
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "")).add(f"{GV}/page/1/", (403, "no"))
+    client, _ = make_test_client(tmp_path / "f", t)
+    assert listing_credits(client, "globalvoices", wanted)[1].stopped.startswith("Blocked")
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "")).add(f"{GV}/page/1/", (500, "x"))
+    client, _ = make_test_client(tmp_path / "g", t)
+    assert listing_credits(client, "globalvoices", wanted)[1].stopped == "page 1 answered HTTP 500"
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "")).add(f"{GV}/page/1/", CONNECTION_ERROR)
+    client, _ = make_test_client(tmp_path / "h", t)
+    assert listing_credits(client, "globalvoices", wanted)[1].stopped.startswith("error:")

@@ -93,3 +93,8 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.6",
 ]
+publish = [
+    "huggingface-hub==2.4.0 ; python_full_version >= '3.11'",
+    "kaggle==2.2.5 ; python_full_version >= '3.11'",
+    "six==1.17.0 ; python_full_version >= '3.11'",
+]
