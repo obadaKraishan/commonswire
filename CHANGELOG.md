@@ -68,6 +68,9 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- Registry: Global Voices' attribution policy, read again on 2026-11-14 (same text, saved as
+  evidence), asks for translations only the link and the author's name, and does not mention
+  translators; the note records that translators named on the site will also be credited.
 - `release zenodo` prepares a record with no article index: `index.csv` (the article URLs) is
   left out, since a Zenodo record cannot be withdrawn; `--commit` archives the code of the
   commit that built the version, and the record links that commit's tree. `release kaggle`
