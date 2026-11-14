@@ -1,15 +1,15 @@
-# DRAFT until the dataset is published: date-released (and a DOI, if a Zenodo record is made)
-# are added then.
+# The DOI is added once Zenodo has archived the first GitHub release (its metadata is in
+# .zenodo.json, which Zenodo reads in place of this file).
 cff-version: 1.2.0
-message: "If you use CommonsWire, please cite it as below, and credit the newsrooms as each row asks."
+message: "If you use CommonsWire, please cite the dataset as below, and credit the newsrooms as each row asks."
 type: software
-title: "CommonsWire: a living, full-text corpus of openly licensed news"
+title: "CommonsWire: code and source registry, no article text"
 abstract: >-
-  CommonsWire collects the full text of news articles whose publishers allow redistribution
-  (public domain and Creative Commons licenses), checks each source's rights on its own pages,
-  and keeps every article's license and credit line with it. Version 0.1.0 holds 47,585
-  articles from six sources; coded variables (topic, frame, types of sources quoted, tone) are
-  planned for later versions.
+  The code and the source registry of CommonsWire, a full-text corpus of news articles whose
+  publishers allow redistribution (public domain and Creative Commons licenses). The code
+  collects the articles politely, checks each source's rights on its own pages, and keeps every
+  article's license and credit line with it; the registry records the evidence for every source
+  checked. This repository holds no article text: the articles are in the dataset cited below.
 authors:
   - family-names: Kraishan
     given-names: Obada
@@ -18,16 +18,17 @@ license: Apache-2.0
 repository-code: "https://github.com/obadaKraishan/commonswire"
 keywords:
   - news
-  - corpus
   - journalism
-  - communication research
+  - corpus
   - creative commons
-  - content analysis
+  - communication research
+  - source registry
+  - open licenses
 preferred-citation:
   type: data
   title: "CommonsWire: a full-text corpus of openly licensed news"
   version: "0.1.0"
-  year: 2026
+  date-released: "2026-11-14"
   authors:
     - family-names: Kraishan
       given-names: Obada
