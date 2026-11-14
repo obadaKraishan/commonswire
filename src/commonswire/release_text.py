@@ -179,9 +179,9 @@ one configuration per license class, so you can load only what your use allows:
 ```python
 from datasets import load_dataset
 
-by = load_dataset("{HF_ID}", "by", split="train")        # CC BY
+by = load_dataset("{HF_ID}", "by", split="train")  # CC BY
 by_sa = load_dataset("{HF_ID}", "by-sa", split="train")  # CC BY-SA
-pd = load_dataset("{HF_ID}", "pd", split="train")        # public domain
+pd = load_dataset("{HF_ID}", "pd", split="train")  # public domain
 ```
 
 **What you must do** (this is a summary, not legal advice; `LICENSES.md` has more):
