@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The dataset card's `license_link` is the full https URL of `LICENSES.md` in the Hugging Face
+  dataset: the Hub accepts a file name there only when it is `LICENSE` or `LICENSE.md`, and
+  refused the card's metadata with the relative name `LICENSES.md`.
+
 ### Added
 - The release build (`commonswire release build --version X.Y.Z`): a dataset version written
   from the built rows with no request, into `data/release/X.Y.Z/`: one Parquet configuration per

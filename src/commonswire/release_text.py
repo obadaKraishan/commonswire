@@ -111,7 +111,7 @@ language:
 - en
 license: other
 license_name: per-row-open-licenses
-license_link: LICENSES.md
+license_link: https://huggingface.co/datasets/obadakr/commonswire/blob/main/LICENSES.md
 tags:
 - news
 - journalism
