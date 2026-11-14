@@ -6041,3 +6041,5 @@ time,host,path,query_keys,status,bytes,note
 2026-11-14T03:13:18+00:00,globalvoices.org,/wp-json/wp/v2/posts,_fields;order;orderby;page;per_page,200,1539569,backfill:globalvoices
 2026-11-14T03:13:29+00:00,globalvoices.org,/wp-json/wp/v2/posts,_fields;order;orderby;page;per_page,200,1594405,backfill:globalvoices
 2026-11-14T03:13:40+00:00,globalvoices.org,/wp-json/wp/v2/posts,_fields;order;orderby;page;per_page,200,1237559,backfill:globalvoices
+2026-11-14T04:01:01+00:00,globalvoices.org,/robots.txt,,200,296,robots
+2026-11-14T04:01:11+00:00,globalvoices.org,/about/global-voices-attribution-policy/,,200,161952,evidence:globalvoices

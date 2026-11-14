@@ -189,7 +189,7 @@ News, INTL, en. Home: <https://globalvoices.org/>. Checked on 2026-11-13.
 - **Credit asked:** "When you share, republish or translate our stories, you must include a link to the original Global Voices story and the name of the author at the top of the republished post."
 - **Third-party material:** The license covers 'all content created by Global Voices' unless otherwise stated; it runs reciprocal republication partnerships, so items carrying another outlet's credit or 'otherwise stated' terms are left out; photos, video and audio from other creators are excluded
 - **Status: include.** Site-wide CC BY 3.0; the 'contact us to republish regularly' line is read as an invitation, not a condition (to confirm).
-- **Notes:** robots.txt crawl-delay 10 s; no separate terms of use exists (the privacy policy was read and is silent on automated access; it says misbehaving bots are blocked by a firewall); the policy page shows the license as 'Attribution-Only' and links CC BY 3.0; Lingua sites in about 50 other languages carry the same footer
+- **Notes:** robots.txt crawl-delay 10 s; no separate terms of use exists (the privacy policy was read and is silent on automated access; it says misbehaving bots are blocked by a firewall); the policy page shows the license as 'Attribution-Only' and links CC BY 3.0; Lingua sites in about 50 other languages carry the same footer; the attribution policy, read again on 2026-11-14 with the same text, asks for translations only what it asks for every republication (the link and the author's name, quote_attribution) and does not mention translators; translators named on the site will also be named in the credit line (maintainer's decision, 2026-11-14)
 
 ### NIH News Releases (`nih`)
 
