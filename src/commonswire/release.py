@@ -72,6 +72,7 @@ def load_takedowns(path: Path) -> set[str]:
             ids.add(rid)
     return ids
 
+
 #: The released columns, in order.
 COLUMNS = (
     "id",
