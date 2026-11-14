@@ -1,58 +1,287 @@
 # Automation
 
-Sections 1 to 3 describe plans (**DRAFT**), not what version 0.2.0 does. Version 0.2.0 has no
-scheduled job: the daily fetch and the release build are local commands that the maintainer
-runs by hand (section 0), and every publishing step stays behind the maintainer's release
-approval.
+CommonsWire's weekly update is built and tested, and stays **switched off** until the
+maintainer turns it on. One command, `commonswire update`, builds the next dataset version
+from the one published on Hugging Face. Three GitHub Actions workflows run it and deliver the
+result:
 
-## 0. Until the jobs run: the manual weekly update
-Once a week, on the maintainer's machine with the data drive mounted, three steps:
+- `weekly-update.yml`: the update itself;
+- `kaggle-mirror.yml`: the Kaggle mirror;
+- `failure-issue.yml`: an issue in this repository when an update stops or fails.
 
-```bash
-uv run commonswire daily                                 # new, changed, removed articles
-uv run commonswire release build --version 0.2.N         # the next version, from the rows
-# then the maintainer's upload step: the new version to Hugging Face (old Parquet files
-# replaced, the version tagged) and a new Kaggle version
-```
+As merged, the workflows have no schedule and their delivery switch (`DELIVERY_ENABLED`) is
+`"false"`. A run started by hand is a dry run: it reads the sources and builds and checks the
+version on GitHub's runner, then uploads nothing, opens no pull request and no issue, and
+reads no secret. Section 6 lists the steps that switch it on.
 
-- `daily` asks each source's API for posts published or modified since the last run, through
-  the polite client, and checks the last 30 days for removed articles. Its answers are saved
-  once, so `commonswire build` can always rebuild the same rows.
-- `release build` writes `data/release/0.2.N/` and checks it (`docs/release-layout.md`). After
-  version 0.2.0 (published on 2026-11-14), the version number goes up by one each week (0.2.1,
-  0.2.2, ...); a new source starts a new series. Before the upload, `commonswire
-  release kaggle --version 0.2.N` prepares the Kaggle folder.
-- Global Voices' new stories stay held for now: its API gives no author names, and `daily`
-  does not yet read the first page of its story listing, where their writers are named.
-- A published version is never rebuilt; the next week gets the next number.
+Section 7 (coding costs) is a **DRAFT** that describes plans: no coding has been run.
 
-**What the jobs (session S5) will automate:** the daily fetch on a schedule (section 1), the
-weekly release build and its checks, the upload behind the release approval (section 3), and a
-monthly check of older articles for removals and corrections, which `daily` does not cover yet
-(it looks back 30 days).
+## 1. What the platforms allow (read on 2026-11-14)
 
-## 1. The daily fetch on GitHub Actions (DRAFT)
-- **Schedule:** one workflow a day (cron, early UTC), plus a manual trigger.
-- **What it does:** for each source with `status=include`, ask the source's API or feed for
-  articles published since the last fetch, through the same polite client as every other
-  request (one request at a time, at least 2 seconds apart, robots.txt and crawl-delays honored,
-  the CommonsWire user agent). Drop and count third-party material, build rows, run
-  `commonswire validate`, and stop with an error if anything fails.
-- **Where the data lands:**
-  - the day's raw API answers and new rows go to a private Hugging Face dataset repository used
-    as storage (`obadakr/commonswire-staging`, private), never to the code repository;
-  - the public dataset (`obadakr/commonswire`) is updated only by the release job (section 3);
-  - the request log for the day is attached to the workflow run as an artifact.
-- **Secrets:** a Hugging Face write token scoped to the staging repository, stored as a GitHub
-  Actions secret; no other secret is needed for collection.
-- **Limits:** a run stops after a fixed number of requests and bytes per source, so a site
-  change cannot turn the job into a crawl. A source that answers 401, 403 or a bot check is
-  skipped and flagged for a person; it is never retried another way.
-- **Changed and removed articles:** a weekly job compares the last 30 days in the store with
-  each source's API listing (dates and ids only); a monthly job does the same for the past year
-  and checks a rotating share of older URLs (`docs/method.md` §4).
+### GitHub Actions
+- **Scheduled runs.** A `schedule` trigger runs on the latest commit of the default branch,
+  at most once every 5 minutes. Runs "can be delayed during periods of high loads", the start
+  of every hour among them, and some queued jobs may be dropped when the load is high enough.
+  [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows)
+- **Scheduled runs stop on their own.** "In a public repository, scheduled workflows are
+  automatically disabled when no repository activity has occurred in 60 days." The weekly run
+  commits nothing, so 60 days with no commit to this repository switch it off. The monthly
+  Dependabot pull requests, once merged, count as activity. A disabled workflow is enabled
+  again from the Actions tab or with `gh workflow enable`.
+  [Disabling and enabling a workflow](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow)
+- **Manual runs.** `workflow_dispatch` adds a "Run workflow" button once the workflow file is
+  on the default branch, with up to 25 inputs.
+- **Secrets.** "With the exception of `GITHUB_TOKEN`, secrets are not passed to the runner
+  when a workflow is triggered from a forked repository." A secret that is not set reads as an
+  empty string. Logs mask secrets, but "automatic redaction is not guaranteed" for transformed
+  values or structured data.
+  [Using secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
+- **Environments.** Free accounts can configure environments for public repositories.
+  Environment secrets are "only available to workflow jobs that use the environment". An
+  environment can require reviewers and limit which branches may deploy. "Running a workflow
+  that references an environment that does not exist will create an environment with the
+  referenced name."
+  [Managing environments](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)
+- **Artifacts.** Downloading a run's artifacts needs only read access to the repository, which
+  for a public repository is everyone. Logs and artifacts are kept for 90 days by default (1 to
+  90 days for a public repository). So the workflows upload no artifact at all.
+  [Downloading artifacts](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/downloading-workflow-artifacts)
+- **Limits.** "GitHub Actions usage is free for standard GitHub-hosted runners in public
+  repositories". A job may run for 6 hours and a workflow run for 35 days. A queued job not
+  picked up by a GitHub-hosted runner within 45 minutes is discarded. An `ubuntu-latest`
+  runner for a public repository has 4 CPUs, 16 GB of memory and 14 GB of SSD.
+  [Limits](https://docs.github.com/en/actions/reference/limits),
+  [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+- **Hardening.** Pin actions to a full commit SHA. Give `GITHUB_TOKEN` read access by default
+  and more only where needed. "Avoid using the `pull_request_target` workflow trigger if it's
+  not necessary". Pass untrusted input through an environment variable, never straight into a
+  script.
+  [Security hardening](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions)
 
-## 2. Where the coding could run, and what it costs (DRAFT)
+### Hugging Face
+- **Pull requests on a dataset.** A pull request's commits are stored in refs named like
+  `refs/pr/42` on the dataset repository itself. They are not fetched by a plain clone, but
+  "they can still be fetched on demand". On a public dataset, a pull request and its files can
+  be seen before it is merged.
+  [Pull requests and discussions](https://huggingface.co/docs/hub/repositories-pull-requests-discussions)
+- **Opening one.** `create_commit` and `upload_folder` take `create_pr=True`, and
+  `hf upload` takes `--create-pr`, with `--delete` (patterns of files to delete in the same
+  commit) and `--commit-description`. A pull request is merged with `merge_pull_request()`,
+  with `hf discussions merge`, or on its page.
+  [Upload guide](https://huggingface.co/docs/huggingface_hub/guides/upload),
+  [CLI guide](https://huggingface.co/docs/huggingface_hub/guides/cli),
+  [Community guide](https://huggingface.co/docs/huggingface_hub/guides/community)
+- **What a pull request needs.** The Python library's own source (`huggingface_hub` 2.4.0,
+  `create_commit`) says "users with read permission should still be able to create PRs even
+  if they don't have write permission on the target branch". The permission it names for
+  discussions and pull requests is `discussion.write`.
+- **Fine-grained tokens** can be limited to specific repositories. A leaked token is deleted
+  or refreshed from the Access Tokens settings.
+  [User access tokens](https://huggingface.co/docs/hub/security-tokens)
+- **Storage.** Storage for public repositories of a free account is "best-effort": "Beyond the
+  first few gigabytes, please use this resource responsibly". Each weekly version adds the
+  Parquet files that changed to the repository's history. After a pull request is closed or
+  merged, its ref can be deleted to free space. `super_squash_history` would reclaim more, but
+  it removes old versions (and with them the tags `v0.1.0` and `v0.2.0`), so it is not used.
+  [Storage limits](https://huggingface.co/docs/hub/storage-limits)
+
+### Kaggle
+- The Kaggle command-line tool (2.2.5) reads an API token from `KAGGLE_API_TOKEN`; the token
+  is made under "API" at <https://www.kaggle.com/settings/api>. It acts for the whole account:
+  Kaggle offers no narrower scope.
+- **File and column descriptions are not saved through the API.** That is Kaggle's own open
+  bug ([kaggle-cli#1207](https://github.com/Kaggle/kaggle-cli/issues/1207), opened
+  2026-10-01). Descriptions sent with `datasets create`, `datasets version` or `datasets
+  metadata --update` are accepted with no error and never saved. The tool's request carries
+  them correctly, and descriptions typed in Kaggle's web editor are saved. CommonsWire's
+  prepared metadata follows Kaggle's documented format: every column, in order, with types
+  from Kaggle's list. So nothing in the metadata needs fixing.
+  [Kaggle's dataset metadata](https://github.com/Kaggle/kaggle-cli/blob/main/docs/datasets_metadata.md)
+
+## 2. What a weekly run does
+The run is `commonswire update --from PREV --out NEXT` on GitHub's runner. It uses plain
+Python and the repository's own commands, and it keeps no state on the runner or on any
+drive.
+
+1. **It starts from the published version.** It downloads, with no token, the latest version
+   on the dataset's `main` branch: the Parquet files, `index.csv`, `sources.csv`, the card and
+   the manifest. The next version number is the next patch (0.2.0 → 0.2.1 → 0.2.2 …).
+2. **It checks before it sends anything.** The run stops at once, with no request to any
+   source, when:
+   - the downloaded version fails its own manifest check;
+   - `data/sources.csv` differs from the registry the published version carries;
+   - the next version would have other sources;
+   - a takedown request is open (an issue labeled `takedown`);
+   - an earlier week's pull request on the dataset is still open;
+   - the output folder is not empty.
+3. **It reads each source that still publishes**, one source and one request at a time,
+   through the polite client, over the last 30 days. Wikinews is closed and gets no request.
+   For each source, the run reads:
+   - robots.txt;
+   - the category names, used to drop partner stories;
+   - for Alt News, its users endpoint, where its bylines come from;
+   - the posts published in the last 30 days;
+   - the older posts edited in those 30 days.
+
+   These are `daily`'s rules:
+   - a post that is not in the published version is new;
+   - a post whose text hash differs is changed (status `changed`);
+   - a row of the 30 days that the listing no longer has, and whose page answers 404 or 410,
+     is removed.
+
+   Released rows keep their bylines from the published version, so a changed row needs no
+   request for them. New rows take theirs from three places:
+   - the API;
+   - their own page (360info, The Public Record, Balkan Diskurs: one request each);
+   - for Global Voices, its story listing from page 1 on, until every new story is found with
+     its credit block. The writers and translators are kept apart.
+4. **It builds the next version.** That is the published rows, plus the new ones, with the
+   changed ones replaced, minus the removed ones and the takedown list. The build uses
+   `release build`'s own code:
+   - every row is validated and its credit line checked against its source's template;
+   - near-duplicates are flagged over every row, new and old;
+   - the card says what changed ("This update");
+   - the manifest is written.
+
+   Then `release check` runs on the files, and Hugging Face's validator on the card.
+5. **It stops after the build** when:
+   - a source refused, failed or ran over its byte budget (100 MB a source, 300 MB a run). That
+     source's rows are carried over unchanged and the source is named; a refusal is never
+     worked around;
+   - a check failed;
+   - the version would shrink by more than 1% in all, or for one source by more than 1% and
+     more than 10 rows.
+
+   The maintainer can let a named source be skipped for one manual run (the `allow_skipped`
+   input).
+6. **It delivers** (once switched on) in the mode the setting gives (section 3). Otherwise it
+   ends with the summary.
+
+**Held rows are not published**, so the manifest carries what the next run needs: the ids of
+held rows, with source, day and reason (never an address or a name), and the count of
+third-party posts dropped. Version 0.2.0 was built before updates existed, so its 275 held
+rows and its count of 2,476 third-party posts are in `data/update-baseline.json`. That file is
+checked against 0.2.0's manifest (by SHA-256) and against its card.
+
+**Edits and removals.** The edited-since listing covers articles of every age, so an article
+corrected at its source, however old, gets its new text in the next version. Removals are
+checked only for the last 30 days (section 5 gives the options for older ones).
+
+**What the run shows in public.** The run's log, its job summary and the pull request carry
+counts, ids and hosts only: never article text, a title, a name or an article's address. An
+error message is cut to the host before it is printed. The run uploads no artifact. Every
+request is logged on the runner. Because a run commits nothing to `main`, its requests are
+summed per host and day into the new version's manifest (`update.requests`).
+
+**Replays.** Every answer is saved once in the run's answer folder. A stopped run resumes
+without asking again, and `commonswire update --offline` replays a finished run with no
+request at all.
+
+### The first dry run (2026-11-14)
+One live run on the maintainer's machine, from the published 0.2.0 to an unpublished 0.2.1,
+with `--dry-run`. Version 0.2.0 had been collected about 18 hours earlier, so "new" here
+covers those 18 hours, not a week; the 30-day listings are the same as in a weekly run.
+
+| Source | Posts listed | New | Changed | Removed | Held | Requests | Bytes |
+|---|---|---|---|---|---|---|---|
+| Wikinews | closed, no request | | | | | 0 | 0 |
+| 360info | 21 | 0 | 0 | 0 | 0 | 4 | 256,044 |
+| The Public Record | 23 | 2 (bylines from their pages) | 1 | 0 | 0 | 6 | 583,287 |
+| Balkan Diskurs | 8 | 0 | 0 | 0 | 0 | 4 | 133,957 |
+| Factly | 62 | 0 | 0 | 0 | 0 | 6 | 853,011 |
+| Alt News | 32 | 1 | 1 | 0 | 0 | 5 | 561,404 |
+| Global Voices | 79 | 2 (both credited from the listing, one with a translator) | 0 | 0 | 6 (all already held) | 21 | 3,371,672 |
+
+- No source refused: 46 requests, all answered 200 but one redirect, 5.8 MB in all.
+- 149,147 rows before and 149,152 after; 275 held rows, as before; 220.2 MB.
+- Every check passed: `release check`, Hugging Face's card validator, and the scan for
+  article text, titles and names in what the run shows (none).
+- It took 510 seconds: about 230 for the build (collect, near-duplicates and the files, 3.2
+  GB of memory at most) and the rest for paced requests.
+- The published 0.2.0 was read only; its files are unchanged.
+- An offline replay of the saved answers sent no request and wrote the same files.
+
+That run read 13 Global Voices listing pages to look again at six stories it already held,
+the oldest from 2026-10-21. Since then, a held story that has not been edited since the last
+version keeps its recorded reason with no new look at the listing. The replay needed 1 page,
+for the 2 new stories, so a weekly run now sends about 34 requests plus one for each new page
+byline.
+
+**On GitHub's runner** the same run should take about 10 to 15 minutes:
+- about 1 minute to install;
+- under a minute to download the 220 MB version;
+- about 3 minutes of paced requests;
+- 4 to 8 minutes of build, since the runner's cores are slower than the machine's.
+
+It needs about 3.5 GB of the runner's 16 GB of memory and about 1 GB of its 14 GB of disk.
+Both fit the free limits for a public repository, and the job's limit is 6 hours.
+
+## 3. Delivery: one setting, two modes
+The repository variable `CW_DELIVERY_MODE` chooses the mode:
+
+- **`pull-request`** (the default, and the value used when the variable is unset). The run
+  uploads the version to Hugging Face as a pull request on the dataset, with the summary as
+  its description, and the maintainer merges it with one click. The Kaggle mirror runs daily.
+  When `main` holds a version that Kaggle does not, it checks that version, makes a new Kaggle
+  version, updates the Kaggle metadata and, if `HF_WRITE_TOKEN` is set, tags the version on
+  Hugging Face. Risks:
+  - nothing reaches users until the maintainer looks;
+  - a pull request on a public dataset can be seen and downloaded before it is merged (it
+    has passed every check);
+  - a week with no merge holds the next week back, since an open pull request stops the next
+    run.
+- **`automatic`**. The run publishes directly when every check passes: it uploads to `main`,
+  tags `vX.Y.Z`, and calls the Kaggle mirror. Risks:
+  - a problem the checks do not catch reaches users at once;
+  - the Hugging Face token must be able to write, and it sits in the job that also reads the
+    sources' pages.
+
+In both modes, a stop or a failure opens an issue in this repository (or adds a comment to
+the open one). The issue holds the summary and the run's link.
+
+## 4. Tokens and where they go
+Secrets go in the environment `release` (Settings → Environments), with deployments limited to
+the `main` branch. They are not repository secrets. Only jobs that name the environment can
+read them, and only from `main`. No workflow runs on pull requests, so a fork's pull request
+never reaches a secret.
+
+| Secret | Mode | Scope |
+|---|---|---|
+| `HF_TOKEN` | pull-request | Fine-grained, on the one dataset `obadakr/commonswire`, with only the permission to open pull requests (`discussion.write`, "interact with discussions / open pull requests"). It cannot publish by itself. |
+| `HF_TOKEN` | automatic | Fine-grained, on the one dataset, with write access to its contents (needed to upload to `main` and to tag). |
+| `KAGGLE_API_TOKEN` | both | Kaggle's API token. It acts for the whole account; Kaggle has no narrower scope. |
+| `HF_WRITE_TOKEN` | pull-request, optional | Fine-grained, on the one dataset, with write access. It is used only by the mirror, after a merge, to tag the version. Without it, weekly versions are not tagged; the merge commit and the manifest name them. |
+
+`GITHUB_TOKEN` (the workflow's own token, no secret to add) reads issues to count open
+takedown requests and writes the failure issue.
+
+## 5. Removed and corrected articles older than 30 days
+Edits of any age are already caught (section 2). A WordPress site lists no deleted posts, so
+older removals take extra requests. The options, with their weekly cost in requests:
+
+| Option | Requests a week | Finds |
+|---|---|---|
+| A. Count check per year: the site's post count per year of archive (`per_page=1`, read from the `X-WP-Total` header), compared with last week's, kept in the manifest. A drop in a year triggers a listing of that year's ids and a page check of the rows gone from it. | about 67 (one per source and year: Global Voices 23, Factly 13, Alt News 10, Balkan Diskurs 9, 360info 6, The Public Record 6), a few KB each, about 4 minutes; plus about 10 to 100 more in a week when a count drops | any removal, in the week it happens; a removal offset by a back-dated new post in the same year is missed |
+| B. Rolling re-check: a fixed number of old article pages a week, oldest checked first. | 200 (about 20 MB) | about 200 of 149,000 rows a week, so the whole corpus every 14 years: an estimate of the removal rate, not a check |
+| C. Full id listing (`_fields=id,link`, 100 a page) once a month. | about 1,500 a month (Global Voices alone has 1,045 pages, about 3 hours at its 10-second crawl-delay) | every removal, up to a month late |
+
+Recommendation: A. It is cheap in requests and finds removals in the week they happen. It is
+not built: it sends requests beyond the last 30 days, which needs the maintainer's approval
+first. It would take about a day's work, with tests.
+
+## 6. Switching it on
+The maintainer's steps are in the maintainer's own publish notes. In short:
+
+1. create the tokens (section 4) and add them to the environment `release`;
+2. set `CW_DELIVERY_MODE` if `automatic` is wanted;
+3. a pull request that sets `DELIVERY_ENABLED: "true"` in `weekly-update.yml` and
+   `kaggle-mirror.yml` and uncomments their schedules;
+4. run it once by hand from the Actions tab.
+
+To stop everything, disable the two workflows in the Actions tab (or with
+`gh workflow disable`), or delete the tokens.
+
+## 7. Where the coding could run, and what it costs (DRAFT)
 Coding is never run in a development session. Each option below would run as a script with
 its own log of tokens and cost.
 
@@ -79,29 +308,10 @@ approved.
 
 **Tokens per day, from the sample of 2026-11-13.** The median article is 1,198 words at Global
 Voices and 1,130 at 360info (about 1,500 to 1,600 tokens), which matches the assumption above.
-The nine included sources publish about 5 to 10 articles a day in all (Global Voices 1.5, The
-Public Record 0.6, 360info 0.45, Balkan Diskurs 0.3, Wikinews 0 since its closure; EFF, NIH,
-Africa Is a Country and the Freedom of the Press Foundation not yet measured). That is about
-20,000 to 45,000 tokens a day, which every option above handles; the cost question is the
-backfill, not the daily run.
+The sources publish about 5 to 10 articles a day in all, about 20,000 to 45,000 tokens a day,
+which every option above handles; the cost question is the backfill, not the weekly run.
 
 | Workload | Articles | Tokens | Haiku 5.5 batch | Sonnet 5.5 batch | Kaggle |
 |---|---|---|---|---|---|
 | Daily, included sources | 5 to 10 | 20,000 to 45,000 | under $0.01 | about $0.05 | minutes |
 | Backfill of the measured included sources (Global Voices, 360info, The Public Record, Balkan Diskurs) | about 93,000 after the third-party drop | about 400 million | about $26 | about $510 | to be measured; tens of GPU hours |
-
-If the pending sources with explicit bulk permission are accepted (KFF Health News at 2.3 a day,
-the States Newsroom outlets), the daily volume grows several times over; it stays small next to
-the backfill.
-
-## 3. Release cadence (DRAFT)
-| Where | Cadence | What |
-|---|---|---|
-| Hugging Face (`obadakr/commonswire`) | Weekly commits to start (daily once the pipeline is stable) | One configuration per license class (`pd`, `by`, `by-sa`), Parquet files by month, the data card, release notes with counts of new, changed and removed rows |
-| Kaggle | A weekly version | A mirror of the Hugging Face files, with the same card |
-| Zenodo | A record after the first release's checks, then by version series | The code, the source registry and the card, with a DOI for citation, and no article text (a Zenodo record cannot be withdrawn, and articles must stay removable on request) |
-
-Every publishing step needs the maintainer's release approval in the repository, and the
-first release is made by hand. A release job would run `commonswire release build` and
-`release check` (removed and taken-down rows are left out, every row is checked), write the
-release notes, and only then upload.

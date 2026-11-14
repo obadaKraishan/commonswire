@@ -5,8 +5,9 @@
 CommonsWire is a full-text corpus of news that may legally be redistributed. It collects
 articles only from sources whose own pages allow their text to be shared unchanged (public
 domain and Creative Commons licenses), and it keeps each article's license and credit line on
-its row. New versions are published by the maintainer, about weekly for now; a daily automatic
-update is planned. The variables that communication and journalism researchers usually code by
+its row. New versions are published by the maintainer, about weekly for now; a weekly
+automatic update is built (`commonswire update` on GitHub Actions) and not switched on yet. The
+variables that communication and journalism researchers usually code by
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
 **Status:** version 0.2.0, published on 2026-11-14: 149,147 articles from seven sources, no
@@ -45,11 +46,12 @@ print(articles[0]["title"], articles[0]["credit_line"])
 - **Each row carries its own license and credit line.** Users can take only the license
   classes their own use allows (public domain, CC BY or CC BY-SA in version 0.2.0). See
   `docs/licenses.md`.
-- **Updated by hand for now.** New versions are published by the maintainer, about weekly; a
-  daily automatic update is planned. Each update checks the last 30 days of every source that
-  still publishes: an article corrected at its source gets its new text and the status
-  `changed`, and an article removed at its source, or taken down on request, is left out of
-  the next version.
+- **Updated by hand for now.** New versions are published by the maintainer, about weekly. A
+  weekly automatic update is built and not switched on yet (`docs/automation.md`). Each
+  update asks every source that still publishes for what it published or edited in the last
+  30 days. An article corrected at its source, however old, gets its new text and the status
+  `changed`. An article of those 30 days removed at its source, or any article taken down on
+  request, is left out of the next version.
 
 ## What it is not
 - It is **not every news outlet.** Most news sites do not allow redistribution, and they are
@@ -92,6 +94,13 @@ uv run commonswire release build --version 0.2.0   # data/release/0.2.0/
 uv run commonswire release check --version 0.2.0   # files, hashes, counts, credit lines
 uv run commonswire release kaggle --version 0.2.0  # a folder for the Kaggle mirror
 uv run commonswire release zenodo --version 0.2.0  # checks .zenodo.json for Zenodo's GitHub route
+```
+
+The weekly update, from a published version to the next one, built and checked (it uploads
+nothing; `docs/automation.md`):
+
+```bash
+uv run commonswire update --from data/release/0.2.0 --out data/release/0.2.1 --dry-run
 ```
 
 ## How to cite

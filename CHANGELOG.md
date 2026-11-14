@@ -20,6 +20,14 @@ All notable changes to this project are documented here. The format follows
   that shrinks by more than 1%. `--dry-run` marks a build as never to be delivered. Every
   answer is saved once, so `--offline` replays a run with no request. It prints and writes
   counts, ids and hosts only. It uploads nothing.
+- Three GitHub Actions workflows, merged switched off: the weekly update
+  (`weekly-update.yml`), the Kaggle mirror (`kaggle-mirror.yml`) and an issue when an update
+  stops or fails (`failure-issue.yml`). Their schedules are commented out and
+  `DELIVERY_ENABLED` is `"false"`, so a run started by hand is a dry run that uploads nothing
+  and reads no secret. When switched on, one setting (`CW_DELIVERY_MODE`) chooses between a
+  pull request on the dataset (the default) and direct publication. Actions are pinned by
+  commit, each job has the least permissions it needs, no workflow runs on pull requests, and
+  the secrets live in an environment limited to `main`.
 - New Global Voices stories take their writers and translators from the listing's first
   pages (`listingbylines.listing_credits`): page 1 on, until every new story is found with a
   credit block or the pages list only older stories, so they are released with their credit
@@ -42,6 +50,14 @@ All notable changes to this project are documented here. The format follows
   dataset card from the next version on.
 
 ### Changed
+- `docs/automation.md` describes the weekly update as built: what GitHub and Hugging Face
+  allow (with links), the run's steps and stops, the delivery modes and their risks, the
+  tokens, the options for removals older than 30 days with their cost in requests, and the
+  first dry run's numbers. The README and `docs/method.md` say the automatic update is built
+  and not switched on yet.
+- A Global Voices story that the previous version held, and that has not been edited since,
+  keeps its recorded reason with no new look at the listing. The first dry run read 13 listing
+  pages to look again at six held stories; the same answers replayed need one page.
 - The card says that an article edited at its source is updated however old it is (the
   edited-since listing covers every age); only removals are checked for the last 30 days.
 

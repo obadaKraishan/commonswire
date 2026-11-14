@@ -1,0 +1,151 @@
+name: Kaggle mirror
+
+# Mirrors the version on Hugging Face's main branch to Kaggle once it is there: in mode
+# pull-request, after the maintainer merges the weekly pull request on the dataset; in mode
+# automatic, called by the weekly update right after it publishes. It does nothing when Kaggle
+# already holds that version, so it can run every day. It also tags the version on Hugging
+# Face (vX.Y.Z) when a write token (HF_WRITE_TOKEN) is set and the tag is missing.
+#
+# OFF FOR NOW, on purpose: DELIVERY_ENABLED is "false" and the schedule is commented out. A
+# run started by hand only reads which version is on Hugging Face's main branch (anonymously)
+# and says what it would do; it reads no secret and uploads nothing.
+#
+# Actions are pinned to full commit SHAs. No pull request triggers this workflow.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  # Every day, so a version merged on Hugging Face reaches Kaggle the same day.
+  # schedule:
+  #   - cron: "47 7 * * *" # 07:47 UTC
+
+permissions: {}
+
+concurrency:
+  group: kaggle-mirror
+  cancel-in-progress: false
+
+env:
+  DELIVERY_ENABLED: "false"
+  DATASET: obadakr/commonswire
+  KAGGLE_DATASET: obadakraishan/commonswire
+
+jobs:
+  mirror:
+    name: Mirror the merged version to Kaggle
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Holds KAGGLE_API_TOKEN (and the optional HF_WRITE_TOKEN), deployments limited to main.
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+
+      - name: Install the project and the publishing tools (locked)
+        run: uv sync --locked --all-extras --group publish
+
+      - name: The version on Hugging Face's main branch (anonymous)
+        id: hf
+        run: |
+          uv run --no-sync python -I - >> "$GITHUB_OUTPUT" <<'PY'
+          import json, os
+          from huggingface_hub import HfApi, hf_hub_download
+          api, repo = HfApi(), os.environ["DATASET"]
+          sha = api.dataset_info(repo).sha
+          path = hf_hub_download(repo, "manifest.json", repo_type="dataset", revision=sha)
+          version = json.load(open(path, encoding="utf-8"))["version"]
+          tags = {t.name for t in api.list_repo_refs(repo, repo_type="dataset").tags}
+          print(f"sha={sha}")
+          print(f"version={version}")
+          print(f"tagged={'true' if f'v{version}' in tags else 'false'}")
+          PY
+
+      - name: The version on Kaggle
+        id: kaggle
+        if: env.DELIVERY_ENABLED == 'true'
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          now="$RUNNER_TEMP/kaggle-now"
+          mkdir -p "$now"
+          uv run --no-sync kaggle datasets download "$KAGGLE_DATASET" -f manifest.json \
+            -p "$now" --force > /dev/null
+          if [ -f "$now/manifest.json.zip" ]; then unzip -o -q "$now/manifest.json.zip" -d "$now"; fi
+          python3 -I -c 'import json, sys; print("version=" + json.load(open(sys.argv[1]))["version"])' \
+            "$now/manifest.json" >> "$GITHUB_OUTPUT"
+
+      - name: Say what is where
+        env:
+          HF_VERSION: ${{ steps.hf.outputs.version }}
+          HF_SHA: ${{ steps.hf.outputs.sha }}
+          TAGGED: ${{ steps.hf.outputs.tagged }}
+          KAGGLE_VERSION: ${{ steps.kaggle.outputs.version || 'not read (dry run)' }}
+        run: |
+          {
+            echo "Hugging Face main: version $HF_VERSION (commit $HF_SHA; tagged: $TAGGED)."
+            echo "Kaggle: version $KAGGLE_VERSION."
+            if [ "$DELIVERY_ENABLED" != "true" ]; then
+              echo "Dry run: nothing is mirrored and nothing is tagged."
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Download, check and prepare that version
+        if: env.DELIVERY_ENABLED == 'true' && steps.kaggle.outputs.version != steps.hf.outputs.version
+        env:
+          VERSION: ${{ steps.hf.outputs.version }}
+          SHA: ${{ steps.hf.outputs.sha }}
+        run: |
+          root="$RUNNER_TEMP/root"
+          dir="$root/data/release/$VERSION"
+          uv run --no-sync hf download "$DATASET" --repo-type dataset --revision "$SHA" \
+            --local-dir "$dir" > /dev/null
+          rm -rf "$dir/.cache" "$dir/.gitattributes"
+          uv run --no-sync commonswire --root "$root" release check --version "$VERSION"
+          uv run --no-sync commonswire --root "$root" release kaggle --version "$VERSION"
+          python3 -I - "$root/data/release/$VERSION-kaggle/dataset-metadata.json" <<'PY'
+          import json, os, sys
+          path = sys.argv[1]
+          meta = json.load(open(path, encoding="utf-8"))
+          meta["id"] = os.environ["KAGGLE_DATASET"]
+          json.dump(meta, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+          print("Kaggle id:", meta["id"])
+          PY
+
+      - name: A new Kaggle version, then its metadata
+        if: env.DELIVERY_ENABLED == 'true' && steps.kaggle.outputs.version != steps.hf.outputs.version
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          VERSION: ${{ steps.hf.outputs.version }}
+        run: |
+          folder="$RUNNER_TEMP/root/data/release/$VERSION-kaggle"
+          uv run --no-sync kaggle datasets version -p "$folder" -t -m "CommonsWire $VERSION"
+          for _ in $(seq 1 30); do
+            status="$(uv run --no-sync kaggle datasets status "$KAGGLE_DATASET" | tr -d '[:space:]')"
+            [ "$status" = "ready" ] && break
+            sleep 20
+          done
+          echo "Kaggle status: $status"
+          # The descriptions, provenance, frequency and cover go only through this command.
+          uv run --no-sync kaggle datasets metadata "$KAGGLE_DATASET" -p "$folder" --update
+
+      - name: Tag the version on Hugging Face (only with HF_WRITE_TOKEN)
+        if: env.DELIVERY_ENABLED == 'true' && steps.hf.outputs.tagged == 'false'
+        env:
+          HF_TOKEN: ${{ secrets.HF_WRITE_TOKEN }}
+          VERSION: ${{ steps.hf.outputs.version }}
+          SHA: ${{ steps.hf.outputs.sha }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "No HF_WRITE_TOKEN: v$VERSION is not tagged (the commit $SHA names it)."
+            exit 0
+          fi
+          uv run --no-sync hf repos tag create "$DATASET" "v$VERSION" --repo-type dataset \
+            --revision "$SHA" --message "CommonsWire $VERSION"
