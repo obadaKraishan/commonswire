@@ -699,3 +699,28 @@ def test_small_helpers():
     msg = "https://example.org/2026/11/05/a-story/?x=1 answered HTTP 403"
     assert redact(msg) == "example.org/... answered HTTP 403"
     assert timedelta(days=30) == NOW - datetime(2026, 10, 21, 12, tzinfo=timezone.utc)
+
+
+def test_a_held_story_not_edited_since_keeps_its_reason_without_the_listing(tmp_path):
+    w = World(tmp_path)
+    g9 = post(GV, 209, "2026-10-25")  # held in the previous version, never edited since
+    m = json.loads((w.prev / "manifest.json").read_text())
+    m["held_rows"].append(
+        {
+            "id": article_id(g9["link"]),
+            "source_id": "globalvoices",
+            "published_on": "2026-10-25",
+            "reason": "credited to an account, not a person",
+        }
+    )
+    (w.prev / "manifest.json").write_text(json.dumps(m))
+    w.site.recent["globalvoices"].append(g9)
+    res = w.run()
+    gv = res.sources["globalvoices"]
+    assert gv.listing["held_kept_unedited"] == 1 and gv.listing["wanted"] == 4
+    assert gv.listing["pages"] == 3  # the walk does not go back to 2026-10-25
+    held = {
+        h["id"]: h
+        for h in json.loads((tmp_path / "next" / "manifest.json").read_text())["held_rows"]
+    }
+    assert held[article_id(g9["link"])]["reason"] == "credited to an account, not a person"

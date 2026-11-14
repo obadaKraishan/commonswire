@@ -280,25 +280,39 @@ def _listing_credits(
     posts: list[dict],
     known: dict[str, str],
     res: SourceUpdate,
+    *,
+    held: dict[str, dict] | None = None,
+    prev_as_of: str = "",
 ) -> None:
     """For Global Voices: the writers and translators of new stories with no byline, from
-    the listing's first pages, put into the fetcher's byline maps."""
+    the listing's first pages, put into the fetcher's byline maps.
+
+    A story the previous version already held, and that has not been edited since that
+    version, keeps its recorded reason with no new look at the listing: otherwise every week
+    would walk back to the oldest held story of the 30 days."""
     from commonswire.listingbylines import LISTING_MARKUP, listing_credits
+    from commonswire.schema import article_id
 
     if fetcher.source_id not in LISTING_MARKUP:
         return
+    held = held or {}
     wanted: dict[str, str] = {}
+    kept = 0
     for post in posts:
         try:
             item = fetcher.item_from_post(post)
+            key = canonical_url(item.url)
         except (ValueError, KeyError, TypeError):
             continue
         if item.url in known or item.authors or fetcher.third_party_reason(item):
             continue
-        try:
-            wanted[canonical_url(item.url)] = item.published_at.date().isoformat()
-        except ValueError:
+        before = held.get(article_id(item.url))
+        if before and (_iso(item.updated_at) or "") <= prev_as_of:
+            if str(before.get("reason", "")).startswith("credited to an account"):
+                fetcher.byline_why_none[key] = "not_a_person"
+            kept += 1
             continue
+        wanted[key] = item.published_at.date().isoformat()
     got, st = listing_credits(
         client,
         fetcher.source_id,
@@ -316,6 +330,7 @@ def _listing_credits(
         if v["why_none"]:
             fetcher.byline_why_none[key] = v["why_none"]
     res.listing = {
+        "held_kept_unedited": kept,
         "wanted": len(wanted),
         "found": st.stories,
         "with_writer": st.with_writer,
@@ -342,10 +357,12 @@ def update_wordpress(
     since: datetime,
     prev_as_of: str,
     pages_dir: Path,
+    held: dict[str, dict] | None = None,
 ) -> tuple[dict[str, dict], SourceUpdate]:
     """One source's update over the window. Returns the source's rows after the update (the
     previous rows unchanged if the source refused, failed or ran over its budget) and what
-    happened, as counts and ids."""
+    happened, as counts and ids. ``held`` is the previous version's held rows (id -> source,
+    day, reason)."""
     from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     sid = fetcher.source_id
@@ -396,7 +413,7 @@ def update_wordpress(
             posts.append(post)
         res.listed = len(posts)
         known = {d["url"]: rid for rid, d in prev.items()}
-        _listing_credits(fetcher, client, posts, known, res)
+        _listing_credits(fetcher, client, posts, known, res, held=held, prev_as_of=prev_as_of)
         reader = None
         if sid in SITE_MARKUP and fetcher.requires_byline:
             reader = PageBylineReader(
@@ -768,6 +785,7 @@ def run_update(
             since=since,
             prev_as_of=str(manifest.get("as_of", "")),
             pages_dir=answers / "pages",
+            held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
         )
         budget_left -= client.bytes_used
         log.recent.extend(src_log.recent)
