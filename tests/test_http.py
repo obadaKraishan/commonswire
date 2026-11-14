@@ -248,6 +248,38 @@ def test_pacer_waits_only_for_the_rest_of_the_gap_per_host(tmp_path):
     assert pacer.paths("")[0].name == "_any.lock"
 
 
+def test_a_new_process_waits_the_crawl_delay_another_process_recorded(tmp_path):
+    clock = FakeClock()
+    running = Pacer(tmp_path / "locks", 2.0, clock=clock.time, sleep=clock.sleep)
+    with running.slot("a.org", 10.0):
+        pass  # a process that has read robots.txt: crawl-delay 10
+    clock.now += 3.0
+    fresh = Pacer(tmp_path / "locks", 2.0, clock=clock.time, sleep=clock.sleep)
+    with fresh.slot("a.org"):
+        pass  # a new process's robots.txt request waits the full 10 s, not 2
+    assert clock.sleeps == [pytest.approx(7.0)]
+    with fresh.slot("a.org", 0.0):
+        pass  # robots.txt read, no crawl-delay: the minimum, and the record is updated
+    assert clock.sleeps[-1] == pytest.approx(2.0)
+    assert fresh.gap_path("a.org").read_text() == "0.000"
+    assert fresh.paths("a.org")[1].read_text().replace(".", "").isdigit()  # old stamp format
+
+
+def test_crawl_delay_is_shared_with_a_second_client(tmp_path):
+    t = FakeTransport().add(f"{SITE}/robots.txt", (200, "User-agent: *\nCrawl-delay: 9\n"))
+    first, clock = make_test_client(tmp_path, t)
+    first.get(f"{SITE}/a")
+    second = type(first)(
+        usage_log=first.usage_log,
+        pacer=first.pacer,
+        transport=t,
+        sleep=clock.sleep,
+        jitter=lambda: 0.0,
+    )
+    second.get(f"{SITE}/b")  # its own robots.txt request comes 9 s after /a, then /b 9 s later
+    assert clock.sleeps == [9.0, 9.0, 9.0]
+
+
 def test_usage_log_writes_a_header_once(tmp_path):
     log = UsageLog(tmp_path / "sub" / "log.csv")
     log.write("https://a.org/x", 200, 5)

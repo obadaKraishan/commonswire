@@ -210,14 +210,23 @@ class Pacer:
         key = re.sub(r"[^a-z0-9.-]", "_", host.lower()) or "_any"
         return self.lock_dir / f"{key}.lock", self.lock_dir / f"{key}.last"
 
+    def gap_path(self, host: str) -> Path:
+        """The host's crawl-delay as last read from its robots.txt by any process."""
+        return self.paths(host)[1].with_suffix(".gap")
+
     @contextlib.contextmanager
     def slot(self, host: str = "", interval: float | None = None) -> Iterator[None]:
-        gap = max(self.min_interval, interval or 0.0)
+        """Wait for the host's turn. ``interval`` is the crawl-delay this process knows; a
+        process that does not know it yet (its first request, for robots.txt) waits the
+        delay another process last recorded, so a new process never comes in early."""
         lock_path, stamp_path = self.paths(host)
+        gap_path = self.gap_path(host)
         self.lock_dir.mkdir(parents=True, exist_ok=True)
         with lock_path.open("a+") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             try:
+                known = interval if interval is not None else _read_stamp(gap_path)
+                gap = max(self.min_interval, known or 0.0)
                 last = _read_stamp(stamp_path)
                 wait = last + gap - self._clock()
                 if wait > 0:
@@ -226,6 +235,8 @@ class Pacer:
                     yield
                 finally:
                     stamp_path.write_text(f"{self._clock():.3f}")
+                    if interval is not None:
+                        gap_path.write_text(f"{interval:.3f}")
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
@@ -370,7 +381,9 @@ class PoliteClient:
             )
         host = (urlsplit(url).hostname or "").lower()
         rule = self._robots.get(host)
-        delay = rule.crawl_delay() if rule else None
+        # None until this process has read the host's robots.txt: the pacer then waits the
+        # crawl-delay another process last recorded.
+        delay = (rule.crawl_delay() or 0.0) if rule else None
         headers = {"User-Agent": USER_AGENT, "Accept": accept}
         attempt = 0
         error: Exception | None = None
