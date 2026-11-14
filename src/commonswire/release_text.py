@@ -17,6 +17,8 @@ REPO = "https://github.com/obadaKraishan/commonswire"
 ISSUE_FORM = f"{REPO}/issues/new?template=takedown.yml"
 HF_ID = "obadakr/commonswire"
 HF_URL = f"https://huggingface.co/datasets/{HF_ID}"
+#: The Zenodo DOI of the code and the source registry, all versions (it resolves to the latest).
+ZENODO_DOI = "10.5281/zenodo.24231835"
 FLOW_DAYS = 90
 
 #: A text shorter than this many characters counts as short (as in ``commonswire validate``).
@@ -495,6 +497,9 @@ Please cite the version you used, and credit the newsrooms as each row's credit 
   url = {{{HF_URL}}}
 }}
 ```
+
+The code and the source registry (no article text) are archived on Zenodo:
+<https://doi.org/{ZENODO_DOI}> (all versions).
 
 Version {release.version}, collected up to {f["as_of"]}. Code: {REPO} (Apache-2.0).
 """

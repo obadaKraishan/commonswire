@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The Zenodo DOI of the code and the source registry, `10.5281/zenodo.24231835` (all versions; Zenodo
+  archived the GitHub release `v0.2.0` as `10.5281/zenodo.24231836`): a badge and a "How to
+  cite" section in the README, `doi` and `identifiers` in `CITATION.cff`, and a line in the
+  dataset card from the next version on.
+
 ## [0.2.0] - 2026-11-14
 
 The first code release, made with version 0.2.0 of the dataset (published on Hugging Face

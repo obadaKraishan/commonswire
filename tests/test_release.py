@@ -339,6 +339,7 @@ def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
     for leftover in ("{_n(", "{f[", "{release", "{HF_", "{REPO", "{ISSUE", "{size", "{chr("):
         assert leftover not in text, leftover
     assert "`{title}, by {authors}, {source} ({url}), {license}`" in text
+    assert "<https://doi.org/10.5281/zenodo.24231835> (all versions)" in text
     body = card_body(text)
     assert body.startswith("# CommonsWire 9.9.0") and "config_name" not in body
     lic = (out / "LICENSES.md").read_text()
