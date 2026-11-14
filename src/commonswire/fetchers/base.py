@@ -38,6 +38,8 @@ class Item:
     language: str
     updated_at: datetime | None = None
     authors: tuple[str, ...] = ()
+    #: Translators named apart from the writers (Global Voices' listing), never in authors.
+    translators: tuple[str, ...] = ()
     section: str = ""
     license: str | None = None
     #: Source-specific facts used to spot third-party material (categories, credits, flags).
@@ -194,12 +196,19 @@ class Fetcher(ABC):
             source=self.source.name,
             url=item.url,
             license=lic,
+            translators=item.translators,
         )
         hold = ""
         # A page whose own byline names the source itself is released with no personal
         # author; the credit line then names the source (maintainer's decision, 2026-11-13).
         if self.requires_byline and not item.authors and not item.hints.get("byline_is_source"):
-            hold = f"no byline: {self.source.name} asks for the author's name"
+            if item.hints.get("byline_why_none") == "not_a_person":
+                hold = (
+                    f"credited to an account, not a person: {self.source.name} asks for the "
+                    "author's name"
+                )
+            else:
+                hold = f"no byline: {self.source.name} asks for the author's name"
         return make_article(
             releasable=not hold,
             hold_reason=hold,
@@ -214,6 +223,7 @@ class Fetcher(ABC):
             license=lic,
             credit_line=credit,
             authors=item.authors,
+            translators=item.translators,
             section=item.section,
         )
 

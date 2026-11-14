@@ -74,7 +74,13 @@ def article(source, n, text, *, days=0, authors=("Ana Invented",), lic=None, **k
     lic = lic or default
     title = f"Invented story {n}"
     credit = render_credit(
-        template, title=title, authors=authors, source=name, url=url, license=lic
+        template,
+        title=title,
+        authors=authors,
+        source=name,
+        url=url,
+        license=lic,
+        translators=kw.get("translators", ()),
     )
     a = make_article(
         source_id=source,
@@ -137,6 +143,58 @@ def test_series_sources_by_version():
         series_sources("0.1")
     with pytest.raises(ReleaseError, match=r"series 0\.9, which has no source list"):
         series_sources("0.9.0")
+
+
+def test_series_0_2_adds_global_voices_and_the_translators_column():
+    assert series_sources("0.2.0") == (*series_sources("0.1.0"), "globalvoices")
+    assert len(rel.columns("0.1.3")) == 18 and "translators" not in rel.columns("0.1.3")
+    cols = rel.columns("0.2.0")
+    assert len(cols) == 19 and cols[cols.index("authors") + 1] == "translators"
+    with pytest.raises(ReleaseError, match="of the form"):
+        rel.columns("2")
+
+
+def test_translators_are_released_in_their_column_credited_and_checked(
+    tmp_path, series, monkeypatch
+):
+    rows_dir = corpus(tmp_path)
+    tr = article("alpha", 9, "An invented translated note.", days=4, translators=("Tia Invented",))
+    with (rows_dir / "alpha.jsonl").open("a") as fh:
+        fh.write(json.dumps(tr) + "\n")
+    r, out, _ = build(tmp_path)
+    got = next(x for x in r.rows["by"] if x["id"] == tr["id"])
+    assert got["translators"] == ["Tia Invented"]
+    assert "by Ana Invented, translated by Tia Invented, Alpha News" in got["credit_line"]
+    assert all(x["translators"] == [] for x in r.rows["by"] if x["id"] != tr["id"])
+    assert verify(out) == []
+    k = kaggle_folder(out, tmp_path / "k")
+    by = {x["path"]: x for x in json.loads((k / "dataset-metadata.json").read_text())["resources"]}
+    assert "translators" in [f["name"] for f in by["commonswire-by.parquet"]["schema"]["fields"]]
+    # A series without the column refuses a row that names translators, and writes the old
+    # 18 columns; verify notices files whose columns are not the version's.
+    monkeypatch.setitem(rel.SERIES, (0, 1), ("alpha", "beta", "gamma"))
+    registry = load_sources(registry_csv(tmp_path))
+    old = collect(tmp_path, "0.1.9", registry)
+    assert any("names translators" in x for x in old.checks.invalid)
+    (rows_dir / "alpha.jsonl").write_text(
+        "".join(line for line in (rows_dir / "alpha.jsonl").open() if tr["id"] not in line)
+    )
+    old = collect(tmp_path, "0.1.9", registry)
+    assert old.checks.ok
+    out01 = tmp_path / "v01"
+    write_release(old, out01, registry_csv(tmp_path), registry, card="", licenses_md="")
+    import pyarrow.parquet as pq
+
+    assert "translators" not in pq.read_schema(out01 / "data/by/train-00000-of-00001.parquet").names
+    assert verify(out01) == []
+    k01 = kaggle_folder(out01, tmp_path / "k01")
+    res = json.loads((k01 / "dataset-metadata.json").read_text())["resources"]
+    fields = next(x for x in res if x["path"] == "commonswire-by.parquet")["schema"]["fields"]
+    assert len(fields) == 18
+    manifest = json.loads((out01 / "manifest.json").read_text())
+    manifest["version"] = "9.9.0"
+    (out01 / "manifest.json").write_text(json.dumps(manifest))
+    assert any("columns are not those of version 9.9.0" in p for p in verify(out01))
 
 
 def test_collect_dedups_checks_and_groups(tmp_path, series):
@@ -285,6 +343,35 @@ def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
     assert body.startswith("# CommonsWire 9.9.0") and "config_name" not in body
     lic = (out / "LICENSES.md").read_text()
     assert "| `by-sa` | CC BY-SA 4.0 (2) | 2 |" in lic and "not legal advice" in lic
+
+
+def test_the_card_of_a_later_series_says_what_changed(tmp_path, series, monkeypatch):
+    from commonswire import release_text
+
+    rows_dir = corpus(tmp_path)
+    tr = article("alpha", 9, "An invented translated note.", days=4, translators=("Tia Invented",))
+    with (rows_dir / "alpha.jsonl").open("a") as fh:
+        fh.write(json.dumps(tr) + "\n")
+    monkeypatch.setitem(rel.SERIES, (0, 1), ("alpha", "beta"))
+    monkeypatch.setitem(release_text.CHANGES_SINCE, (9, 9), "0.1.0")
+    monkeypatch.setitem(release_text.SHORT_REASONS, "alpha", "invented short notes")
+    _, out, _ = build(tmp_path)
+    text = (out / "README.md").read_text()
+    assert "## Changes since 0.1.0" in text
+    assert (
+        "- **A new source: Gamma Checks** (1 row, Public domain, 2018 to 2018), fact-check." in text
+    )
+    assert "- **A new field, `translators`:**" in text and "(1 rows)" not in text
+    assert "| `translators` | the translators the source names" in text
+    assert "When the source names translators (Alpha News, for 1 row)" in text
+    assert "**Near-duplicates across sources:** 2 pairs in this version." in text
+    assert "- **Alpha News is most of it** (4 of 7 rows, 57%): results over the whole" in text
+    assert "`authors` (1 row); the credit line" in text and "Wikinews text" not in text
+    assert "have fewer than 200 characters of text: invented short notes" in text
+    assert "Alpha News (news), Beta Record (news), and Gamma Checks\n  (fact-check)" in text
+    assert "Fact-checks are" in text and "{" + "fact_words}" not in text
+    prose = [x for x in text.splitlines() if not x.startswith("|") and "https://" not in x]
+    assert max(len(x) for x in prose) <= 100
 
 
 def test_kaggle_and_zenodo_folders(tmp_path, series):
@@ -450,7 +537,7 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     import struct
     import zlib
 
-    from commonswire.release import COLUMNS
+    from commonswire.release import columns
     from commonswire.release_pack import (
         INDEX_COLUMNS,
         ROW_COLUMNS,
@@ -459,7 +546,7 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     )
     from commonswire.sources import SOURCE_FIELDS
 
-    assert [c[0] for c in ROW_COLUMNS] == list(COLUMNS)  # every released column, in order
+    assert [c[0] for c in ROW_COLUMNS] == list(columns("9.9.0"))  # every column, in order
     assert [c[0] for c in SOURCE_COLUMNS] == list(SOURCE_FIELDS)
     assert [c[0] for c in INDEX_COLUMNS][:2] == ["id", "source_id"]
     corpus(tmp_path)
@@ -470,7 +557,7 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     assert "sources.csv" in meta["userSpecifiedSources"] and "alpha" in meta["userSpecifiedSources"]
     by = {r["path"]: r for r in meta["resources"]}
     fields = by["commonswire-by.parquet"]["schema"]["fields"]
-    assert [f["name"] for f in fields] == list(COLUMNS)
+    assert [f["name"] for f in fields] == list(columns("9.9.0"))
     assert all(f["description"] and f["type"] for f in fields)
     assert by["index.csv"]["schema"]["fields"][2]["name"] == "configuration"
     assert len(by["sources.csv"]["schema"]["fields"]) == len(SOURCE_FIELDS)

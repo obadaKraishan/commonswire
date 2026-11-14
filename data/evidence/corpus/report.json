@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-14T00:22:47+00:00",
+  "as_of": "2026-11-14T19:36:06+00:00",
   "near_duplicate_threshold": 0.6,
   "sources": {
     "360info": {
@@ -54,7 +54,7 @@
         "by": 5803
       },
       "near_duplicate_flags": 0,
-      "per_day_last_90_days": 1.18,
+      "per_day_last_90_days": 1.16,
       "raw_gb": 0.072,
       "releasable_rows": 5803,
       "rows_gb": 0.028,
@@ -88,7 +88,7 @@
       "license_classes": {
         "by": 880
       },
-      "near_duplicate_flags": 0,
+      "near_duplicate_flags": 1,
       "per_day_last_90_days": 0.24,
       "raw_gb": 0.009,
       "releasable_rows": 879,
@@ -132,6 +132,51 @@
       "share_with_byline": 0.999,
       "words_median": 351,
       "words_total": 7447195
+    },
+    "globalvoices": {
+      "articles_per_year": {
+        "2004": 29,
+        "2005": 4772,
+        "2006": 13369,
+        "2007": 14912,
+        "2008": 13660,
+        "2009": 10019,
+        "2010": 8947,
+        "2011": 8863,
+        "2012": 6092,
+        "2013": 3948,
+        "2014": 3448,
+        "2015": 2286,
+        "2016": 1934,
+        "2017": 1401,
+        "2018": 918,
+        "2019": 1017,
+        "2020": 1090,
+        "2021": 990,
+        "2022": 947,
+        "2023": 1025,
+        "2024": 859,
+        "2025": 845,
+        "2026": 456
+      },
+      "dropped_other": 172,
+      "dropped_third_party": 2411,
+      "exact_duplicates_dropped": 68,
+      "first": "2004-10-27",
+      "kind": "news",
+      "last": "2026-11-13",
+      "license_classes": {
+        "by": 101827
+      },
+      "near_duplicate_flags": 1,
+      "per_day_last_90_days": 1.54,
+      "raw_gb": 0.463,
+      "releasable_rows": 101562,
+      "rows_gb": 0.298,
+      "rows_kept": 101827,
+      "share_with_byline": 0.997,
+      "words_median": 50,
+      "words_total": 32767926
     },
     "thepublicrecord": {
       "articles_per_year": {
@@ -217,18 +262,18 @@
     }
   },
   "total": {
-    "dropped_third_party": 65,
-    "exact_duplicates_dropped": 39,
+    "dropped_third_party": 2476,
+    "exact_duplicates_dropped": 107,
     "license_classes": {
-      "by": 42892,
+      "by": 144719,
       "by-sa": 2749,
       "pd": 1954
     },
-    "per_day_last_90_days": 4.72,
-    "raw_gb": 0.358,
-    "releasable_rows": 47585,
-    "rows_gb": 0.208,
-    "rows_kept": 47595,
-    "words_total": 22692627
+    "per_day_last_90_days": 6.24,
+    "raw_gb": 0.821,
+    "releasable_rows": 149147,
+    "rows_gb": 0.506,
+    "rows_kept": 149422,
+    "words_total": 55460553
   }
 }

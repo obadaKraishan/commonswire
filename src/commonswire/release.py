@@ -42,7 +42,19 @@ from commonswire.sources import Source, license_label, render_credit
 #: The sources of each version series, (major, minor) -> source ids.
 SERIES: dict[tuple[int, int], tuple[str, ...]] = {
     (0, 1): ("wikinews_en", "360info", "thepublicrecord", "balkandiskurs", "factly", "altnews"),
+    (0, 2): (
+        "wikinews_en",
+        "360info",
+        "thepublicrecord",
+        "balkandiskurs",
+        "factly",
+        "altnews",
+        "globalvoices",
+    ),
 }
+#: The first series whose rows carry ``translators`` (after ``authors``); older series keep
+#: the columns they were published with.
+TRANSLATORS_FROM = (0, 2)
 #: The order configurations are listed in; ``by`` is the default.
 CONFIGURATIONS = ("by", "by-sa", "pd")
 NEAR_DUPLICATE_THRESHOLD = 0.6
@@ -100,12 +112,25 @@ class ReleaseError(ValueError):
     """The release cannot be built as asked; the message says what to fix."""
 
 
-def series_sources(version: str) -> tuple[str, ...]:
-    """The sources of a version: ``0.1.0`` and ``0.1.7`` share the list of series 0.1."""
+def _series(version: str) -> tuple[int, int]:
     m = _VERSION.match(version)
     if not m:
         raise ReleaseError(f"version {version!r} is not of the form 0.1.0")
-    key = (int(m.group(1)), int(m.group(2)))
+    return int(m.group(1)), int(m.group(2))
+
+
+def columns(version: str) -> tuple[str, ...]:
+    """The released columns of a version, in order: series 0.2 and later add ``translators``
+    after ``authors``; series 0.1 keeps the 18 columns version 0.1.0 was published with."""
+    if _series(version) < TRANSLATORS_FROM:
+        return COLUMNS
+    i = COLUMNS.index("authors") + 1
+    return (*COLUMNS[:i], "translators", *COLUMNS[i:])
+
+
+def series_sources(version: str) -> tuple[str, ...]:
+    """The sources of a version: ``0.1.0`` and ``0.1.7`` share the list of series 0.1."""
+    key = _series(version)
     if key not in SERIES:
         known = ", ".join(f"{a}.{b}.x" for a, b in SERIES)
         raise ReleaseError(
@@ -128,6 +153,9 @@ class Checks:
     rows_in: int = 0
     exact_duplicates: Counter[str] = field(default_factory=Counter)
     held: Counter[str] = field(default_factory=Counter)
+    #: Held rows by the first words of their hold reason ("no byline", "credited to an
+    #: account, not a person").
+    held_reasons: Counter[str] = field(default_factory=Counter)
     removed: Counter[str] = field(default_factory=Counter)
     taken_down: Counter[str] = field(default_factory=Counter)
     invalid: list[str] = field(default_factory=list)
@@ -205,6 +233,7 @@ def collect(
     if unknown:
         raise ReleaseError(f"{', '.join(unknown)} not in the registry (data/sources.csv)")
     checks = Checks()
+    with_translators = "translators" in columns(version)
     data: dict[str, dict] = {}
     rows: dict[str, Row] = {}
     order = sorted(sources)
@@ -243,6 +272,7 @@ def collect(
             continue
         if not d.get("releasable", True):
             checks.held[d["source_id"]] += 1
+            checks.held_reasons[(d.get("hold_reason") or "held").split(":", 1)[0]] += 1
             continue
         if d.get("third_party"):
             checks.third_party.append(rid)
@@ -252,6 +282,10 @@ def collect(
         except ValueError as exc:
             checks.invalid.append(f"{rid} ({str(exc).splitlines()[0][:60]})")
             continue
+        translators = list(d.get("translators") or [])
+        if translators and not with_translators:
+            checks.invalid.append(f"{rid} (names translators; series {version} has no column)")
+            continue
         expected = render_credit(
             src.credit_line,
             title=d["title"],
@@ -259,6 +293,7 @@ def collect(
             source=src.name,
             url=d["url"],
             license=d["license"],
+            translators=translators,
         )
         if d["credit_line"] != expected:
             checks.credit_mismatch.append(rid)
@@ -267,13 +302,18 @@ def collect(
         if config == CLASS_NC_ND or config not in grouped:
             checks.unreleasable_class.append(f"{rid} ({d['license']})")
             continue
+        out = {
+            "id": rid,
+            "source_id": d["source_id"],
+            "kind": src.kind,
+            "title": d["title"],
+            "authors": list(d["authors"]),
+        }
+        if with_translators:
+            out["translators"] = translators
         grouped[config].append(
             {
-                "id": rid,
-                "source_id": d["source_id"],
-                "kind": src.kind,
-                "title": d["title"],
-                "authors": list(d["authors"]),
+                **out,
                 "published_at": _ts(d["published_at"]),
                 "updated_at": _ts(d.get("updated_at")),
                 "retrieved_at": _ts(d["retrieved_at"]),
@@ -296,19 +336,20 @@ def collect(
     )
 
 
-def _schema():  # type: ignore[no-untyped-def]
+def _schema(cols: tuple[str, ...] = COLUMNS):  # type: ignore[no-untyped-def]
     import pyarrow as pa
 
     ts = pa.timestamp("s", tz="UTC")
     text = pa.string()
     types = {
         "authors": pa.list_(text),
+        "translators": pa.list_(text),
         "near_duplicates": pa.list_(text),
         "published_at": ts,
         "updated_at": ts,
         "retrieved_at": ts,
     }
-    return pa.schema([pa.field(c, types.get(c, text), nullable=c == "updated_at") for c in COLUMNS])
+    return pa.schema([pa.field(c, types.get(c, text), nullable=c == "updated_at") for c in cols])
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -318,11 +359,11 @@ def _write_atomic(path: Path, data: bytes) -> None:
     os.replace(tmp, path)
 
 
-def _parquet_bytes(rows: list[dict]) -> bytes:
+def _parquet_bytes(rows: list[dict], cols: tuple[str, ...] = COLUMNS) -> bytes:
     import pyarrow as pa
     import pyarrow.parquet as pq
 
-    table = pa.Table.from_pylist(rows, schema=_schema())
+    table = pa.Table.from_pylist(rows, schema=_schema(cols))
     sink = io.BytesIO()
     pq.write_table(table, sink, compression="zstd", row_group_size=ROW_GROUP)
     return sink.getvalue()
@@ -394,7 +435,9 @@ def write_release(
         shards[config] = []
         for i in range(n):
             name = f"data/{config}/train-{i:05d}-of-{n:05d}.parquet"
-            files[name] = _parquet_bytes(rows[i * ROWS_PER_SHARD : (i + 1) * ROWS_PER_SHARD])
+            files[name] = _parquet_bytes(
+                rows[i * ROWS_PER_SHARD : (i + 1) * ROWS_PER_SHARD], columns(release.version)
+            )
             shards[config].append(name)
     index = [
         [
@@ -430,6 +473,7 @@ def write_release(
         "configurations": {c: shards[c] for c in CONFIGURATIONS},
         **release.counts(),
         "held_rows_not_released": dict(sorted(release.checks.held.items())),
+        "held_rows_by_reason": dict(sorted(release.checks.held_reasons.items())),
         "removed_rows_not_released": dict(sorted(release.checks.removed.items())),
         "taken_down_rows_not_released": dict(sorted(release.checks.taken_down.items())),
         "exact_duplicates_dropped": dict(sorted(release.checks.exact_duplicates.items())),
@@ -470,11 +514,17 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
     registry = load_sources(out / "sources.csv")
     seen: set[str] = set()
     by_source: Counter[str] = Counter()
-    columns = ["id", "source_id", "title", "authors", "url", "license", "credit_line"]
+    wanted = ["id", "source_id", "title", "authors", "url", "license", "credit_line"]
     for config, names in manifest["configurations"].items():
         n = 0
         for name in names:
-            for r in pq.read_table(out / name, columns=columns).to_pylist():
+            have = pq.read_schema(out / name).names
+            if have != list(columns(manifest["version"])):
+                problems.append(
+                    f"{name}: its columns are not those of version {manifest['version']}"
+                )
+            cols = wanted + (["translators"] if "translators" in have else [])
+            for r in pq.read_table(out / name, columns=cols).to_pylist():
                 n += 1
                 by_source[r["source_id"]] += 1
                 if r["id"] in seen:
@@ -490,6 +540,7 @@ def verify(out: Path, corpus_report: dict | None = None) -> list[str]:
                     source=src.name,
                     url=r["url"],
                     license=r["license"],
+                    translators=r.get("translators") or (),
                 )
                 if r["credit_line"] != want:
                     problems.append(f"{r['id']}: the credit line is not its source's template")

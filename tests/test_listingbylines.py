@@ -9,6 +9,7 @@ from commonswire.listingbylines import (
     LISTING_MARKUP,
     collect_listing_bylines,
     read_listing,
+    translators_by_url,
 )
 from commonswire.pagebylines import names_by_url
 from fakes import CONNECTION_ERROR, FakeTransport, make_test_client
@@ -76,7 +77,7 @@ def test_collect_walks_until_404_saves_once_and_resumes(tmp_path):
     assert st.writers_per_story == {"0": 2, "1": 1, "2": 1}
     assert all(gap >= 10.0 for gap in clock.sleeps)  # the crawl-delay
     found = json.loads(mp.read_text())
-    assert found[f"{GV}/2026/01/01/b"]["why_none"] == "no_byline"  # an account, not a person
+    assert found[f"{GV}/2026/01/01/b"]["why_none"] == "not_a_person"  # an account
     assert found[f"{GV}/2026/01/01/c"]["why_none"] == "source_itself"
     assert found[f"{GV}/2026/01/01/d"]["translators"] == ["Di Translator"]
     assert names_by_url(mp) == {
@@ -94,6 +95,52 @@ def test_collect_walks_until_404_saves_once_and_resumes(tmp_path):
     assert (st.pages_fetched, st.stories) == (0, 4)
     assert st.end == "page 4 is not saved (replay)"
     assert st.summary()["writers_per_story"] == {"0": 2, "1": 1, "2": 1}
+
+
+def teaser(slug):
+    """A featured story on the home page: its title link, and no credit block."""
+    return f"""<div class="post-summary"><div class="post-title">
+      <a href="{GV}/2026/01/01/{slug}/">An invented featured title</a></div></div>"""
+
+
+def test_a_story_first_seen_without_credits_takes_them_from_a_later_sighting(tmp_path):
+    pages = [
+        # The home page: two featured teasers with no credit block, then a credited story.
+        page(teaser("e"), teaser("f"), story("g", ["Ana Invented"])),
+        # "e" is listed again with its writer and translator; "g" again with no credits
+        # (it keeps the first, credited sighting); "f" never comes back.
+        page(story("e", ["Bo Made-Up"], ["Cy Invented"]), teaser("g")),
+        page(story("e", ["Someone Else"]), story("h", ["Di Invented"], ["Guest Contributor"])),
+    ]
+    client, _ = make_test_client(tmp_path, site(pages))
+    folder, mp = tmp_path / "listing", tmp_path / "map.json"
+    st = collect_listing_bylines(client, "globalvoices", folder, mp, source_name="Global Voices")
+    assert (st.stories, st.seen_again, st.credits_from_later_sighting) == (4, 3, 1)
+    found = json.loads(mp.read_text())
+    e = found[f"{GV}/2026/01/01/e"]
+    assert (e["names"], e["translators"]) == (["Bo Made-Up"], ["Cy Invented"])  # 2nd, not 3rd
+    assert found[f"{GV}/2026/01/01/g"]["names"] == ["Ana Invented"]
+    assert found[f"{GV}/2026/01/01/f"] == {
+        "names": [],
+        "translators": [],
+        "route": "listing",
+        "why_none": "no_byline",
+        "http_status": 200,
+    }
+    # An account is no translator either; it is counted, and the map keeps no counter field.
+    assert found[f"{GV}/2026/01/01/h"]["translators"] == []
+    assert st.translators_not_a_person == 1 and st.translated == 1
+    assert st.why_none == {"no_byline": 1}
+    summary = st.summary()
+    assert summary["credits_from_later_sighting"] == 1 and summary["seen_again"] == 3
+    assert translators_by_url(mp) == {f"{GV}/2026/01/01/e": ("Cy Invented",)}
+    assert translators_by_url(tmp_path / "none.json") == {}
+    # The replay of the same saved pages, with no request, gives the same map as the walk.
+    calls = len(client.transport.calls)
+    again = tmp_path / "again.json"
+    collect_listing_bylines(None, "globalvoices", folder, again, source_name="Global Voices")
+    assert len(client.transport.calls) == calls
+    assert json.loads(again.read_text()) == found
 
 
 def test_collect_stops_on_refusal_errors_empty_pages_and_limits(tmp_path):
@@ -145,3 +192,5 @@ def test_cli_listing_bylines_checks_inputs_replays_and_feeds_build(tmp_path, cap
     fetcher = GlobalVoicesFetcher(client, gv_source(), ReplayStore(tmp_path / "raw"))
     _load_bylines(tmp_path, fetcher)
     assert fetcher.page_bylines == {f"{GV}/2026/01/01/a": ("Ana Invented",)}
+    assert fetcher.byline_why_none == {f"{GV}/2026/01/01/b": "no_byline"}
+    assert fetcher.page_translators == {}

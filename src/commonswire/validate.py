@@ -107,6 +107,7 @@ def _registry_problems(art: Article, registry: Mapping[str, Source]) -> list[str
         source=src.name,
         url=art.url,
         license=art.license,
+        translators=art.translators,
     )
     if art.credit_line != expected:
         out.append(f"credit_line should be {expected!r}, as the registry's template gives")

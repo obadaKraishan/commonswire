@@ -129,6 +129,7 @@ ROW_COLUMNS = (
     ("kind", "string", "The source's kind: news or fact-check"),
     ("title", "string", "The headline as published"),
     ("authors", "string", "The bylines as published (a list; empty when no person is named)"),
+    ("translators", "string", "The translators the source names (a list; often empty)"),
     ("published_at", "datetime", "When the source published the article (UTC)"),
     ("updated_at", "datetime", "When the source last updated it, if it says (UTC)"),
     ("retrieved_at", "datetime", "When CommonsWire fetched the article (UTC)"),
@@ -236,9 +237,17 @@ def _describe(path: str) -> str:
     }.get(path, path)
 
 
-def _schema(path: str) -> tuple[tuple[str, str, str], ...] | None:
+def _schema(path: str, release: Path | None = None) -> tuple[tuple[str, str, str], ...] | None:
+    """The columns of a release file, in order. A Parquet file's are read from the file, so
+    a version lists exactly the columns it has (0.1.x has no ``translators``)."""
     if path.endswith(".parquet"):
-        return ROW_COLUMNS
+        if release is None:
+            return ROW_COLUMNS
+        import pyarrow.parquet as pq
+
+        have = pq.read_schema(release / path).names
+        by_name = {c[0]: c for c in ROW_COLUMNS}
+        return tuple(by_name[n] for n in have)
     return {"index.csv": INDEX_COLUMNS, "sources.csv": SOURCE_COLUMNS}.get(path)
 
 
@@ -308,7 +317,7 @@ def kaggle_folder(release: Path, folder: Path, *, overwrite: bool = False) -> Pa
         name = _flat_name(f["path"])
         shutil.copyfile(release / f["path"], folder / name)
         resource: dict[str, object] = {"path": name, "description": _describe(f["path"])}
-        columns = _schema(f["path"])
+        columns = _schema(f["path"], release)
         if columns:
             resource["schema"] = {"fields": _fields(columns)}
         resources.append(resource)

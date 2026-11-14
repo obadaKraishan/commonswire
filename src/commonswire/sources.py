@@ -480,16 +480,26 @@ def render_credit(
     source: str,
     url: str,
     license: str,
+    translators: Iterable[str] = (),
 ) -> str:
     """Fill in a registry credit line for one article.
 
     ``{authors}`` becomes the bylines joined with commas, or the source's name when there is
-    no byline; ``{license}`` becomes the license as people write it (CC BY 4.0).
+    no byline; ``{license}`` becomes the license as people write it (CC BY 4.0). When the
+    article names translators, ``{authors}`` is followed by ", translated by" and their names,
+    set off by commas: "This story by A, translated by B, originally appeared on ...".
     """
     names = [a for a in authors if a.strip()]
+    byline = ", ".join(names) if names else source
+    named = [t for t in translators if t.strip()]
+    if named:
+        byline = f"{byline}, translated by {', '.join(named)}"
+        after = template.split("{authors}", 1)[1][:1] if "{authors}" in template else ""
+        if after and after not in ",;.:)":
+            byline += ","
     values = {
         "title": title,
-        "authors": ", ".join(names) if names else source,
+        "authors": byline,
         "source": source,
         "url": url,
         "license": license_label(license),

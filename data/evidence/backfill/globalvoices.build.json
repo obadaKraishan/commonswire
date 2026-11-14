@@ -1,0 +1,36 @@
+{
+  "credited_to_source": 33,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "duplicate_url": 4,
+    "invalid:Value error, text is empty; only a removed article may have no text": 55,
+    "invalid:Value error, text still holds HTML tags; give plain text": 24,
+    "invalid:a post has no date_gmt": 1,
+    "invalid:title": 88,
+    "third_party:republication_note": 2333,
+    "third_party:rights_reserved_note": 9,
+    "third_party:wire_byline": 69
+  },
+  "first": "2004-10-27",
+  "kept": 101895,
+  "last": "2026-11-13",
+  "raw_bytes": 462584652,
+  "raw_files": 1049,
+  "releasable": 101630,
+  "releasable_after_daily": 101630,
+  "rows_after_daily": 101895,
+  "rows_bytes": 297986715,
+  "run": "2026-11-13",
+  "seen": 104478,
+  "source_id": "globalvoices",
+  "validate_errors": 0,
+  "validate_warnings": 33233
+}

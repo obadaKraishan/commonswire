@@ -139,6 +139,8 @@ class Article(BaseModel):
     url: str
     title: str = Field(min_length=1)
     authors: tuple[str, ...] = ()
+    #: The translators the source names, apart from the writers (empty when it names none).
+    translators: tuple[str, ...] = ()
     published_at: datetime
     updated_at: datetime | None = None
     retrieved_at: datetime
@@ -185,11 +187,12 @@ class Article(BaseModel):
             raise ValueError("content_hash is the 64-digit SHA-256 of the text")
         return v
 
-    @field_validator("authors")
+    @field_validator("authors", "translators")
     @classmethod
-    def _authors(cls, v: tuple[str, ...]) -> tuple[str, ...]:
+    def _authors(cls, v: tuple[str, ...], info) -> tuple[str, ...]:  # type: ignore[no-untyped-def]
         if any(not a.strip() for a in v):
-            raise ValueError("an author name is empty")
+            what = "an author" if info.field_name == "authors" else "a translator"
+            raise ValueError(f"{what} name is empty")
         return v
 
     @model_validator(mode="after")
@@ -236,6 +239,7 @@ def make_article(
     license: str,
     credit_line: str,
     authors: tuple[str, ...] = (),
+    translators: tuple[str, ...] = (),
     updated_at: datetime | None = None,
     section: str = "",
     third_party: bool = False,
@@ -249,6 +253,7 @@ def make_article(
         url=url,
         title=title,
         authors=authors,
+        translators=translators,
         published_at=published_at,
         updated_at=updated_at,
         retrieved_at=retrieved_at,

@@ -143,6 +143,11 @@ def test_wire_bylines_and_bad_posts_are_dropped_and_counted(tmp_path):
     fetcher = GlobalVoicesFetcher(client, gv_source(), RawStore(tmp_path / "raw"))
     with pytest.raises(ValueError, match="no date_gmt"):
         run_sample(fetcher, limit=3)
+    # A zero date, which WordPress gives as a time near the Unix epoch, is no date either.
+    with pytest.raises(ValueError, match="no date_gmt"):
+        fetcher.item_from_post(dict(wp_post(5), date_gmt="1970-01-01T04:59:59"))
+    late = fetcher.item_from_post(dict(wp_post(6), modified_gmt="1970-01-01T00:00:00"))
+    assert late.updated_at is None and late.published_at.year == 2026
     posts = [
         wp_post(1, authors=("The Associated Press",)),
         wp_post(2, body="<p>(AP) — Invented wire text.</p>"),

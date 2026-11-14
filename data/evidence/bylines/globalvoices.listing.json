@@ -1,0 +1,31 @@
+{
+  "bytes_fetched": 0,
+  "credits_from_later_sighting": 0,
+  "end": "page 4977 is not saved (replay)",
+  "http_status": {},
+  "last_page": 4976,
+  "pages_already_saved": 4976,
+  "pages_fetched": 0,
+  "run": "2026-11-13",
+  "seen_again": 11,
+  "source_id": "globalvoices",
+  "stopped": "",
+  "stories": 104480,
+  "stories_seen": 104491,
+  "translated": 5310,
+  "translators_not_a_person": 7,
+  "why_none": {
+    "no_byline": 7,
+    "not_a_person": 313,
+    "source_itself": 35
+  },
+  "with_writer": 104125,
+  "without_writer": 355,
+  "writers_per_story": {
+    "0": 355,
+    "1": 103354,
+    "2": 712,
+    "3": 35,
+    "4": 24
+  }
+}
