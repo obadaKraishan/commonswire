@@ -42,6 +42,18 @@ README.md                                           the dataset card (Hugging Fa
 manifest.json                                       row counts; size and SHA-256 of every file
 ```
 
+A version built by `commonswire update` (from 0.2.1 on) adds three keys to `manifest.json`,
+so the next update needs no state of its own:
+- `held_rows`: every held row's id, source, publication day and reason (no address, no
+  name). Held rows are not released, so this is the only record of them.
+- `third_party_dropped`: the count of third-party posts dropped so far.
+- `update`: the version it was built from, the window (30 days), the new, changed, removed and
+  taken-down counts per source, and the run's requests per host and day.
+
+Its card has a "This update" section with the same counts. `held_rows_not_released`,
+`exact_duplicates_dropped`, `removed_rows_not_released` and `taken_down_rows_not_released`
+add the update's counts to the previous version's, so they keep counting from the first build.
+
 `release kaggle` copies these files under flat names (`commonswire-by.parquet`, ...) into
 `data/release/X.Y.Z-kaggle/` with `dataset-metadata.json` and a plain cover image.
 

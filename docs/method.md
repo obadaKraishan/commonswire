@@ -2,8 +2,9 @@
 
 **DRAFT: not accepted yet.** This describes plans, not what version 0.2.0 does: how
 CommonsWire will code and validate its variables and how it will keep the corpus current.
-Version 0.2.0 has no coded variables, and its updates are made by hand
-(`docs/automation.md`, section 0). None of the coding below has been run.
+Version 0.2.0 has no coded variables, and its updates are made by hand; the weekly
+automatic update is built and not switched on yet (`docs/automation.md`). None of the coding
+below has been run.
 
 ## 1. Unit and scope
 - **Unit:** one article row (`src/commonswire/schema.py`): the body text as published, without
@@ -126,17 +127,17 @@ frame and tone on the corpus's own texts. A second human coder can be added late
 human-human alpha.
 
 ## 4. Update rules
-- **New:** each daily fetch adds the articles published since the last fetch (by the source's
-  API or feed), after the third-party filter.
+- **New:** each weekly update adds the articles of the last 30 days that the previous version
+  does not have (by the source's API), after the third-party filter.
 - **Changed:** an article whose text hash differs from the stored one is marked `changed`, its
   new text replaces the old in the next release, and its coded variables are coded again.
   Sources that report edits (for example a modified date in their API) are checked first.
 - **Removed or corrected away:** an article that its source has removed (404 or 410, or gone
   from the source's API), or that its publisher asks to remove, is marked `removed`; its row
   stays with its metadata and its text is dropped in the next release.
-- **Monthly check:** once a month, every article of the past year is checked against its
-  source's API listing (dates and ids only, no text), and a rotating share of older articles is
-  checked by URL, politely.
+- **Older removals:** an edit of any age is caught by the source's edited-since listing, but
+  removals are checked for the last 30 days only; the options for older ones, with their cost
+  in requests, are in `docs/automation.md`, section 5.
 - **Takedowns:** requests through the takedown form are answered within 14 days and applied in
   the next release.
 
