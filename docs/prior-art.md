@@ -22,9 +22,11 @@ can download, cite and rebuild. The nearest ones each lack at least one of those
 - **CC-NEWS** and **infini-news** are living full-text collections, but the article text stays
   under the publishers' copyright. **GDELT** and **Media Cloud** do not give full text.
 
-CommonsWire adds the combination: daily updates, full text, a license and credit line on every
-row, rights checked on each publisher's own pages, third-party material removed, and validated
-coded variables (topic, frame, types of sources quoted, tone) with their provenance.
+CommonsWire aims at the combination: full text, a license and credit line on every row,
+rights checked on each publisher's own pages, third-party material removed, regular updates,
+and validated coded variables (topic, frame, types of sources quoted, tone) with their
+provenance. Version 0.1.0 has the first four; its updates are made by hand for now (a daily
+automatic update is planned), and the coded variables are planned for a later version.
 
 ## Table
 | Resource | What it holds | Full text? | License | Living or frozen | Last update seen | Variables |

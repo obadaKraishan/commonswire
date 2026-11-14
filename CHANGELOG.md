@@ -56,6 +56,12 @@ All notable changes to this project are documented here. The format follows
   deduplication need them; the core package still depends on pydantic and requests only.
 
 ### Changed
+- The README and the docs say only what version 0.1.0 does: new versions are published by the
+  maintainer, about weekly for now, a daily automatic update is planned, and the coded variables
+  are planned for a later version. `docs/licenses.md` is no longer a draft (its license classes
+  were accepted on 2026-11-13) and quotes CC BY 4.0 section 2(a)(4) on format changes;
+  `docs/method.md` and `docs/automation.md` say in their first lines that they describe plans;
+  the planned Zenodo record holds the code, the registry and the card, and no article text.
 - A page whose own byline names the source itself, and no person, is released with no personal
   author, and its credit line names the source, as the page does (maintainer's decision,
   2026-11-13): 90 Balkan Diskurs articles. Pages with an empty byline or no byline block stay

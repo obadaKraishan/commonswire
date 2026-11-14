@@ -1,17 +1,17 @@
 # CommonsWire
 
-CommonsWire is a living, full-text corpus of news that may legally be redistributed. It
-collects articles only from sources whose own pages allow their text to be shared unchanged
-(public domain and Creative Commons licenses), updates every day, and adds the variables that
-communication and journalism researchers usually code by hand: topic, frame, the types of
-sources quoted, and tone.
+CommonsWire is a full-text corpus of news that may legally be redistributed. It collects
+articles only from sources whose own pages allow their text to be shared unchanged (public
+domain and Creative Commons licenses), and it keeps each article's license and credit line on
+its row. New versions are published by the maintainer, about weekly for now; a daily automatic
+update is planned. The variables that communication and journalism researchers usually code by
+hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
-**Status:** version 0.1.0 is built and checked, and not yet published. It holds 47,585
-articles from six sources, with no coded variables yet.
+**Status:** version 0.1.0: 47,585 articles from six sources, no coded variables yet.
 
 ## The dataset
-- **Hugging Face:** `obadakr/commonswire` (link added when it is published)
-- **Kaggle:** a mirror (link added when it is published)
+- **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
+- **Kaggle:** a mirror (link added after publication)
 
 Version 0.1.0 holds the full text of 47,585 articles (22.7 million words, 2004 to 2026) from six
 sources: English Wikinews (a closed archive), 360info, The Public Record, Balkan Diskurs, and
@@ -34,12 +34,15 @@ print(articles[0]["title"], articles[0]["credit_line"])
   license or public-domain statement that allows redistribution, do not forbid bulk or
   automatic reuse, and do not forbid automated collection. Wire copy, partner stories and other
   third-party material are always left out. `data/sources.csv` records the evidence for every
-  source: the page, the date it was read, and a short exact quote.
+  source it checked: the pages read, the date, and short exact quotes.
 - **Each row carries its own license and credit line.** Users can take only the license
-  classes their own use allows (public domain, CC BY, CC BY-SA, and so on). See
+  classes their own use allows (public domain, CC BY or CC BY-SA in version 0.1.0). See
   `docs/licenses.md`.
-- **Living.** New articles are added daily; corrected or removed articles are marked, and
-  their text is dropped in the next release.
+- **Updated by hand for now.** New versions are published by the maintainer, about weekly; a
+  daily automatic update is planned. Each update checks the last 30 days of every source that
+  still publishes: an article corrected at its source gets its new text and the status
+  `changed`, and an article removed at its source, or taken down on request, is left out of
+  the next version.
 
 ## What it is not
 - It is **not every news outlet.** Most news sites do not allow redistribution, and they are
@@ -81,7 +84,7 @@ Building a dataset version from the built rows (no requests):
 uv run commonswire release build --version 0.1.0   # data/release/0.1.0/
 uv run commonswire release check --version 0.1.0   # files, hashes, counts, credit lines
 uv run commonswire release kaggle --version 0.1.0  # a folder for the Kaggle mirror
-uv run commonswire release zenodo --version 0.1.0  # a record with no article text
+uv run commonswire release zenodo --version 0.1.0  # a folder for a record with no article text
 ```
 
 ## Takedowns and corrections

@@ -1,8 +1,9 @@
 # Automation
 
-The daily fetch and the release build exist as local commands. The scheduled jobs in sections
-1 to 3 are still a design (**DRAFT**), and every publishing step stays behind the maintainer's
-release approval.
+Sections 1 to 3 describe plans (**DRAFT**), not what version 0.1.0 does. Version 0.1.0 has no
+scheduled job: the daily fetch and the release build are local commands that the maintainer
+runs by hand (section 0), and every publishing step stays behind the maintainer's release
+approval.
 
 ## 0. Until the jobs run: the manual weekly update
 Once a week, on the maintainer's machine with the data drive mounted, three steps:
@@ -96,9 +97,9 @@ the backfill.
 |---|---|---|
 | Hugging Face (`obadakr/commonswire`) | Weekly commits to start (daily once the pipeline is stable) | One configuration per license class (`pd`, `by`, `by-sa`), Parquet files by month, the data card, release notes with counts of new, changed and removed rows |
 | Kaggle | A weekly version | A mirror of the Hugging Face files, with the same card |
-| Zenodo | A quarterly snapshot | A frozen copy with a DOI, for citation |
+| Zenodo | A record after the first release's checks, then by version series | The code, the source registry and the card, with a DOI for citation, and no article text (a Zenodo record cannot be withdrawn, and articles must stay removable on request) |
 
 Every publishing step needs the maintainer's release approval in the repository, and the
-first release is made by hand. A release job: builds the configurations from the staging store,
-drops the text of removed rows, runs `commonswire validate` on every file, writes the release
-notes, and only then uploads.
+first release is made by hand. A release job would run `commonswire release build` and
+`release check` (removed and taken-down rows are left out, every row is checked), write the
+release notes, and only then upload.
