@@ -3,7 +3,8 @@
 This is the text of the dataset card of version 0.2.0, as `commonswire release build --version
 0.2.0` writes it (`data/release/<version>/README.md`, the card on Hugging Face). Version 0.2.0
 was published on 2026-11-14 (tag `v0.2.0`); the card of version 0.1.0 stays under the tag
-`v0.1.0`. Its metadata block, which Hugging Face reads for the license and the configurations,
+`v0.1.0`. The weekly versions after it (0.2.1, 0.2.2, ...) have the same card with their own
+counts and a section "This update"; the current one is on Hugging Face. Version 0.2.0's metadata block, which Hugging Face reads for the license and the configurations,
 is:
 
 ```yaml

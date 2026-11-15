@@ -42,7 +42,7 @@ from commonswire.release_text import HF_URL, REPO
 KAGGLE_ID = "KAGGLE_USERNAME/commonswire"
 KAGGLE_TITLE = "CommonsWire: openly licensed news text"
 KAGGLE_SUBTITLE = "Full-text news that publishers allow others to share, each with its license"
-KAGGLE_UPDATE_FREQUENCY = "weekly"
+KAGGLE_UPDATE_FREQUENCY = "monthly"  # the mirror is updated by hand, about once a month
 KAGGLE_COVER = "dataset-cover-image.png"
 COVER_SIZE = (1120, 560)  # 2:1, at least Kaggle's 560 by 280
 CREATOR = {"name": "Kraishan, Obada", "affiliation": "Texas Tech University"}

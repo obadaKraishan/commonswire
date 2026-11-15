@@ -1,18 +1,20 @@
 # Automation
 
-CommonsWire's weekly update is built and tested, and stays **switched off** until the
-maintainer turns it on. One command, `commonswire update`, builds the next dataset version
-from the one published on Hugging Face. Three GitHub Actions workflows run it and deliver the
-result:
+CommonsWire's weekly update is **switched on**. One command, `commonswire update`, builds the
+next dataset version from the one published on Hugging Face. Three GitHub Actions workflows
+run it and deliver the result:
 
-- `weekly-update.yml`: the update itself;
-- `kaggle-mirror.yml`: the Kaggle mirror;
+- `weekly-update.yml`: the update itself, every Monday at 06:17 UTC (and by hand from the
+  Actions tab). A version that passes every check reaches Hugging Face as a pull request on
+  the dataset, and it is published when the maintainer merges it;
+- `kaggle-mirror.yml`: the Kaggle mirror, **off**. The maintainer updates Kaggle by hand, about
+  once a month and at each minor release (section 4 says why);
 - `failure-issue.yml`: an issue in this repository when an update stops or fails.
 
-As merged, the workflows have no schedule and their delivery switch (`DELIVERY_ENABLED`) is
-`"false"`. A run started by hand is a dry run: it reads the sources and builds and checks the
-version on GitHub's runner, then uploads nothing, opens no pull request and no issue, and
-reads no secret. Section 6 lists the steps that switch it on.
+Setting `DELIVERY_ENABLED` to `"false"` in `weekly-update.yml` makes every run a dry run
+again: it reads the sources and builds and checks the version on GitHub's runner, then uploads
+nothing and opens no pull request and no issue. Section 6 lists how it was switched on and how
+to stop it.
 
 Section 7 (coding costs) is a **DRAFT** that describes plans: no coding has been run.
 
@@ -154,8 +156,8 @@ drive.
 
    The maintainer can let a named source be skipped for one manual run (the `allow_skipped`
    input).
-6. **It delivers** (once switched on) in the mode the setting gives (section 3). Otherwise it
-   ends with the summary.
+6. **It delivers** in the mode the setting gives (section 3). A dry run ends with the
+   summary.
 
 **Held rows are not published**, so the manifest carries what the next run needs: the ids of
 held rows, with source, day and reason (never an address or a name), and the count of
@@ -219,22 +221,23 @@ Both fit the free limits for a public repository, and the job's limit is 6 hours
 ## 3. Delivery: one setting, two modes
 The repository variable `CW_DELIVERY_MODE` chooses the mode:
 
-- **`pull-request`** (the default, and the value used when the variable is unset). The run
-  uploads the version to Hugging Face as a pull request on the dataset, with the summary as
-  its description, and the maintainer merges it with one click. The Kaggle mirror runs daily.
-  When `main` holds a version that Kaggle does not, it checks that version, makes a new Kaggle
-  version, updates the Kaggle metadata and, if `HF_WRITE_TOKEN` is set, tags the version on
-  Hugging Face. Risks:
+- **`pull-request`** (the default, the value used when the variable is unset, and the mode in
+  use). The run uploads the version to Hugging Face as a pull request on the dataset, with the
+  summary as its description, and the maintainer merges it with one click. Weekly versions are
+  not tagged: the merge commit and the manifest name them. Risks:
   - nothing reaches users until the maintainer looks;
   - a pull request on a public dataset can be seen and downloaded before it is merged (it
     has passed every check);
   - a week with no merge holds the next week back, since an open pull request stops the next
     run.
-- **`automatic`**. The run publishes directly when every check passes: it uploads to `main`,
-  tags `vX.Y.Z`, and calls the Kaggle mirror. Risks:
+- **`automatic`** (not in use). The run publishes directly when every check passes: it
+  uploads to `main` and tags `vX.Y.Z`. Risks:
   - a problem the checks do not catch reaches users at once;
   - the Hugging Face token must be able to write, and it sits in the job that also reads the
     sources' pages.
+
+In both modes the Kaggle mirror is updated by hand (`kaggle-mirror.yml` stays off), about
+once a month and at each minor release, and minor releases (0.3.0 and on) are tagged by hand.
 
 In both modes, a stop or a failure opens an issue in this repository (or adds a comment to
 the open one). The issue holds the summary and the run's link.
@@ -247,10 +250,10 @@ never reaches a secret.
 
 | Secret | Mode | Scope |
 |---|---|---|
-| `HF_TOKEN` | pull-request | Fine-grained, on the one dataset `obadakr/commonswire`, with only the permission to open pull requests (`discussion.write`, "interact with discussions / open pull requests"). It cannot publish by itself. |
-| `HF_TOKEN` | automatic | Fine-grained, on the one dataset, with write access to its contents (needed to upload to `main` and to tag). |
-| `KAGGLE_API_TOKEN` | both | Kaggle's API token. It acts for the whole account; Kaggle has no narrower scope. |
-| `HF_WRITE_TOKEN` | pull-request, optional | Fine-grained, on the one dataset, with write access. It is used only by the mirror, after a merge, to tag the version. Without it, weekly versions are not tagged; the merge commit and the manifest name them. |
+| `HF_TOKEN` | pull-request (in use) | Fine-grained, on the one dataset `obadakr/commonswire`, with only the permission to open pull requests (`discussion.write`, "interact with discussions / open pull requests"). It cannot publish by itself. This is the only secret on GitHub. |
+| `HF_TOKEN` | automatic (not in use) | Fine-grained, on the one dataset, with write access to its contents (needed to upload to `main` and to tag). |
+| `KAGGLE_API_TOKEN` | not on GitHub | Kaggle's API token acts for the whole account (Kaggle has no narrower scope), so it stays off GitHub, and the Kaggle mirror is updated by hand. |
+| `HF_WRITE_TOKEN` | not on GitHub | Would let the mirror tag weekly versions. Without it, weekly versions are not tagged; the merge commit and the manifest name them. |
 
 `GITHUB_TOKEN` (the workflow's own token, no secret to add) reads issues to count open
 takedown requests and writes the failure issue.
@@ -265,21 +268,21 @@ older removals take extra requests. The options, with their weekly cost in reque
 | B. Rolling re-check: a fixed number of old article pages a week, oldest checked first. | 200 (about 20 MB) | about 200 of 149,000 rows a week, so the whole corpus every 14 years: an estimate of the removal rate, not a check |
 | C. Full id listing (`_fields=id,link`, 100 a page) once a month. | about 1,500 a month (Global Voices alone has 1,045 pages, about 3 hours at its 10-second crawl-delay) | every removal, up to a month late |
 
-Recommendation: A. It is cheap in requests and finds removals in the week they happen. It is
-not built: it sends requests beyond the last 30 days, which needs the maintainer's approval
-first. It would take about a day's work, with tests.
+A is the option chosen. It is cheap in requests and finds removals in the week they happen.
+It is not built yet; until it is, removals of articles older than 30 days are not checked.
 
-## 6. Switching it on
-The maintainer's steps are in the maintainer's own publish notes. In short:
+## 6. Switching it on, and off
+It is switched on in mode `pull-request`, with:
 
-1. create the tokens (section 4) and add them to the environment `release`;
-2. set `CW_DELIVERY_MODE` if `automatic` is wanted;
-3. a pull request that sets `DELIVERY_ENABLED: "true"` in `weekly-update.yml` and
-   `kaggle-mirror.yml` and uncomments their schedules;
-4. run it once by hand from the Actions tab.
+1. the environment `release`, with deployments limited to `main`, holding the one token
+   `HF_TOKEN` (section 4);
+2. no `CW_DELIVERY_MODE` (so `pull-request`);
+3. `DELIVERY_ENABLED: "true"` in `weekly-update.yml` and its schedule uncommented
+   (`kaggle-mirror.yml` stays off);
+4. a first run started by hand from the Actions tab, then the Monday schedule.
 
-To stop everything, disable the two workflows in the Actions tab (or with
-`gh workflow disable`), or delete the tokens.
+To stop it, disable the workflow in the Actions tab (or with `gh workflow disable`), set
+`DELIVERY_ENABLED` back to `"false"`, or delete the token.
 
 ## 7. Where the coding could run, and what it costs (DRAFT)
 Coding is never run in a development session. Each option below would run as a script with
