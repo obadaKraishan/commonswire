@@ -554,7 +554,7 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     _, out, m = build(tmp_path)
     k = kaggle_folder(out, tmp_path / "k")
     meta = json.loads((k / "dataset-metadata.json").read_text())
-    assert meta["expectedUpdateFrequency"] == "weekly" and meta["isPrivate"] is False
+    assert meta["expectedUpdateFrequency"] == "monthly" and meta["isPrivate"] is False
     assert "sources.csv" in meta["userSpecifiedSources"] and "alpha" in meta["userSpecifiedSources"]
     by = {r["path"]: r for r in meta["resources"]}
     fields = by["commonswire-by.parquet"]["schema"]["fields"]

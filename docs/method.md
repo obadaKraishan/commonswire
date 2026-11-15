@@ -2,9 +2,9 @@
 
 **DRAFT: not accepted yet.** This describes plans, not what version 0.2.0 does: how
 CommonsWire will code and validate its variables and how it will keep the corpus current.
-Version 0.2.0 has no coded variables, and its updates are made by hand; the weekly
-automatic update is built and not switched on yet (`docs/automation.md`). None of the coding
-below has been run.
+CommonsWire has no coded variables yet; a new version comes about every week from an
+automatic run that the maintainer approves (`docs/automation.md`). None of the coding below has
+been run.
 
 ## 1. Unit and scope
 - **Unit:** one article row (`src/commonswire/schema.py`): the body text as published, without

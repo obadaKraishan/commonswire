@@ -60,6 +60,18 @@ All notable changes to this project are documented here. The format follows
   pages to look again at six held stories; the same answers replayed need one page.
 - The card says that an article edited at its source is updated however old it is (the
   edited-since listing covers every age); only removals are checked for the last 30 days.
+- The weekly update is switched on: `weekly-update.yml` runs every Monday at 06:17 UTC with
+  `DELIVERY_ENABLED: "true"`, and a version that passes every check reaches Hugging Face as a
+  pull request on the dataset, published when the maintainer merges it. The only secret is a
+  Hugging Face token that can open pull requests on the one dataset. Weekly versions are not
+  tagged; the merge commit and the manifest name them.
+- The Kaggle mirror is updated by hand, about once a month and at each minor release, so no
+  Kaggle token is kept on GitHub: `kaggle-mirror.yml` stays off, and the weekly update no
+  longer calls it (which also drops its `secrets: inherit`). The prepared Kaggle metadata
+  gives the update frequency as monthly.
+- The README's status line no longer names a version or row counts; it points to the dataset
+  card on Hugging Face for the current version. The README and the docs say the dataset is
+  updated weekly by an automatic run that the maintainer approves.
 
 ### Fixed
 - A byte budget used up at robots.txt was taken for an unreachable robots.txt and reported as

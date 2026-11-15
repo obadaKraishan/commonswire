@@ -5,28 +5,32 @@
 CommonsWire is a full-text corpus of news that may legally be redistributed. It collects
 articles only from sources whose own pages allow their text to be shared unchanged (public
 domain and Creative Commons licenses), and it keeps each article's license and credit line on
-its row. New versions are published by the maintainer, about weekly for now; a weekly
-automatic update is built (`commonswire update` on GitHub Actions) and not switched on yet. The
+its row. A new version comes about every week: an automatic run on GitHub Actions
+(`commonswire update`) builds and checks it, and the maintainer approves it before it is
+published. The
 variables that communication and journalism researchers usually code by
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
-**Status:** version 0.2.0, published on 2026-11-14: 149,147 articles from seven sources, no
-coded variables yet.
+**Status:** published and updated weekly, no coded variables yet. The dataset card on Hugging
+Face gives the current version, its row counts and what changed in the last update.
 
 ## The dataset
 - **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
-- **Kaggle (a mirror):** <https://www.kaggle.com/datasets/obadakraishan/commonswire>
+- **Kaggle (a mirror):** <https://www.kaggle.com/datasets/obadakraishan/commonswire>, updated
+  about once a month, so it can be a few weekly versions behind Hugging Face.
 
-Version 0.2.0 holds the full text of 149,147 articles (55.2 million words, 2004 to 2026) from
-seven sources: Global Voices (101,562 articles), English Wikinews (a closed archive), 360info,
+CommonsWire holds the full text of about 150,000 articles (2004 to now) from seven sources:
+Global Voices (about two thirds of the rows), English Wikinews (a closed archive), 360info,
 The Public Record, Balkan Diskurs, and the fact-checkers Factly and Alt News. There is one
-configuration per license class: `by` (CC BY, 144,444 rows), `by-sa` (CC BY-SA, 2,749) and
-`pd` (public domain, 1,954). Every row carries its license, a link to the license and the
+configuration per license class: `by` (CC BY, nearly every row), `by-sa` (CC BY-SA) and `pd`
+(public domain). Every row carries its license, a link to the license and the
 credit line its publisher asks for. Where the source names translators, `translators` lists
 them apart from the writers in `authors`, and the credit line names them ("This story by A,
 translated by B, originally appeared on Global Voices: ..."). The dataset card
-(`docs/data-card.md`) has the details and the limits. Version 0.1.0 (47,585 articles from six
-sources, published on 2026-11-14) stays available under the tag `v0.1.0` on Hugging Face.
+(on Hugging Face; `docs/data-card.md` holds version 0.2.0's) has the details and the limits.
+Earlier versions stay available on Hugging Face: 0.1.0 (47,585 articles from six sources) under
+the tag `v0.1.0`, 0.2.0 (the first with seven sources) under `v0.2.0`, and each weekly version
+as the commit that merged it.
 
 ```python
 from datasets import load_dataset
@@ -44,12 +48,12 @@ print(articles[0]["title"], articles[0]["credit_line"])
   third-party material are always left out. `data/sources.csv` records the evidence for every
   source it checked: the pages read, the date, and short exact quotes.
 - **Each row carries its own license and credit line.** Users can take only the license
-  classes their own use allows (public domain, CC BY or CC BY-SA in version 0.2.0). See
-  `docs/licenses.md`.
-- **Updated by hand for now.** New versions are published by the maintainer, about weekly. A
-  weekly automatic update is built and not switched on yet (`docs/automation.md`). Each
-  update asks every source that still publishes for what it published or edited in the last
-  30 days. An article corrected at its source, however old, gets its new text and the status
+  classes their own use allows (public domain, CC BY or CC BY-SA). See `docs/licenses.md`.
+- **Updated every week.** Every Monday an automatic run on GitHub Actions builds the next
+  version from the published one and checks it. It reaches Hugging Face as a pull request on
+  the dataset, and is published when the maintainer merges it (`docs/automation.md`). The
+  Kaggle mirror follows about once a month. Each update asks every source that still
+  publishes for what it published or edited in the last 30 days. An article corrected at its source, however old, gets its new text and the status
   `changed`. An article of those 30 days removed at its source, or any article taken down on
   request, is left out of the next version.
 
@@ -107,8 +111,10 @@ uv run commonswire update --from data/release/0.2.0 --out data/release/0.2.1 --d
 Please cite the version of the dataset you used, and credit the newsrooms as each row's
 `credit_line` asks:
 
-> Kraishan, Obada. *CommonsWire: a full-text corpus of openly licensed news*, version 0.2.0.
+> Kraishan, Obada. *CommonsWire: a full-text corpus of openly licensed news*, version X.Y.Z.
 > Hugging Face, 2026. <https://huggingface.co/datasets/obadakr/commonswire>
+
+The dataset card of each version gives its own BibTeX entry.
 
 The code and the source registry are archived on Zenodo, with no article text:
 
