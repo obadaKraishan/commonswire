@@ -209,22 +209,45 @@ version keeps its recorded reason with no new look at the listing. The replay ne
 for the 2 new stories, so a weekly run now sends about 34 requests plus one for each new page
 byline.
 
-**On GitHub's runner** the same run should take about 10 to 15 minutes:
-- about 1 minute to install;
-- under a minute to download the 220 MB version;
-- about 3 minutes of paced requests;
-- 4 to 8 minutes of build, since the runner's cores are slower than the machine's.
+### The first weekly run on GitHub (2026-11-15)
+Started by hand at 00:41 UTC, from the published 0.2.0 to 0.2.1, delivered as a pull request on
+the dataset and merged by the maintainer at 01:03 UTC.
 
-It needs about 3.5 GB of the runner's 16 GB of memory and about 1 GB of its 14 GB of disk.
-Both fit the free limits for a public repository, and the job's limit is 6 hours.
+| Source | Posts listed | New | Changed | Removed | Held | Requests | Bytes |
+|---|---|---|---|---|---|---|---|
+| Wikinews | closed, no request | | | | | 0 | 0 |
+| 360info | 21 | 0 | 0 | 0 | 0 | 4 | 256,044 |
+| The Public Record | 23 | 2 (bylines from their pages) | 1 | 0 | 0 | 6 | 583,286 |
+| Balkan Diskurs | 8 | 0 | 0 | 0 | 0 | 4 | 133,957 |
+| Factly | 62 | 0 | 0 | 0 | 0 | 6 | 853,011 |
+| Alt News | 32 | 1 | 1 | 0 | 0 | 5 | 561,404 |
+| Global Voices | 79 | 2 (both credited from listing page 1, one with a translator) | 0 | 0 | 6 (all already held, kept without a walk) | 9 | 1,456,420 |
+
+- Every source answered GitHub's runner as it answered the maintainer's machine: 34 requests,
+  all 200 but one redirect, 3.8 MB in all, no refusal.
+- 149,147 rows before and 149,152 after; 275 held rows, as before; no new third-party post.
+- Every check passed on the runner (`release check`, the card validator), and again on a
+  signed-out download of the pull request: every 0.2.0 row is in 0.2.1 or counted, the
+  149,145 unchanged rows are the same in every column, the configurations and the 19 columns
+  are the same, and the held and third-party counts add up.
+- Only the six files that changed were uploaded (two of the five Parquet files, `index.csv`,
+  the card, `LICENSES.md` and the manifest).
+- The job took 8 minutes: 2 seconds to install, 9 seconds to download the 211 MB version,
+  7 minutes 48 seconds to read the sources and build (467 seconds), and 4 seconds to open
+  the pull request. It fits the free limits for a public repository by a wide margin (the
+  job's limit is 6 hours).
+- The token that can only open pull requests was enough. Hugging Face opens a pull request
+  made through its API as a **draft**: the maintainer takes it out of draft, then merges it.
+  A draft counts as open, so it stops the next run until it is merged or closed.
 
 ## 3. Delivery: one setting, two modes
 The repository variable `CW_DELIVERY_MODE` chooses the mode:
 
 - **`pull-request`** (the default, the value used when the variable is unset, and the mode in
   use). The run uploads the version to Hugging Face as a pull request on the dataset, with the
-  summary as its description, and the maintainer merges it with one click. Weekly versions are
-  not tagged: the merge commit and the manifest name them. Risks:
+  summary as its description. The pull request opens as a draft; the maintainer takes it out
+  of draft and merges it. Weekly versions are not tagged: the merge commit and the manifest
+  name them. Risks:
   - nothing reaches users until the maintainer looks;
   - a pull request on a public dataset can be seen and downloaded before it is merged (it
     has passed every check);
