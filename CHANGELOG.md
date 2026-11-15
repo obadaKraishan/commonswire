@@ -72,6 +72,9 @@ All notable changes to this project are documented here. The format follows
 - The README's status line no longer names a version or row counts; it points to the dataset
   card on Hugging Face for the current version. The README and the docs say the dataset is
   updated weekly by an automatic run that the maintainer approves.
+- `docs/automation.md` records the first weekly run on GitHub (0.2.0 to 0.2.1, 2026-11-15):
+  per source, the requests, the checks and the time it took, in place of the estimate, and
+  that Hugging Face opens the weekly pull request as a draft.
 
 ### Fixed
 - A byte budget used up at robots.txt was taken for an unreachable robots.txt and reported as
