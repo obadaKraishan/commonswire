@@ -4,9 +4,12 @@ name: Weekly update
 # repository's own `commonswire update`, and (once switched on) delivers it. See
 # docs/automation.md for what each step does and how to switch it on.
 #
-# OFF FOR NOW, on purpose: the weekly schedule below is commented out, and DELIVERY_ENABLED
-# is "false", so a run started by hand is a dry run. It reads the sources and builds and
-# checks the version on the runner, then uploads nothing, opens no pull request and no issue.
+# SWITCHED ON: it runs every Monday (and by hand from the Actions tab), and DELIVERY_ENABLED
+# is "true". A version that passes every check is delivered as vars.CW_DELIVERY_MODE says;
+# unset, that is "pull-request": a pull request on the dataset, which the maintainer merges.
+# A stop or a failure opens an issue. The Kaggle mirror is not called from here: it is
+# updated by hand (kaggle-mirror.yml says why). Setting DELIVERY_ENABLED to "false" makes
+# every run a dry run again (it uploads nothing and opens no pull request and no issue).
 #
 # Every action is pinned to a full commit SHA (the comment gives the version); Dependabot
 # proposes updates. No job runs on pull requests, so a pull request from a fork never reaches
@@ -20,10 +23,10 @@ on:
         description: "Sources that may be skipped without a stop (comma-separated source ids)"
         required: false
         default: ""
-  # The weekly run, switched on by the maintainer (docs/automation.md, "Switching it on").
-  # A minute past the hour's start, which GitHub says is its busiest moment.
-  # schedule:
-  #   - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+  # The weekly run (docs/automation.md, "Switching it on"), away from the hour's start,
+  # which GitHub says is its busiest moment.
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC
 
 permissions: {}
 
@@ -34,7 +37,7 @@ concurrency:
 env:
   # "true" lets a ready (non-dry-run) build be delivered, as vars.CW_DELIVERY_MODE says:
   # "pull-request" (the default when the variable is unset) or "automatic".
-  DELIVERY_ENABLED: "false"
+  DELIVERY_ENABLED: "true"
   DATASET: obadakr/commonswire
 
 jobs:
@@ -50,7 +53,6 @@ jobs:
     outputs:
       status: ${{ steps.update.outputs.status }}
       version: ${{ steps.update.outputs.version }}
-      published: ${{ steps.automatic.outcome == 'success' }}
       delivery_enabled: ${{ env.DELIVERY_ENABLED }}
       report: ${{ steps.update.outputs.report }}
     steps:
@@ -150,8 +152,9 @@ jobs:
             --commit-message "CommonsWire $VERSION" \
             --commit-description "$(cat "$RUNNER_TEMP/work/summary.md")"
 
+      # Mode automatic needs an HF_TOKEN that can write to the dataset; the pull-request token
+      # cannot upload to main or tag, so this step would fail with it (docs/automation.md).
       - name: Publish and tag (mode automatic)
-        id: automatic
         if: >-
           env.DELIVERY_ENABLED == 'true' && steps.update.outputs.ready == 'true' &&
           vars.CW_DELIVERY_MODE == 'automatic'
@@ -166,23 +169,12 @@ jobs:
           uv run --no-sync hf repos tag create "$DATASET" "v$VERSION" --repo-type dataset \
             --message "CommonsWire $VERSION"
 
-  mirror:
-    name: Mirror to Kaggle (mode automatic)
-    needs: update
-    if: needs.update.outputs.published == 'true'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/kaggle-mirror.yml
-    # Its job reads its secrets from the "release" environment (environment secrets cannot be
-    # passed from a calling job).
-    secrets: inherit
-
   report:
     name: Report a stop or a failure
     needs: update
     if: always() && (needs.update.result != 'success' || needs.update.outputs.status == 'stopped')
     permissions:
-      issues: write
+      issues: write # to open the stop issue, or comment on the one already open
     uses: ./.github/workflows/failure-issue.yml
     with:
       title: "Weekly update stopped"

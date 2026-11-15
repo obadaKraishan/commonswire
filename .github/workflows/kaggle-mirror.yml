@@ -1,21 +1,22 @@
 name: Kaggle mirror
 
-# Mirrors the version on Hugging Face's main branch to Kaggle once it is there: in mode
-# pull-request, after the maintainer merges the weekly pull request on the dataset; in mode
-# automatic, called by the weekly update right after it publishes. It does nothing when Kaggle
-# already holds that version, so it can run every day. It also tags the version on Hugging
-# Face (vX.Y.Z) when a write token (HF_WRITE_TOKEN) is set and the tag is missing.
+# Mirrors the version on Hugging Face's main branch to Kaggle once it is there. It does
+# nothing when Kaggle already holds that version, so it could run every day. It also tags the
+# version on Hugging Face (vX.Y.Z) when a write token (HF_WRITE_TOKEN) is set and the tag is
+# missing.
 #
-# OFF FOR NOW, on purpose: DELIVERY_ENABLED is "false" and the schedule is commented out. A
-# run started by hand only reads which version is on Hugging Face's main branch (anonymously)
-# and says what it would do; it reads no secret and uploads nothing.
+# OFF, on purpose: the Kaggle mirror is updated BY HAND for now, about once a month and at
+# each minor release, by the maintainer with the publish script. Kaggle's API token acts for
+# the whole account (Kaggle offers no narrower scope), so it is not kept on GitHub.
+# DELIVERY_ENABLED is "false" and the schedule is commented out; nothing calls this workflow.
+# A run started by hand only reads which version is on Hugging Face's main branch
+# (anonymously) and says what it would do; it reads no secret and uploads nothing.
 #
 # Actions are pinned to full commit SHAs. No pull request triggers this workflow.
 
 on:
   workflow_dispatch:
-  workflow_call:
-  # Every day, so a version merged on Hugging Face reaches Kaggle the same day.
+  # Every day, so a version merged on Hugging Face would reach Kaggle the same day.
   # schedule:
   #   - cron: "47 7 * * *" # 07:47 UTC
 
