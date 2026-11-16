@@ -903,7 +903,21 @@ def cmd_release_check(args: argparse.Namespace) -> int:
     if not (out / "manifest.json").exists():
         print(f"no release at {out}; run commonswire release build first", file=sys.stderr)
         return 2
-    problems = verify(out, _corpus_report(root))
+    import json
+
+    update = json.loads((out / "manifest.json").read_text()).get("update")
+    if update:
+        # A version built by `commonswire update` adds the week's rows to the published one;
+        # the local corpus report describes the last local build, so the two never agree.
+        print(
+            f"note: {args.version} was built by commonswire update from "
+            f"{update.get('from_version', 'the version before')}, so its rows were not compared "
+            "with the local corpus report"
+        )
+        report = None
+    else:
+        report = _corpus_report(root)
+    problems = verify(out, report)
     for problem in problems:
         print(f"check failed: {problem}")
     print(f"release {args.version}: " + ("all checks passed" if not problems else "problems found"))

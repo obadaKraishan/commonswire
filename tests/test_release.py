@@ -500,6 +500,36 @@ def test_cli_release_build_check_kaggle_zenodo(tmp_path, series, capsys):
     assert "check failed: 1 rows credit mismatch" in capsys.readouterr().err
 
 
+def test_release_check_skips_the_corpus_report_for_a_version_built_by_update(
+    tmp_path, series, capsys
+):
+    corpus(tmp_path)
+    reg = str(registry_csv(tmp_path))
+    base = ["--root", str(tmp_path), "release"]
+    assert main([*base, "build", "--version", "9.9.0", "--sources", reg]) == 0
+    ev = tmp_path / "data" / "evidence" / "corpus"
+    ev.mkdir(parents=True)
+    (ev / "report.json").write_text(json.dumps({"sources": {"alpha": {"releasable_rows": 9}}}))
+    # A locally built version (no update block) is compared with the report, and fails.
+    capsys.readouterr()
+    assert main([*base, "check", "--version", "9.9.0"]) == 1
+    out = capsys.readouterr().out
+    assert "rows released, but the corpus report has" in out
+    assert "was built by commonswire update" not in out
+    # The same files with an update block in the manifest: the comparison is skipped.
+    manifest = tmp_path / "data" / "release" / "9.9.0" / "manifest.json"
+    data = json.loads(manifest.read_text())
+    data["update"] = {"from_version": "9.8.0", "new": 1}
+    manifest.write_text(json.dumps(data))
+    assert main([*base, "check", "--version", "9.9.0"]) == 0
+    out = capsys.readouterr().out
+    assert (
+        "note: 9.9.0 was built by commonswire update from 9.8.0, so its rows were not "
+        "compared with the local corpus report" in out
+    )
+    assert "release 9.9.0: all checks passed" in out
+
+
 def test_the_takedown_list_keeps_articles_out_and_must_be_well_formed(tmp_path, series):
     from commonswire.release import load_takedowns
 
