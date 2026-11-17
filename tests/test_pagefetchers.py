@@ -373,12 +373,16 @@ def test_legacy_brackets_and_escaped_embed_code_are_cleaned(tmp_path):
 
     body = (
         '<p>An invented paragraph.</p><p>&lt;<a href="/x">An invented link</a>&gt;</p>'
-        "<p>&lt;div id=&#8217;player-1&#8242;&gt;&lt;/div&gt;&lt;script&gt;&lt;/script&gt;</p>"
+        '<p><<a href="/y">A second invented link</a>></p>'
+        "<td>&LT;div id=&#8217;player-1&#8242;&GT;&LT;/div&GT;&LT;script&GT;&LT;/script&GT;</td>"
+        "<p>A sentence with 3 &lt; 4 in it.</p>"
     )
     cleaned = clean_legacy_body(body)
-    assert "&lt;" not in cleaned and '<a href="/x">An invented link</a>' in cleaned
+    assert '<a href="/x">An invented link</a>' in cleaned and "<<a" not in cleaned
     assert "player" not in cleaned and "An invented paragraph." in cleaned
+    assert "3 &lt; 4" in cleaned  # one escaped bracket in a sentence is text, kept
     f = fetcher(SciDevNetFetcher, scidev_source(), tmp_path)
     url = "https://www.scidev.net/global/opinions/an-invented-view/"
     art = f.build(f.item_from_page(url, scidev_page(body=body)), datetime.now(timezone.utc))
-    assert "<" not in art.text and "An invented link" in art.text
+    assert "An invented link" in art.text and "A second invented link" in art.text
+    assert "player" not in art.text and "3 < 4" in art.text

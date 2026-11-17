@@ -15,8 +15,8 @@ held-byline rule are the same as for every other source.
   "Supported content" pages (the breadcrumb's label; most name a funder) also need
   SciDev.Net's own byline (every name linked to one of its author pages). Any other page is
   left out as third-party or sponsored material. Two legacy forms in its older bodies are
-  cleaned first: literal angle brackets printed around a link's label, and a paragraph that
-  only shows escaped markup (a player's embed code).
+  cleaned first: angle brackets printed around a link's label, and escaped markup shown as
+  text (a player's embed code).
 - **Africa Is a Country** (CC BY 4.0). The byline is the header's author list; the date is
   the header's ``MM.DD.YYYY`` (no time is given: rows take 00:00 UTC). Its license names no
   author requirement, so a page with no byline is credited to the source. Pieces that say
@@ -78,23 +78,18 @@ _CC_LINK = re.compile(r"creativecommons\.org/licenses/", re.I)
 _BLOCK_OPEN = re.compile(r"<(?:p|div|figcaption|li|td|blockquote|h[1-6])\b[^>]*>", re.I)
 
 
-#: Literal angle brackets printed around a link (``&lt;<a ...>label</a>&gt;``).
-_BRACKETED_LINK = re.compile(r"&lt;\s*(<a\b[^>]*>.*?</a>)\s*&gt;", re.S | re.I)
-_PARAGRAPH = re.compile(r"<p\b[^>]*>(.*?)</p>", re.S | re.I)
-_ONLY_MARKUP = re.compile(r"\s*(?:<[^<>]+>\s*)+")
+#: Angle brackets printed around a link, escaped or literal (``&lt;<a ...>label</a>&gt;`` or
+#: ``<<a ...>label</a>>``).
+_BRACKETED_LINK = re.compile(r"(?:&lt;|<)\s*(<a\b[^>]*>.*?</a>)\s*(?:&gt;|>)", re.S | re.I)
+#: Two or more escaped tags in a row: markup shown as text (a player's embed code).
+_ESCAPED_MARKUP = re.compile(r"(?:&lt;/?[a-z][^<>]*?&gt;\s*){2,}", re.S | re.I)
 
 
 def clean_legacy_body(body: str) -> str:
     """SciDev.Net's older bodies: the brackets printed around a link's label are dropped (the
-    link stays), and a paragraph whose text is only escaped markup (an embed code shown as
-    text) is removed."""
-    body = _BRACKETED_LINK.sub(r"\1", body)
-
-    def keep(m: re.Match[str]) -> str:
-        text = unescape(_TAGS.sub("", m.group(1)))
-        return "" if text.strip() and _ONLY_MARKUP.fullmatch(text) else m.group(0)
-
-    return _PARAGRAPH.sub(keep, body)
+    link stays), and markup shown as text (two or more escaped tags in a row, such as an embed
+    code) is removed."""
+    return _ESCAPED_MARKUP.sub("", _BRACKETED_LINK.sub(r"\1", body))
 
 
 def licenses_outside_captions(body: str) -> int:

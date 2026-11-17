@@ -556,6 +556,7 @@ def test_only_removals_reads_every_sitemap_and_no_changed_page(tmp_path):
     assert upd.status == "updated" and upd.listed == 0 and upd.route["sitemaps_read"] == 2
     assert {u for u, _ in w.transport.calls} & set(w.new.values()) == set()
     assert state["removals_checked"] == "2026-11-23"
+    assert state["through"] == THROUGH  # the changed pages were not read: the mark stays
 
 
 def test_a_listing_is_walked_in_full_once_a_month_and_recent_stories_reread(tmp_path):
