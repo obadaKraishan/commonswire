@@ -7,7 +7,11 @@ needs the maintainer. :func:`build_from_previous` is that step. It takes:
   itself (so whatever the weekly updates added is kept), with the held rows' ids, the
   third-party count and the post counts carried from its manifest;
 - the rows of each new source of the series from ``data/interim/rows/<source>.jsonl`` (built
-  from raw pages, no requests), with their held rows and third-party drops.
+  from raw pages, no requests), with their held rows and third-party drops;
+- for a new source read from its pages, the weekly route's state (``page_state``: the newest
+  change date of its saved sitemaps, or the ids of its first listing pages) from the saved
+  backfill run its build summary names, so the first weekly update reads only what came
+  after the backfill.
 
 The version is built through ``release build``'s own checks (:func:`commonswire.release.collect`:
 every row validated, credit lines checked, exact and near duplicates across all sources) and
@@ -20,6 +24,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from commonswire.http import FetchError
 from commonswire.release import (
     ReleaseError,
     _read_jsonl,
@@ -40,6 +45,32 @@ def third_party_of(root: Path, source_id: str) -> int:
         return 0
     dropped = json.loads(path.read_text(encoding="utf-8")).get("dropped", {})
     return sum(int(n) for k, n in dropped.items() if k.startswith("third_party:"))
+
+
+def page_states(root: Path, sources: list[str], previous: dict | None) -> dict[str, dict]:
+    """The weekly route's state of each page source: carried from the previous version, or
+    for a new one read from the backfill run its build summary names (no request)."""
+    from commonswire.pagebackfill import PAGE_ROUTES
+    from commonswire.pageupdate import page_state_from_backfill
+
+    out: dict[str, dict] = {}
+    for sid in sources:
+        if sid not in PAGE_ROUTES:
+            continue
+        if previous and sid in previous:
+            out[sid] = previous[sid]
+            continue
+        summary = root / "data" / "evidence" / "backfill" / f"{sid}.build.json"
+        if not summary.exists():
+            raise ReleaseError(f"{summary} is missing: build {sid}'s rows first")
+        run = json.loads(summary.read_text(encoding="utf-8")).get("run")
+        if not run:
+            raise ReleaseError(f"{summary} names no backfill run: build {sid}'s rows again")
+        try:
+            out[sid] = page_state_from_backfill(sid, root / "data" / "raw" / "backfill" / sid / run)
+        except FetchError as exc:
+            raise ReleaseError(f"{sid}: {exc}") from exc
+    return out
 
 
 def build_from_previous(
@@ -95,10 +126,12 @@ def build_from_previous(
         }[key]
         setattr(rel.checks, key, Counter(manifest.get(field, {})) + getattr(rel.checks, key))
     third = third_prev + sum(third_party_of(root, s) for s in new)
+    pages = page_states(root, list(sources), manifest.get("page_state"))
     extra: dict[str, object] = {
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
         "post_counts": {s: c for s, c in (manifest.get("post_counts") or {}).items() if s in old},
+        **({"page_state": pages} if pages else {}),
         "built_from": {
             "from_version": manifest["version"],
             "new_sources": new,

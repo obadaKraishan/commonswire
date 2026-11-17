@@ -169,3 +169,44 @@ def test_release_check_of_a_build_from_version_skips_the_corpus_report(tmp_path,
     got = capsys.readouterr().out
     assert "built by commonswire release build-from from 9.9.0" in got
     assert "all checks passed" in got
+
+
+def test_a_new_page_source_takes_its_route_state_from_its_backfill(tmp_path, monkeypatch):
+    from commonswire import pagebackfill
+    from commonswire.minor import page_states
+
+    route = pagebackfill.PageRoute(
+        source_id="gamma",
+        kind="sitemap",
+        start="https://gamma.example/sitemap_index.xml",
+        sitemap_pattern=r"^https://gamma\.example/article-sitemap\d*\.xml$",
+        article_pattern=r"^https://gamma\.example/[^?#]+$",
+    )
+    monkeypatch.setitem(pagebackfill.PAGE_ROUTES, "gamma", route)
+    reg_path, registry, takedowns, prev = world(tmp_path)
+    kw = dict(registry_path=reg_path, registry=registry, takedowns_path=takedowns)
+    build = tmp_path / "data" / "evidence" / "backfill" / "gamma.build.json"
+    build.write_text(json.dumps({"dropped": {}}))
+    with pytest.raises(ReleaseError, match="names no backfill run"):
+        build_from_previous(tmp_path, prev, "9.10.0", tmp_path / "o1", baseline_path=prev, **kw)
+    build.write_text(json.dumps({"run": "r1", "dropped": {}}))
+    lists = tmp_path / "data" / "raw" / "backfill" / "gamma" / "r1" / "lists"
+    lists.mkdir(parents=True)
+    with pytest.raises(ReleaseError, match="holds no dated article sitemap"):
+        build_from_previous(tmp_path, prev, "9.10.0", tmp_path / "o2", baseline_path=prev, **kw)
+    (lists / "sitemap-001.xml").write_text(
+        "<urlset><url><loc>https://gamma.example/a</loc>"
+        "<lastmod>2026-11-16T14:10:04+00:00</lastmod></url></urlset>"
+    )
+    manifest, problems = build_from_previous(
+        tmp_path, prev, "9.10.0", tmp_path / "o3", baseline_path=prev, **kw
+    )
+    assert problems == []
+    assert manifest["page_state"] == {"gamma": {"through": "2026-11-16T14:10:04Z"}}
+    # A later version carries the state; a source with no build summary cannot be started.
+    assert page_states(tmp_path, ["alpha", "gamma"], {"gamma": {"through": "x"}}) == {
+        "gamma": {"through": "x"}
+    }
+    monkeypatch.setitem(pagebackfill.PAGE_ROUTES, "alpha", route)
+    with pytest.raises(ReleaseError, match="build alpha"):
+        page_states(tmp_path, ["alpha"], None)
