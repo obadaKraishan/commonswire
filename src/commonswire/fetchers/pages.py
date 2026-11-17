@@ -10,10 +10,13 @@ held-byline rule are the same as for every other source.
   says "You have to credit our authors", so a page with no byline is held. The body is the
   post-content module; the closing "© SciDev.Net" line is the source's own. Pages that say
   they were first published elsewhere, or carry another holder's copyright line, are dropped.
-  Its "Supported content" pages (the breadcrumb's label; most name a funder) are kept only
-  with SciDev.Net's own byline (every name linked to one of its author pages), the site's
-  license line, and no other holder named (no Creative Commons link in the body outside an
-  image's caption); any other is left out as third-party or sponsored material.
+  A page of any section is kept only when it carries the site's license line and names no
+  other holder (no Creative Commons link in the body outside an image's caption); its
+  "Supported content" pages (the breadcrumb's label; most name a funder) also need
+  SciDev.Net's own byline (every name linked to one of its author pages). Any other page is
+  left out as third-party or sponsored material. Two legacy forms in its older bodies are
+  cleaned first: literal angle brackets printed around a link's label, and a paragraph that
+  only shows escaped markup (a player's embed code).
 - **Africa Is a Country** (CC BY 4.0). The byline is the header's author list; the date is
   the header's ``MM.DD.YYYY`` (no time is given: rows take 00:00 UTC). Its license names no
   author requirement, so a page with no byline is credited to the source. Pieces that say
@@ -73,6 +76,25 @@ IMAGE_BLOCK = re.compile(
 )
 _CC_LINK = re.compile(r"creativecommons\.org/licenses/", re.I)
 _BLOCK_OPEN = re.compile(r"<(?:p|div|figcaption|li|td|blockquote|h[1-6])\b[^>]*>", re.I)
+
+
+#: Literal angle brackets printed around a link (``&lt;<a ...>label</a>&gt;``).
+_BRACKETED_LINK = re.compile(r"&lt;\s*(<a\b[^>]*>.*?</a>)\s*&gt;", re.S | re.I)
+_PARAGRAPH = re.compile(r"<p\b[^>]*>(.*?)</p>", re.S | re.I)
+_ONLY_MARKUP = re.compile(r"\s*(?:<[^<>]+>\s*)+")
+
+
+def clean_legacy_body(body: str) -> str:
+    """SciDev.Net's older bodies: the brackets printed around a link's label are dropped (the
+    link stays), and a paragraph whose text is only escaped markup (an embed code shown as
+    text) is removed."""
+    body = _BRACKETED_LINK.sub(r"\1", body)
+
+    def keep(m: re.Match[str]) -> str:
+        text = unescape(_TAGS.sub("", m.group(1)))
+        return "" if text.strip() and _ONLY_MARKUP.fullmatch(text) else m.group(0)
+
+    return _PARAGRAPH.sub(keep, body)
 
 
 def licenses_outside_captions(body: str) -> int:
@@ -179,6 +201,7 @@ class SciDevNetFetcher(PageFetcher):
         body = element_html(html, "fl-module-fl-post-content")
         if not body:
             raise ValueError("no post-content module: not an article page")
+        body = clean_legacy_body(body)
         raw_names: list[str] = []
         targets: list[str] = []
         for h4 in re.findall(r"<h4\b[^>]*>(.*?)</h4>", html, re.S | re.I):
@@ -226,13 +249,14 @@ class SciDevNetFetcher(PageFetcher):
             return "another holder's copyright line"
         if item.hints.get("elsewhere"):
             return "says it was published elsewhere first"
-        if item.section == self.SUPPORTED:
-            if not item.authors or not item.hints.get("byline_own"):
-                return "supported content without a byline of its own"
-            if not item.hints.get("license_line"):
-                return "supported content without the site's license line"
-            if item.hints.get("other_licenses"):
-                return "supported content naming another license"
+        if item.section == self.SUPPORTED and (
+            not item.authors or not item.hints.get("byline_own")
+        ):
+            return "supported content without a byline of its own"
+        if not item.hints.get("license_line"):
+            return "no site license line on the page"
+        if item.hints.get("other_licenses"):
+            return "another license named outside an image's caption"
         return None
 
 
