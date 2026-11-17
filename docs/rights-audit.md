@@ -109,8 +109,8 @@ A code must fit its row: `sources check` refuses, for example, `bulk_clause` on 
 | pending | `extra_conditions` | 1 |
 
 - **Kinds.** 45 news, 4 fact-checking, 8 state agencies, 4 official, 2 advocacy, 2 portals,
-  1 church agency. Only news and fact-checking are collected. The other kinds get a verdict
-  so the audit is complete, and are collected only if the maintainer decides so.
+  1 church agency. Publishers of other kinds than news and fact-checking get a verdict, so
+  the audit is complete, but are not collected in 0.3.0.
 - **What the audit of 2026-11-16 changed:**
   - **Verdicts:** none.
     - The 13 rows already `include` or `exclude` that either outside list tags as openly
@@ -127,10 +127,19 @@ A code must fit its row: `sources check` refuses, for example, `bulk_clause` on 
     America became `state-agency`.
 
 ## Comparison with other lists
-`data/audit/other_lists.csv` holds every fact read from the two lists, with the address and
-the time it was read. `data/audit/comparison.csv` has one row per publisher: what each list
-says, this project's license class, status and reason code, and the date checked.
-`commonswire audit compare` rebuilds it with no request.
+`data/audit/other_lists.csv` holds every fact read from the two lists, with the date of the
+list's own data, the address and the time it was read. `data/audit/comparison.csv` has one
+row per publisher: what each list says and the date of that list's data
+(`common_pile_data_date`, `open_newswire_data_date`), and this project's license class,
+status, reason code and the date its pages were read (`checked_on`). `commonswire audit
+compare` rebuilds it with no request.
+
+- **The dates differ, and the comparison keeps each one.** The Common Pile's news data were
+  added to Hugging Face in May 2024 (its 17 data files, on 2024-05-27). Open Newswire's feed
+  list is dated 2025-11-11 (the file's last change). The publishers' own pages were read in
+  November 2026 (2026-11-13 and 2026-11-16). A list's tag is its reading on its own date,
+  and pages change, so a difference today does not show that a tag was wrong when it was
+  made.
 
 - **The Common Pile v0.1, news subset.** It describes its sources as "news sites that
   publish content under CC BY or CC BY-SA according to opennewswire". Facts were read from:
@@ -197,7 +206,9 @@ page, quoted as read on the date checked.
   - **SINC.** Open Newswire tags it CC BY. Its license page says CC BY 4.0 "does not, under
     any circumstances, authorize the exploitation, whether for commercial purposes or
     otherwise, of SINC content to create publications, in any medium, when they are chiefly
-    made up of content from agenciasinc.es." (`bulk_clause`).
+    made up of content from agenciasinc.es." The clause forbids publications made up chiefly
+    of SINC's content. A filter on this corpus to SINC's rows would make one, and the corpus
+    cannot pass that condition on to its users, so the row stays `exclude` (`bulk_clause`).
   - **Mehr News Agency.** Open Newswire tags it CC BY and marks its feed inactive. The two
     pages read carry only "© 2017 Mehr News Agency. All rights reserved"
     (`rights_reserved`).
@@ -242,6 +253,13 @@ page, quoted as read on the date checked.
   - The versions can differ from a list's generic tag. SciDev.Net's media page names CC BY
     2.0, Global Voices' footer CC BY 3.0, 360info's CC BY 4.0. The registry and every row
     carry the version the publisher states.
+  - SciDev.Net's republishing box, on every article page, says "You have to credit our
+    authors.", so its rows with no byline are held. Of its embed code, which carries a Google
+    Analytics event script, the box says "The easiest way to get the article on your site is
+    to embed the code below.": the code is offered, not required, so no tracker is required.
+    Its "Supported content" pages are kept only with SciDev.Net's own byline, the site's
+    license line and no other holder named (101 of 107; the other 6 are left out as
+    third-party or sponsored material).
 - **What the Common Pile collected.**
   - Five publishers named on its card have no data file in it: Africa Is a Country, Agenzia
     Fides, Meduza, SciDev.Net and Tasnim. Their lines are commented out in its collection
