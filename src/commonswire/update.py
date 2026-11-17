@@ -64,6 +64,7 @@ from commonswire.counts import (
 from commonswire.daily import DailyResult, _removed, _take
 from commonswire.fetchers import WORDPRESS
 from commonswire.fetchers.base import ReplayStore
+from commonswire.fetchers.pages import PAGE_FETCHERS
 from commonswire.fetchers.wordpress import WordPressFetcher
 from commonswire.http import (
     AnswerCache,
@@ -209,15 +210,17 @@ class SourceUpdate:
     new_ids: list[str] = field(default_factory=list)
     changed_ids: list[str] = field(default_factory=list)
     removed_ids: list[str] = field(default_factory=list)
-    #: The count check of older rows (None for a closed or skipped source).
+    #: The count check of older rows (None for a closed or skipped source, or a page source).
     count: CountCheck | None = None
+    #: A page source's route (what it read: sitemaps or listing pages, pages after the mark).
+    route: dict[str, object] = field(default_factory=dict)
 
     @property
     def skipped(self) -> bool:
         return self.status in ("refused", "failed", "over_budget", "over_ceiling")
 
     def summary(self) -> dict[str, object]:
-        return {
+        out: dict[str, object] = {
             "status": self.status,
             "note": self.note,
             "posts_listed": self.listed,
@@ -234,10 +237,15 @@ class SourceUpdate:
             "bytes": self.bytes,
             "count_check": self.count.summary() if self.count else None,
         }
+        if self.route:  # page sources only, so the WordPress sources' summaries stay as they were
+            out["route"] = self.route
+        return out
 
     def count_line(self) -> str:
         """The count check in one line: years checked, drops, rows checked, rows removed."""
         c = self.count
+        if c is None and self.route:
+            return f"{self.source_id} count check: not counted (a page source has no post counts)"
         if c is None:
             return f"{self.source_id} count check: not run ({self.status.replace('_', ' ')})"
         if c.baseline:
@@ -854,11 +862,35 @@ def run_update(
     prev_counts: dict[str, dict] | None = manifest.get("post_counts")
     res.count_baseline, res.count_limit = prev_counts is None, max_count_requests
     merged: dict[str, dict[str, dict]] = {}
+    page_state: dict[str, dict] = {}
     for sid in sources:
         if sid in CLOSED:
             merged[sid] = prev_rows.get(sid, {})
             res.sources[sid] = SourceUpdate(source_id=sid, status="closed", note=CLOSED[sid])
             say(res.sources[sid].line())
+            continue
+        if sid in PAGE_FETCHERS:
+            # Read from its article pages (series 0.3 on): the newest sitemap or listing pages.
+            from commonswire.pageupdate import update_pages
+
+            src_log = UsageLog(log.path)
+            client = clients(max(0, min(int(max_mb_per_source * 1e6), budget_left)), src_log, cache)
+            fetcher = PAGE_FETCHERS[sid](client, registry[sid], ReplayStore(answers / sid))
+            rows, upd, page_state[sid] = update_pages(
+                fetcher,
+                client,
+                prev_rows.get(sid, {}),
+                now=now,
+                prev_as_of=str(manifest.get("as_of", "")),
+                state=(manifest.get("page_state") or {}).get(sid),
+                held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
+            )
+            budget_left -= client.bytes_used
+            log.recent.extend(src_log.recent)
+            merged[sid] = rows
+            res.sources[sid] = upd
+            say(upd.line())
+            say(upd.count_line())
             continue
         if sid not in WORDPRESS:
             merged[sid] = prev_rows.get(sid, {})
@@ -973,6 +1005,7 @@ def run_update(
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
         "post_counts": post_counts,
+        **({"page_state": page_state} if page_state else {}),
         "update": {
             **update_info,
             "since": res.since,
