@@ -83,6 +83,10 @@ All notable changes to this project are documented here. The format follows
   longer compares the rows with the local corpus report, which describes the last local build
   and so falls short by the week's new rows; it prints one line saying the comparison was
   skipped. A locally built version is compared as before.
+- Two rows removed in the same update were taken for copies of each other (a removed row
+  keeps the hash of the empty text), so the second was counted as an exact duplicate instead
+  of a removal. Removed rows now stay out of the duplicate checks; both were left out of the
+  release either way, and no published version had two.
 
 ## [0.2.0] - 2026-11-14
 

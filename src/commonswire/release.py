@@ -276,6 +276,16 @@ def collect(
                 checks.exact_duplicates[f"same_url:{source}"] += 1
                 continue
             data[d["id"]] = d
+            if d.get("status") == "removed":
+                # A removed row has no text, so it stays out of the duplicate checks: two rows
+                # removed in one update share the hash of the empty text.
+                if d["id"] in takedowns:
+                    checks.taken_down[source] += 1
+                    checks.taken_down_ids.append(d["id"])
+                else:
+                    checks.removed[source] += 1
+                    checks.removed_ids.append(d["id"])
+                continue
             by_id[d["id"]] = Row(
                 id=d["id"],
                 source_id=source,
@@ -295,10 +305,6 @@ def collect(
         if rid in takedowns:
             checks.taken_down[d["source_id"]] += 1
             checks.taken_down_ids.append(rid)
-            continue
-        if d.get("status") == "removed":
-            checks.removed[d["source_id"]] += 1
-            checks.removed_ids.append(rid)
             continue
         if not d.get("releasable", True):
             reason = (d.get("hold_reason") or "held").split(":", 1)[0]
