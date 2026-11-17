@@ -82,6 +82,8 @@ def paragraph(src: Source) -> str:
         lines.append(f'- **Credit asked:** "{src.quote_attribution}"')
     lines.append(f"- **Third-party material:** {src.third_party_rule or 'not stated'}")
     status = f"- **Status: {src.status}.**"
+    if src.reason_code:
+        status += f" Reason code `{src.reason_code}`."
     if src.reason:
         status += f" {src.reason}"
     lines.append(status)
