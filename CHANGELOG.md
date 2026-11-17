@@ -36,6 +36,25 @@ All notable changes to this project are documented here. The format follows
   credit the authors. Pages that say they were first published elsewhere, or that end with
   another holder's copyright line, are dropped and counted; an image's credit line is not
   taken for the article's.
+- SciDev.Net's "Supported content" pages (the label its breadcrumb gives them; most name a
+  funder) are kept only when they carry SciDev.Net's own byline (every name linked to one of
+  its author pages), the site's license line, and no other holder (no Creative Commons link
+  in the body outside an image's caption). Any other is left out and counted as third-party
+  or sponsored material. Its other sections keep the rules above.
+- The weekly route of the sources read from their article pages, used by `commonswire update`
+  for a series that has them (0.3 on; series 0.2 has none, so its weekly update is
+  unchanged). SciDev.Net: the sitemap index and its newest article sitemap (and the one
+  before only while a sitemap starts after the mark), then each article changed after the
+  newest change date the previous version saw. Africa Is a Country: listing pages 1 and 2
+  (and on, up to 5, until a page shares a story with the previous version), then each story
+  the previous version neither has, holds nor saw. Each page once, through the same page
+  fetchers; new, changed, held and removed rows by the same rules as the other sources. The
+  route's state (`page_state`: a date, or ids) goes into the next manifest. A source that
+  would need more than 60 requests in a week stops before reading its pages. Page sources
+  have no post counts, so the count check does not cover them.
+- `commonswire update-route SOURCE --from VERSION --work DIR`: one page source's weekly route
+  alone, as a dry run (`--max-requests` caps it; `--offline` replays it). It writes a summary
+  of counts and ids, never a version.
 - `commonswire audit compare`: joins the registry with `data/audit/other_lists.csv` (what other
   lists of openly licensed news say about each publisher, with where and when it was read)
   into `data/audit/comparison.csv`, one row per publisher, and prints the counts by status and

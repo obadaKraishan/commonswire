@@ -185,6 +185,35 @@ summed per host and day into the new version's manifest (`update.requests`).
 without asking again, and `commonswire update --offline` replays a finished run with no
 request at all.
 
+### Sources read from their article pages (series 0.3 on)
+Series 0.3 adds two publishers whose API does not give their articles: SciDev.Net and Africa
+Is a Country. Their archives were read page by page (`commonswire backfill-pages`), and their
+weekly route reads only what is new or edited, each page once, through the same page
+fetchers and the polite client:
+
+- **SciDev.Net:** the sitemap index, then its newest article sitemap. The site lists its
+  articles by the date they last changed, oldest first, so the newest sitemap holds the new
+  and the edited ones. The one before is read only while a sitemap still starts after the
+  mark, and three at most. The pages read are the articles changed after the mark: the
+  newest change date the previous version saw.
+- **Africa Is a Country:** listing pages 1 and 2, newest first, and one more while the last
+  page read shares no story with the previous version (five at most; past that the source
+  stops). The pages read are the stories the previous version neither has, holds nor saw on
+  these pages last time. Its pages give no date of change, so an edit of an older story is
+  not seen.
+
+A page not in the previous version is a new row (held when the byline is missing and the
+publisher asks for it). A page whose text hash differs is changed. A released row whose page
+now answers 404 or 410 is removed. The mark (a date) and the stories seen (ids) go into the
+next manifest as `page_state`. A source that would need more than 60 requests in a week stops
+before reading its pages, and is named. Page sources have no post counts per year, so the
+count check (section 5) does not cover them: a story that leaves a sitemap or the listing is
+not looked for.
+
+`commonswire update-route SOURCE --from VERSION --work DIR` runs one page source's route
+alone, as a dry run. `--max-requests` caps it and `--offline` replays it. It writes a summary
+of counts and ids, never a version.
+
 ### The first dry run (2026-11-14)
 One live run on the maintainer's machine, from the published 0.2.0 to an unpublished 0.2.1,
 with `--dry-run`. Version 0.2.0 had been collected about 18 hours earlier, so "new" here
