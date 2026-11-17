@@ -54,6 +54,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
+from commonswire.changes import CHANGES_FILE, entries, read_changes
+from commonswire.changes import to_csv as changes_csv
 from commonswire.counts import (
     MAX_COUNT_REQUESTS,
     Allowance,
@@ -79,6 +81,7 @@ from commonswire.http import (
 )
 from commonswire.release import (
     CONFIGURATIONS,
+    VARIABLE_COLUMNS,
     ReleaseError,
     collect,
     series_sources,
@@ -152,6 +155,8 @@ def _from_release(r: dict) -> dict:
         "releasable": True,
         "hold_reason": "",
         "codings": [],
+        # Series 0.3 on: the variables that need no model travel with the row.
+        **{c: r[c] for c in VARIABLE_COLUMNS if c in r},
     }
 
 
@@ -1014,6 +1019,21 @@ def run_update(
         },
     }
     say(f"writing version {version} to {out}")
+    extra_files: dict[str, bytes] = {}
+    if (prev_dir / CHANGES_FILE).exists():
+        # Series 0.3 on: the record of changes grows by this version's lines.
+        lines = read_changes(prev_dir / CHANGES_FILE)
+        all_rows = {rid: d for rows in merged.values() for rid, d in rows.items()}
+        lines += entries(
+            version,
+            all_rows,
+            new=[i for u in res.sources.values() for i in u.new_ids],
+            changed=[i for u in res.sources.values() for i in u.changed_ids],
+            removed=[i for u in res.sources.values() for i in u.removed_ids],
+            taken_down=res.taken_down_ids,
+            as_of=_iso(now) or "",
+        )
+        extra_files[CHANGES_FILE] = changes_csv(lines)
     manifest_out = write_release(
         rel,
         out,
@@ -1022,6 +1042,7 @@ def run_update(
         card=card(rel, registry, third, update=update_info),
         licenses_md=licenses_md(rel, registry),
         extra=extra,
+        extra_files=extra_files or None,
     )
     for problem in verify(out):
         res.stop(f"release check: {problem}")

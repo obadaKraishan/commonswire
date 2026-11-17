@@ -13,6 +13,10 @@ feed list (``feeds.csv`` in its repository). Every fact read from them is one ro
 - ``documents``: the list's document count for the publisher, when it gives one;
 - ``named_in``: where the list names the publisher (``card;paper;code;data`` for the Common
   Pile; the feed's language for Open Newswire), and ``active``: whether the feed is active;
+- ``data_date``: the date of the list's own data, as the list gives it (the day the Common
+  Pile's data files were added; the day Open Newswire's ``feeds.csv`` was last changed). A
+  tag is the list's reading on that day; the publishers' pages were read later, so a
+  difference today does not show that the tag was wrong when it was made;
 - ``read_from`` and ``read_at``: the address read and the time (UTC).
 
 :func:`compare` joins these with the registry into one row per publisher that the registry or
@@ -28,7 +32,7 @@ import csv
 import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from commonswire.licensing import license_class
@@ -45,6 +49,7 @@ OTHER_LIST_FIELDS = [
     "documents",
     "named_in",
     "active",
+    "data_date",
     "read_from",
     "read_at",
 ]
@@ -56,8 +61,10 @@ COMPARISON_FIELDS = [
     "common_pile_named_in",
     "common_pile_tag",
     "common_pile_documents",
+    "common_pile_data_date",
     "open_newswire_tag",
     "open_newswire_active",
+    "open_newswire_data_date",
     "license_here",
     "class_here",
     "status",
@@ -121,6 +128,10 @@ def read_other_lists(path: Path, registry: Mapping[str, Source]) -> list[dict[st
             datetime.fromisoformat(row["read_at"].replace("Z", "+00:00"))
         except ValueError:
             raise ValueError(f"{where}: read_at must be a time like 2026-11-17T02:05:00Z") from None
+        try:
+            date.fromisoformat(row["data_date"])
+        except ValueError:
+            raise ValueError(f"{where}: data_date must be a day like 2025-11-11") from None
     return rows
 
 
@@ -161,8 +172,10 @@ def compare(registry: Mapping[str, Source], other: Iterable[Mapping[str, str]]) 
                 "common_pile_named_in": _join(p for r in cp for p in r["named_in"].split(";")),
                 "common_pile_tag": _join(r["tag"] for r in cp),
                 "common_pile_documents": str(sum(docs)) if docs else "",
+                "common_pile_data_date": _join(r["data_date"] for r in cp),
                 "open_newswire_tag": _join(r["tag"] for r in onw),
                 "open_newswire_active": _join(r["active"] for r in onw),
+                "open_newswire_data_date": _join(r["data_date"] for r in onw),
                 "license_here": src.license,
                 "class_here": here,
                 "status": src.status,

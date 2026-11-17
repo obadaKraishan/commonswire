@@ -202,13 +202,26 @@ fetchers and the polite client:
   these pages last time. Its pages give no date of change, so an edit of an older story is
   not seen.
 
+Africa Is a Country's stories of the last 30 days are read again each week, so their edits
+are seen.
+
 A page not in the previous version is a new row (held when the byline is missing and the
 publisher asks for it). A page whose text hash differs is changed. A released row whose page
-now answers 404 or 410 is removed. The mark (a date) and the stories seen (ids) go into the
-next manifest as `page_state`. A source that would need more than 60 requests in a week stops
-before reading its pages, and is named. Page sources have no post counts per year, so the
-count check (section 5) does not cover them: a story that leaves a sitemap or the listing is
-not looked for.
+now answers 404 or 410 is removed. The mark (a date), the stories seen (ids) and the dates of
+the last removal check go into the next manifest as `page_state`. A source that would need
+more than 60 article pages in a week stops before reading them, and is named.
+
+**The removal check of the page sources.** They have no post counts per year, so the count
+check (section 5) does not cover them. Instead:
+
+- each week, every SciDev.Net article sitemap (about 15 requests) is compared with the
+  released rows;
+- every 28 days, Africa Is a Country's whole listing is walked (about 127 pages).
+
+A released row that is no longer listed is read once and marked removed only when its own
+page answers 404 or 410; a page that still answers is kept. More than 25 such rows in one run
+stop the source (`over_ceiling`), as the count check does for the other sources.
+`update-route --only-removals` runs the check alone, as a dry run.
 
 `commonswire update-route SOURCE --from VERSION --work DIR` runs one page source's route
 alone, as a dry run. `--max-requests` caps it and `--offline` replays it. It writes a summary

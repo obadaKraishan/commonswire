@@ -34,7 +34,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from commonswire.daily import _removed
@@ -74,6 +74,14 @@ MAX_SITEMAPS = 3
 #: Listing pages always read, and read at most.
 LISTING_PAGES = 2
 MAX_LISTING_PAGES = 5
+#: The days back whose stories a listing source re-reads each week (edits are seen by hash).
+REREAD_DAYS = 30
+#: The removal check: released rows gone from the sitemaps or the listing whose pages are
+#: read in one run at most (more means the site changed: the source stops), how often a
+#: listing is walked in full, and the listing pages such a walk reads at most.
+MAX_REMOVAL_CONFIRMATIONS = 25
+FULL_WALK_DAYS = 28
+MAX_WALK_PAGES = 200
 
 _URL_ENTRY = re.compile(r"<url>(.*?)</url>", re.S | re.I)
 _LASTMOD = re.compile(r"<lastmod>\s*([^<\s]+)\s*</lastmod>", re.I)
@@ -122,8 +130,17 @@ def _get(client: PoliteClient, url: str, note: str) -> str | None:
 
 
 def _sitemap_candidates(
-    client: PoliteClient, route: PageRoute, through: datetime, known: set[str], note: str
-) -> tuple[list[str], datetime, dict[str, object]]:
+    client: PoliteClient,
+    route: PageRoute,
+    through: datetime,
+    known: set[str],
+    note: str,
+    *,
+    read_all: bool = False,
+) -> tuple[list[str], datetime, dict[str, object], set[str] | None]:
+    """The pages changed after the mark, the newest change date, what was read, and (with
+    ``read_all``: every article sitemap, for the removal check) the ids of every address the
+    sitemaps list."""
     index = _get(client, route.start, note)
     if index is None:
         raise FetchError(f"the sitemap index {route.start} is gone")
@@ -131,15 +148,17 @@ def _sitemap_candidates(
     if not maps:
         raise FetchError(f"the sitemap index {route.start} lists no article sitemap")
     wanted: list[str] = []
+    listed: set[str] = set()
     newest = through
     read = 0
     reached = False
-    for url in reversed(maps[-MAX_SITEMAPS:]):
+    for url in reversed(maps if read_all else maps[-MAX_SITEMAPS:]):
         xml = _get(client, url, note)
         if xml is None:
             raise FetchError(f"the sitemap {url} is gone")
         read += 1
         entries = [(u, d) for u, d in sitemap_entries(xml) if re.match(route.article_pattern, u)]
+        listed.update(_aid(u) for u, _d in entries)
         for u, d in reversed(entries):
             fresh = (d is not None and d > through) or (d is None and _aid(u) not in known)
             if fresh and u not in wanted:
@@ -149,7 +168,8 @@ def _sitemap_candidates(
         dated = [d for _u, d in entries if d is not None]
         if not dated or min(dated) <= through:
             reached = True
-            break
+            if not read_all:
+                break
     if not reached:
         raise _RouteStop(
             "failed",
@@ -157,7 +177,26 @@ def _sitemap_candidates(
             f"reads ({MAX_SITEMAPS}); the mark looks wrong",
         )
     wanted.reverse()  # oldest change first
-    return wanted, newest, {"route": "sitemap", "sitemaps_read": read, "after_mark": len(wanted)}
+    what = {"route": "sitemap", "sitemaps_read": read, "after_mark": len(wanted)}
+    return wanted, newest, what, (listed if read_all else None)
+
+
+def _listing_walk(client: PoliteClient, route: PageRoute, note: str) -> tuple[set[str], int]:
+    """Every story of the listing: pages 1, 2, ... until a page answers 404 or brings no new
+    story (the same answers as the weekly pages, so pages 1 and 2 are not asked twice)."""
+    listed: set[str] = set()
+    for n in range(1, MAX_WALK_PAGES + 1):
+        url = route.start if n == 1 else route.next_page.format(n=n)
+        html = _get(client, url, note)
+        if html is None:
+            return listed, n
+        ids = {_aid(u) for u in listing_links(html, url, route.article_pattern)}
+        if not ids - listed:
+            return listed, n
+        listed |= ids
+    raise _RouteStop(
+        "failed", f"the listing has more than {MAX_WALK_PAGES} pages: the walk looks wrong"
+    )
 
 
 def _listing_candidates(
@@ -197,14 +236,20 @@ def update_pages(
     prev_as_of: str,
     state: dict | None,
     held: dict[str, dict] | None = None,
-    max_requests: int = MAX_PAGE_REQUESTS,
+    max_pages: int = MAX_PAGE_REQUESTS,
+    max_requests: int | None = None,
+    removals: bool = True,
+    only_removals: bool = False,
 ) -> tuple[dict[str, dict], SourceUpdate, dict]:
     """One page source's weekly route (see the module). Returns the source's rows after the
     update, what happened (counts and ids), and the route's state for the next manifest;
     for a source that stops, the previous rows and state unchanged. ``state`` is the
     previous manifest's ``page_state`` for this source (None: the previous version's
-    ``as_of`` is the mark, and no story counts as seen). ``max_requests`` counts the
-    robots.txt, sitemap or listing and article pages together."""
+    ``as_of`` is the mark, and no story counts as seen). ``max_pages`` caps the article
+    pages read (new, changed, re-read and removal confirmations); ``max_requests``, when
+    given (dry runs), caps every request, robots.txt and the lists included. ``removals``
+    runs the removal check (each week for a sitemap; every :data:`FULL_WALK_DAYS` days for a
+    listing); ``only_removals`` runs that check alone (a dry run of it)."""
     sid = fetcher.source_id
     route = PAGE_ROUTES[sid]
     res = SourceUpdate(source_id=sid)
@@ -214,26 +259,80 @@ def update_pages(
     known = set(prev) | set(held) | set(state.get("seen") or [])
     rows = dict(prev)
     new_state: dict[str, object]
+    today = now.date().isoformat()
     try:
+        listed: set[str] | None = None
         if route.kind == "sitemap":
             through = _when(str(state.get("through") or prev_as_of))
             if through is None:
                 raise _RouteStop(
                     "failed", "no mark: neither the page state nor the version gives a date"
                 )
-            wanted, newest, res.route = _sitemap_candidates(client, route, through, known, note)
-            new_state = {"through": _iso(newest)}
+            wanted, newest, res.route, listed = _sitemap_candidates(
+                client, route, through, known, note, read_all=removals or only_removals
+            )
+            # The mark moves only when the pages changed after it are read.
+            new_state = {
+                **state,
+                "through": state.get("through") if only_removals else _iso(newest),
+            }
+            if listed is not None:
+                new_state["removals_checked"] = today
             lists = int(res.route["sitemaps_read"]) + 1  # type: ignore[call-overload]
         else:
-            wanted, on_pages, res.route = _listing_candidates(client, route, known, note)
-            new_state = {"seen": on_pages}
-            lists = int(res.route["listing_pages_read"])  # type: ignore[call-overload]
+            if only_removals:
+                wanted, on_pages, lists = [], list(state.get("seen") or []), 0
+                res.route = {"route": "listing", "listing_pages_read": 0}
+            else:
+                wanted, on_pages, res.route = _listing_candidates(client, route, known, note)
+                lists = int(res.route["listing_pages_read"])  # type: ignore[call-overload]
+                # The stories of the last days are read again, so their edits are seen.
+                since = _iso(now - timedelta(days=REREAD_DAYS)) or ""
+                again = [
+                    d["url"]
+                    for _rid, d in sorted(prev.items())
+                    if d["published_at"] >= since
+                    and d["status"] != "removed"
+                    and d["url"] not in wanted
+                ]
+                wanted += again
+                res.route["reread"] = len(again)
+            new_state = {**state, "seen": on_pages}
+            last = _when(f"{state.get('full_walk') or ''}T00:00:00+00:00")
+            due = last is None or (now - last).days >= FULL_WALK_DAYS
+            if (removals and due) or only_removals:
+                listed, walked = _listing_walk(client, route, note)
+                res.route["walk_pages_read"] = walked
+                lists = max(lists, walked)
+                new_state["full_walk"] = today
+        if only_removals:
+            wanted = []
+        missing: list[str] = []
+        if listed is not None:
+            missing = sorted(
+                rid for rid, d in prev.items() if rid not in listed and d["status"] != "removed"
+            )
+            res.route["removal_check"] = {"listed": len(listed), "rows_not_listed": len(missing)}
+            if len(missing) > MAX_REMOVAL_CONFIRMATIONS:
+                raise _RouteStop(
+                    "over_ceiling",
+                    f"{len(missing)} released rows are no longer listed, more than the "
+                    f"{MAX_REMOVAL_CONFIRMATIONS} pages a run confirms: the site changed; ask "
+                    "before reading them",
+                )
         res.listed = len(wanted)
-        needed = 1 + lists + len(wanted)  # robots.txt, the lists, the pages
-        if needed > max_requests:
+        pages = len(wanted) + len(missing)
+        if pages > max_pages:
             raise _RouteStop(
                 "over_budget",
-                f"{len(wanted)} pages to read ({needed} requests with robots.txt and the "
+                f"{pages} pages to read, more than the weekly limit of {max_pages}: ask "
+                "before reading more",
+            )
+        needed = 1 + lists + pages  # robots.txt, the lists, the pages
+        if max_requests is not None and needed > max_requests:
+            raise _RouteStop(
+                "over_budget",
+                f"{pages} pages to read ({needed} requests with robots.txt and the "
                 f"lists), more than the limit of {max_requests}: ask before reading more",
             )
         unchanged = 0
@@ -275,6 +374,22 @@ def update_pages(
                 changed["codings"] = []
                 rows[art.id] = changed
         res.route["unchanged"] = unchanged
+        removed = still = 0
+        for rid in missing:
+            # The row's own page confirms a removal: only 404 or 410 removes it.
+            resp = client.get(prev[rid]["url"], accept="text/html", note=note, log_as=rid)
+            res.seen_ids.add(rid)
+            if resp.status in (404, 410):
+                rows[rid] = _removed(prev[rid])
+                removed += 1
+            elif resp.status == 200:
+                still += 1
+            else:
+                raise FetchError(f"article {rid} answered HTTP {resp.status}")
+        if listed is not None:
+            res.route["removal_check"].update(  # type: ignore[union-attr]
+                {"confirmed_removed": removed, "still_answer": still}
+            )
     except (Blocked, Disallowed) as exc:
         return dict(prev), _page_skipped(res, client, "refused", exc), state
     except BudgetExceeded as exc:
@@ -355,6 +470,7 @@ def run_route(
     max_requests: int = MAX_PAGE_REQUESTS,
     max_mb: float = 50,
     offline: bool = False,
+    only_removals: bool = False,
     now: datetime | None = None,
     clients: ClientFactory | None = None,
     registry_path: Path | None = None,
@@ -403,6 +519,7 @@ def run_route(
         state=state,
         held=held,
         max_requests=max_requests,
+        only_removals=only_removals,
     )
     say(upd.line())
     summary: dict[str, object] = {
@@ -410,6 +527,7 @@ def run_route(
         "from_version": manifest["version"],
         "now": _iso(now),
         "offline": offline,
+        "only_removals": only_removals,
         "state_before": state,
         "state_after": new_state,
         "rows_before": len(prev),

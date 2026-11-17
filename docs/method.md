@@ -12,13 +12,47 @@ been run.
   `data/sources.csv`.
 - **Out of scope:** third-party material (wire copy, partner stories, syndicated pieces) is
   dropped before any coding and counted per source.
-- **Languages:** to be decided for version 1: English only, or every language the clean sources
-  publish (Global Voices publishes in more than 40).
+- **Sources:** every publisher's rights are read on its own pages under the clean-source rule
+  (`docs/rights-audit.md`, `docs/sources.md`); only news and fact-checking publishers whose
+  status is `include` are collected. Official, advocacy, state and church agencies get a
+  verdict but are not collected unless the maintainer decides so.
+- **Routes:** a publisher's API where it gives its articles (WordPress), a dump (Wikinews),
+  or its article pages, found from its sitemap (SciDev.Net) or its listing pages (Africa Is a
+  Country), each page saved once and replayed with no request.
+- **Third-party and sponsored pieces:** left out and counted. Besides partner categories,
+  republication notes and other holders' copyright lines, SciDev.Net's "Supported content"
+  pages (most name a funder) are kept only with SciDev.Net's own byline, the site's license
+  line and no other holder named.
+- **Languages:** English so far. Several included publishers also publish in other languages
+  (Global Voices' Lingua sites, Alt News in Hindi, Factly in Telugu, SciDev.Net's other
+  editions). Whether each edition carries the same license, and by which route it can be
+  read, is checked edition by edition before it enters.
 
 ## 2. Variables
 Every coded value is stored on its row with its provenance: the codebook version, the model and
 its license, the prompt version, the time it was coded, and whether a person checked it
 (`Coding` in `schema.py`). Published coded values use Apache-2.0 or MIT models.
+
+### 2.0 Variables that need no model (series 0.3 on)
+Read from each article as its publisher gave it, with no model and no judgment:
+
+- **The publisher's own labels, as written:** `publisher_section`, `publisher_categories`,
+  `publisher_tags`. They come from a WordPress site's categories (the first one is the
+  section) and tags; SciDev.Net's breadcrumb; Africa Is a Country's article header; and
+  Wikinews' categories. A label the saved answer does not carry stays empty, never guessed.
+  The WordPress archives were saved without post tags, so their tags are empty until a later
+  answer carries them.
+- **Links:** `n_links`, `n_links_external`, `link_hosts`, counted from the body.
+  - Relative links are resolved against the article's own address.
+  - Anchors, mail, telephone, script and data links, and addresses with no valid host, are
+    not counted.
+  - A host is external when it is neither the source's host nor a subdomain of it.
+  - Wikinews' links come from its wikitext.
+  - A row whose body is not known has null counts.
+- **`original_url`:** for a translation, the article it translates, when the page gives it.
+- **`language`:** the publisher's own label where it gives one per article (Factly's
+  "Telugu" and "English" categories). Elsewhere it is the source's language; a category named
+  after a language is a topic there, not the post's language.
 
 ### 2.1 Topic
 - **Scheme: IPTC Media Topics**, the news industry's own subject taxonomy, maintained by the
@@ -128,7 +162,13 @@ human-human alpha.
 
 ## 4. Update rules
 - **New:** each weekly update adds the articles of the last 30 days that the previous version
-  does not have (by the source's API), after the third-party filter.
+  does not have (by the source's API), after the third-party filter. Sources read from their
+  article pages (series 0.3) have a route of their own: SciDev.Net's newest sitemap (the
+  articles changed since the previous version), and Africa Is a Country's listing pages 1 and
+  2 (the stories the previous version does not have). Each page is read once.
+- **New series:** a source enters only with a new series (0.3.0 after 0.2.N), built by
+  `commonswire release build-from` from the latest published version plus the new sources'
+  rows, so whatever the weekly updates added is kept.
 - **Changed:** an article whose text hash differs from the stored one is marked `changed`, its
   new text replaces the old in the next release, and its coded variables are coded again.
   Sources that report edits (for example a modified date in their API) are checked first.

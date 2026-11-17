@@ -7,6 +7,50 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **The variables that need no model, as columns from series 0.3** (earlier series keep
+  their columns, so a 0.2.x build is unchanged): `publisher_section`,
+  `publisher_categories` and `publisher_tags` (the publisher's own labels, as written);
+  `n_links`, `n_links_external` and `link_hosts` (the links of the body: relative links
+  resolved against the article's address; anchors, mail, telephone, script and data links,
+  and addresses with no valid host not counted; hosts lower case, without `www.`, each once);
+  `original_url` (for a translation, the article it translates). From series 0.3 `language`
+  follows the publisher's own language label where it gives one per article: Factly files
+  each story under "Telugu" or "English", so its Telugu stories are `te` (series 0.1 and 0.2
+  label every row `en`). The fetchers fill the columns for new rows; `release build-from`
+  takes them for the published rows from the rows rebuilt from the saved answers.
+- **The record of changes** (`changes.csv`, series 0.3 on): one line per article and version
+  where something happened (`new`, `changed`, `removed`, `taken_down`), with the date, ids
+  only. `commonswire changes VERSION_DIR ...` derives it from published versions alone (a
+  missing version between two is split off by the rows' retrieval times); `release
+  build-from --changes` starts it, and `update` adds each version's lines.
+- **Language editions in the registry:** the `edition_of` column names a language
+  edition's main row (each edition is ruled on its own pages; the main row's verdict is never
+  carried over), and the pending code `statement_unread` marks a license statement in a
+  language this project could not read with confidence (or a broken template).
+- **The rights audit of 2026-11-16** (`docs/rights-audit.md`, DRAFT). The registry has a
+  reason code on every row and 66 publishers (13 include, 36 pending, 17 exclude).
+  - Eight publishers were added: those in Open Newswire's English open-license feeds that had
+    no row.
+  - The include and exclude rows that the Common Pile or Open Newswire tags as openly
+    licensed were re-read, with their quoted words unchanged; no verdict changed.
+  - `data/audit/other_lists.csv` records what the Common Pile's news subset and Open
+    Newswire say about each publisher, with where and when it was read.
+    `data/audit/comparison.csv` sets that beside this project's status and reason code.
+  - Each list's facts carry the date of the list's own data (`data_date`: the Common Pile's
+    news files were added on 2024-05-27; Open Newswire's `feeds.csv` was last changed on
+    2025-11-11), and the comparison keeps both dates beside the date the publisher's pages
+    were read, since a difference today does not show that a tag was wrong when it was made.
+  - SINC's reason says what its clause forbids (publications made up chiefly of its
+    content) and why the corpus cannot meet it; SciDev.Net's row quotes its republishing
+    box on the authors' credit and the embed code. No verdict changed.
+- `commonswire release build-from`: a version of a new series, built from the latest
+  published version's rows (with its held ids, third-party count and post counts) plus each
+  new source's rows, through `release build`'s checks and `release check`. No requests.
+  For a new source read from its pages it also writes the weekly route's state
+  (`page_state`) from the saved backfill run its build summary names, so the first weekly
+  update reads only what came after the backfill.
+- Series 0.3 adds SciDev.Net and Africa Is a Country, read from their article pages.
+- `docs/sources.md` shows each row's reason code.
 - **Reason codes in the source registry.** A `reason_code` column (before `reason`) gives the
   reason for each source's status as one code from a fixed list: `license_allows` for
   `include`; `bulk_clause`, `tracker_required`, `terms_forbid_automation`, `robots_forbid`,
@@ -52,6 +96,20 @@ All notable changes to this project are documented here. The format follows
   route's state (`page_state`: a date, or ids) goes into the next manifest. A source that
   would need more than 60 requests in a week stops before reading its pages. Page sources
   have no post counts, so the count check does not cover them.
+- SciDev.Net's two license checks hold for every section: a page that lacks the site's
+  license line, or names another Creative Commons license outside an image's caption, is left
+  out and counted, whatever its section ("Supported content" pages also need SciDev.Net's own
+  byline). Two legacy forms in its older bodies are cleaned before the text is taken: the
+  angle brackets printed around a link's label, and a paragraph that only shows escaped
+  markup (a player's embed code).
+- The page route re-reads Africa Is a Country's stories of the last 30 days each week, so
+  their edits are seen by text hash as for the other sources.
+- The removal check of the page sources: each week every SciDev.Net article sitemap is
+  compared with the released rows, and every 28 days Africa Is a Country's whole listing is
+  walked. A released row that is no longer listed is read once and marked removed only when
+  its own page answers 404 or 410. More than 25 such rows in one run stop the source
+  (`over_ceiling`), and the weekly limit of 60 article pages counts these reads too.
+  `update-route --only-removals` runs the check alone, as a dry run.
 - `commonswire update-route SOURCE --from VERSION --work DIR`: one page source's weekly route
   alone, as a dry run (`--max-requests` caps it; `--offline` replays it). It writes a summary
   of counts and ids, never a version.

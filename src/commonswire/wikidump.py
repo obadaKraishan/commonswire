@@ -285,6 +285,8 @@ class DumpArticle:
     published_at: datetime
     last_edit: datetime | None
     text: str
+    #: The page's wikitext, for the variables that need no model (categories, links).
+    wikitext: str = ""
 
 
 def _local(tag: str) -> str:
@@ -339,6 +341,7 @@ def read_dump(stream: BinaryIO, skipped: Counter[str]) -> Iterator[DumpArticle]:
             published_at=published,
             last_edit=last_edit,
             text=text,
+            wikitext=wikitext,
         )
 
 

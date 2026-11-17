@@ -144,6 +144,13 @@ ROW_COLUMNS = (
     ("content_hash", "string", "SHA-256 of text, to spot changed articles between versions"),
     ("status", "string", "live, or changed if the source edited the text after collection"),
     ("near_duplicates", "string", "Ids of very similar articles in other sources (a list)"),
+    ("publisher_section", "string", "The section label as the publisher printed it, if any"),
+    ("publisher_categories", "string", "The publisher's own categories, as written (a list)"),
+    ("publisher_tags", "string", "The publisher's own tags, as written (a list)"),
+    ("n_links", "integer", "Links in the body that lead to a web page (empty if not known)"),
+    ("n_links_external", "integer", "Of those, links to other sites than the source's own"),
+    ("link_hosts", "string", "The hosts the body links to, each once, without www. (a list)"),
+    ("original_url", "url", "For a translation, the article it translates; else empty"),
 )
 INDEX_COLUMNS = (
     ("id", "id", "The article's id, as in the Parquet files"),
@@ -161,6 +168,7 @@ SOURCE_COLUMNS = (
     ("homepage", "url", "The source's home page"),
     ("country", "string", "Where it is based (INTL when international)"),
     ("languages", "string", "The languages it publishes in"),
+    ("edition_of", "string", "For a language edition, the publisher's main row; else empty"),
     ("license", "string", "The license its own pages state for its text"),
     ("license_url", "url", "The page that states the license"),
     ("terms_url", "url", "Its terms of use or republishing page"),

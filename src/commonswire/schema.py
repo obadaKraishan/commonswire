@@ -157,6 +157,16 @@ class Article(BaseModel):
     releasable: bool = True
     hold_reason: str = ""
     codings: tuple[Coding, ...] = ()
+    #: The variables that need no model (released from series 0.3; see ``variables``): the
+    #: publisher's own labels as it wrote them, the links of the body (counts are None when
+    #: the body is not known), and the address a translation translates.
+    publisher_section: str = ""
+    publisher_categories: tuple[str, ...] = ()
+    publisher_tags: tuple[str, ...] = ()
+    n_links: int | None = Field(default=None, ge=0)
+    n_links_external: int | None = Field(default=None, ge=0)
+    link_hosts: tuple[str, ...] = ()
+    original_url: str = ""
 
     @field_validator("published_at", "updated_at", "retrieved_at")
     @classmethod
@@ -210,6 +220,14 @@ class Article(BaseModel):
                 raise ValueError("text is empty; only a removed article may have no text")
             if has_markup(self.text):
                 raise ValueError("text still holds HTML tags; give plain text")
+        if (self.n_links is None) != (self.n_links_external is None):
+            raise ValueError("n_links and n_links_external are both known or both None")
+        if self.n_links is not None and self.n_links_external > self.n_links:  # type: ignore[operator]
+            raise ValueError("n_links_external cannot exceed n_links")
+        if self.n_links is None and self.link_hosts:
+            raise ValueError("link_hosts needs the link counts")
+        if self.original_url and not self.original_url.startswith(("http://", "https://")):
+            raise ValueError("original_url must be a web address, or empty")
         if not self.releasable and not self.hold_reason.strip():
             raise ValueError("a row that is not releasable needs its hold_reason")
         if self.releasable and self.hold_reason:
@@ -245,6 +263,7 @@ def make_article(
     third_party: bool = False,
     releasable: bool = True,
     hold_reason: str = "",
+    **variables: object,
 ) -> Article:
     """Build an article row, computing its id and content hash."""
     return Article(
@@ -267,4 +286,5 @@ def make_article(
         status="live",
         releasable=releasable,
         hold_reason=hold_reason,
+        **variables,  # type: ignore[arg-type]
     )
