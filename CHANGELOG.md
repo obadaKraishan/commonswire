@@ -7,6 +7,26 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **The variables that need no model, as columns from series 0.3** (earlier series keep
+  their columns, so a 0.2.x build is unchanged): `publisher_section`,
+  `publisher_categories` and `publisher_tags` (the publisher's own labels, as written);
+  `n_links`, `n_links_external` and `link_hosts` (the links of the body: relative links
+  resolved against the article's address; anchors, mail, telephone, script and data links,
+  and addresses with no valid host not counted; hosts lower case, without `www.`, each once);
+  `original_url` (for a translation, the article it translates). From series 0.3 `language`
+  follows the publisher's own language label where it gives one per article: Factly files
+  each story under "Telugu" or "English", so its Telugu stories are `te` (series 0.1 and 0.2
+  label every row `en`). The fetchers fill the columns for new rows; `release build-from`
+  takes them for the published rows from the rows rebuilt from the saved answers.
+- **The record of changes** (`changes.csv`, series 0.3 on): one line per article and version
+  where something happened (`new`, `changed`, `removed`, `taken_down`), with the date, ids
+  only. `commonswire changes VERSION_DIR ...` derives it from published versions alone (a
+  missing version between two is split off by the rows' retrieval times); `release
+  build-from --changes` starts it, and `update` adds each version's lines.
+- **Language editions in the registry:** the `edition_of` column names a language
+  edition's main row (each edition is ruled on its own pages; the main row's verdict is never
+  carried over), and the pending code `statement_unread` marks a license statement in a
+  language this project could not read with confidence (or a broken template).
 - **The rights audit of 2026-11-16** (`docs/rights-audit.md`, DRAFT). The registry has a
   reason code on every row and 66 publishers (13 include, 36 pending, 17 exclude).
   - Eight publishers were added: those in Open Newswire's English open-license feeds that had

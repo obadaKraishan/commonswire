@@ -33,6 +33,27 @@ Every coded value is stored on its row with its provenance: the codebook version
 its license, the prompt version, the time it was coded, and whether a person checked it
 (`Coding` in `schema.py`). Published coded values use Apache-2.0 or MIT models.
 
+### 2.0 Variables that need no model (series 0.3 on)
+Read from each article as its publisher gave it, with no model and no judgment:
+
+- **The publisher's own labels, as written:** `publisher_section`, `publisher_categories`,
+  `publisher_tags`. They come from a WordPress site's categories (the first one is the
+  section) and tags; SciDev.Net's breadcrumb; Africa Is a Country's article header; and
+  Wikinews' categories. A label the saved answer does not carry stays empty, never guessed.
+  The WordPress archives were saved without post tags, so their tags are empty until a later
+  answer carries them.
+- **Links:** `n_links`, `n_links_external`, `link_hosts`, counted from the body.
+  - Relative links are resolved against the article's own address.
+  - Anchors, mail, telephone, script and data links, and addresses with no valid host, are
+    not counted.
+  - A host is external when it is neither the source's host nor a subdomain of it.
+  - Wikinews' links come from its wikitext.
+  - A row whose body is not known has null counts.
+- **`original_url`:** for a translation, the article it translates, when the page gives it.
+- **`language`:** the publisher's own label where it gives one per article (Factly's
+  "Telugu" and "English" categories). Elsewhere it is the source's language; a category named
+  after a language is a topic there, not the post's language.
+
 ### 2.1 Topic
 - **Scheme: IPTC Media Topics**, the news industry's own subject taxonomy, maintained by the
   International Press Telecommunications Council (IPTC). IPTC describes it as its "primary
