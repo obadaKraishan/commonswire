@@ -1,0 +1,20 @@
+{
+  "credited_to_source": 0,
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 2,
+    "invalid:Value error, text still holds HTML tags; give plain text": 1,
+    "third_party:says it was published elsewhere first": 30
+  },
+  "first": "2009-08-06",
+  "kept": 2485,
+  "last": "2026-11-13",
+  "raw_bytes": 112130959,
+  "raw_files": 2518,
+  "releasable": 2485,
+  "rows_bytes": 21836105,
+  "run": "2026-11-16",
+  "seen": 2518,
+  "source_id": "africasacountry",
+  "validate_errors": 0,
+  "validate_warnings": 5
+}
