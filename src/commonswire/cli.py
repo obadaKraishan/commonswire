@@ -1059,12 +1059,15 @@ def cmd_release_check(args: argparse.Namespace) -> int:
         return 2
     import json
 
-    update = json.loads((out / "manifest.json").read_text()).get("update")
+    manifest = json.loads((out / "manifest.json").read_text())
+    update = manifest.get("update") or manifest.get("built_from")
     if update:
-        # A version built by `commonswire update` adds the week's rows to the published one;
-        # the local corpus report describes the last local build, so the two never agree.
+        # A version built by `commonswire update` (or `release build-from`) adds rows to the
+        # published one; the local corpus report describes the last local build, so the two
+        # never agree.
+        how = "update" if manifest.get("update") else "release build-from"
         print(
-            f"note: {args.version} was built by commonswire update from "
+            f"note: {args.version} was built by commonswire {how} from "
             f"{update.get('from_version', 'the version before')}, so its rows were not compared "
             "with the local corpus report"
         )

@@ -150,3 +150,22 @@ def test_cli_release_build_from(tmp_path, capsys):
     assert "version 9.10.0 from 9.9.0 plus gamma: 4 rows" in capsys.readouterr().out
     assert main(args) == 2
     assert "is not empty" in capsys.readouterr().err
+
+
+def test_release_check_of_a_build_from_version_skips_the_corpus_report(tmp_path, capsys):
+    reg_path, registry, takedowns, prev = world(tmp_path)
+    out = tmp_path / "data" / "release" / "9.10.0-test"
+    build_from_previous(
+        tmp_path,
+        prev,
+        "9.10.0",
+        out,
+        registry_path=reg_path,
+        registry=registry,
+        takedowns_path=takedowns,
+        baseline_path=tmp_path / "none.json",
+    )
+    assert main(["--root", str(tmp_path), "release", "check", "--version", "9.10.0-test"]) == 0
+    got = capsys.readouterr().out
+    assert "built by commonswire release build-from from 9.9.0" in got
+    assert "all checks passed" in got
