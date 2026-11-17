@@ -41,6 +41,26 @@ ELSEWHERE = re.compile(
 )
 
 
+#: How a republication note opens ("This essay first appeared in ...", "A version of this ...").
+NOTE_OPENING = re.compile(
+    r"^(?:this|it|an? (?:earlier |shorter |longer |edited |abridged |different )?version)\b", re.I
+)
+
+
+def published_elsewhere(text: str) -> bool:
+    """Whether the article says it was published somewhere else first. Only a note counts:
+    in the first paragraph or the last three, short or opening like a note, so a sentence
+    such as "the novel first appeared in 1958" in the middle of an essay does not."""
+    paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+    edges = paras[:1] + paras[1:][-3:]
+    for para in edges:
+        for m in ELSEWHERE.finditer(para):
+            sentence = re.split(r"(?<=[.!?])\s+", para[: m.start()])[-1].lstrip("*_([ ")
+            if len(para) < 400 or NOTE_OPENING.match(sentence):
+                return True
+    return False
+
+
 #: Words that mark a line as an image's credit.
 IMAGE_CREDIT = re.compile(r"\b(?:image|photo|picture|credit|illustration)s?\b", re.I)
 
@@ -152,7 +172,7 @@ class SciDevNetFetcher(PageFetcher):
             hints={
                 "byline_is_source": itself,
                 "other_holders": holders,
-                "elsewhere": bool(ELSEWHERE.search(text)),
+                "elsewhere": published_elsewhere(text),
             },
         )
 
@@ -197,7 +217,7 @@ class AfricaIsACountryFetcher(PageFetcher):
             authors=authors,
             hints={
                 "byline_is_source": itself,
-                "elsewhere": bool(ELSEWHERE.search(article_text(body, self.embed_classes))),
+                "elsewhere": published_elsewhere(article_text(body, self.embed_classes)),
             },
         )
 

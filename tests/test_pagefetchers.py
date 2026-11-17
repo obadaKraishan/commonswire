@@ -254,3 +254,20 @@ def test_build_page_rows_and_the_cli(tmp_path, capsys):
     assert "3 pages read, 2 rows kept (1 releasable" in printed and "0 errors" in printed
     summary = json.loads((tmp_path / "data/evidence/backfill/scidevnet.build.json").read_text())
     assert summary["kept"] == 2 and summary["run"] == "r1"
+
+
+def test_only_a_republication_note_counts_not_a_sentence_in_the_essay():
+    from commonswire.fetchers.pages import published_elsewhere
+
+    long = "An invented sentence about invented things. " * 12
+    middle = "\n\n".join(
+        [long, long, f"{long} The invented novel first appeared in 1958, she said.", long, long]
+    )
+    assert not published_elsewhere(middle)
+    assert published_elsewhere(f"{long}\n\n{long}\n\nThis essay first appeared in a zine.")
+    assert published_elsewhere(
+        f"A version of this piece was originally published elsewhere.\n\n{long}"
+    )
+    end = f"{long}\n\n{long}\n\n{long} It was first published in an invented journal."
+    assert published_elsewhere(end)
+    assert not published_elsewhere(f"{long}\n\n{long} which was first published in 1965.")
