@@ -36,7 +36,8 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urljoin, urlsplit
 
-from commonswire.backfill import save_once
+from commonswire.backfill import BuildResult, _short, save_once
+from commonswire.fetchers.pages import PageFetcher
 from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
 from commonswire.schema import article_id, canonical_url
 
@@ -335,3 +336,61 @@ def check_pages(folder: Path) -> dict[str, object]:
 
 def host_of(route: PageRoute) -> str:
     return (urlsplit(route.start).hostname or "").lower()
+
+
+def build_page_rows(fetcher: PageFetcher, folder: Path, out: Path) -> BuildResult:
+    """Rows from the saved pages of a run (no requests), in the order of ``urls.json``,
+    written to ``out``. A page that is not an article, a repeated address and third-party
+    material are dropped and counted; every row is checked by the schema."""
+    result = BuildResult(source_id=fetcher.source_id)
+    urls = json.loads((folder / URLS_FILE).read_text(encoding="utf-8"))
+    seen: set[str] = set()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(out.suffix + ".part")
+    with tmp.open("w", encoding="utf-8") as fh:
+        for url in urls:
+            html_path, meta_path = page_paths(folder, url)
+            if not meta_path.exists():
+                result.dropped["not_fetched"] += 1
+                continue
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            if meta["status"] != "200":
+                result.dropped[f"answer:{meta['status']}"] += 1
+                continue
+            result.seen += 1
+            result.raw_files += 1
+            body = html_path.read_bytes()
+            result.raw_bytes += len(body)
+            try:
+                item = fetcher.item_from_page(url, body.decode("utf-8", errors="replace"))
+            except ValueError as exc:
+                result.dropped[f"not_an_article:{str(exc)[:60]}"] += 1
+                continue
+            key = canonical_url(item.url)
+            if key in seen:
+                result.dropped["duplicate_url"] += 1
+                continue
+            seen.add(key)
+            reason = fetcher.third_party_reason(item)
+            if reason:
+                result.dropped[f"third_party:{reason}"] += 1
+                continue
+            retrieved = datetime.fromisoformat(meta["retrieved_at"])
+            try:
+                article = fetcher.build(item, retrieved)
+            except ValueError as exc:
+                result.dropped[f"invalid:{_short(exc)}"] += 1
+                continue
+            line = article.model_dump_json() + "\n"
+            fh.write(line)
+            result.rows_bytes += len(line.encode("utf-8"))
+            result.kept += 1
+            result.releasable += int(article.releasable)
+            result.credited_to_source += int(
+                article.releasable and not article.authors and fetcher.requires_byline
+            )
+            day = article.published_at.date().isoformat()
+            result.first = min(result.first or day, day)
+            result.last = max(result.last or day, day)
+    os.replace(tmp, out)
+    return result

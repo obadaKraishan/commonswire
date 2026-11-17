@@ -434,10 +434,55 @@ def cmd_backfill(args: argparse.Namespace) -> int:
     return 0 if progress.finished or progress.stopped.startswith("stopped after") else 1
 
 
+def _build_pages(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.fetchers.base import ReplayStore
+    from commonswire.fetchers.pages import PAGE_FETCHERS
+    from commonswire.http import make_client
+    from commonswire.pagebackfill import build_page_rows
+    from commonswire.sources import load_sources
+    from commonswire.validate import validate_file
+
+    root = Path(args.root)
+    registry = load_sources(Path(args.sources))
+    if args.source_id not in registry:
+        raise SystemExit(f"{args.source_id} is not in the registry")
+    folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+    fetcher = PAGE_FETCHERS[args.source_id](
+        make_client(root), registry[args.source_id], ReplayStore(folder)
+    )
+    out = root / "data" / "interim" / "rows" / f"{args.source_id}.jsonl"
+    result = build_page_rows(fetcher, folder, out)
+    check = validate_file(out, registry)
+    info = result.summary()
+    info.update(
+        run=args.run,
+        validate_errors=len(check.errors),
+        validate_warnings=len(check.warnings),
+    )
+    path = root / "data" / "evidence" / "backfill" / f"{args.source_id}.build.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"{args.source_id}: {result.seen} pages read, {result.kept} rows kept "
+        f"({result.releasable} releasable, {result.credited_to_source} credited to the source "
+        f"itself), dropped {dict(sorted(result.dropped.items()))}; validate: "
+        f"{len(check.errors)} errors, {len(check.warnings)} warnings"
+    )
+    for msg in check.errors[:5]:
+        print(f"  error: {msg}")
+    return 0 if check.ok else 1
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     import json
 
     from commonswire.backfill import build_rows
+    from commonswire.fetchers.pages import PAGE_FETCHERS
+
+    if args.source_id in PAGE_FETCHERS:
+        return _build_pages(args)
     from commonswire.daily import load_rows, replay_daily
     from commonswire.sources import load_sources
     from commonswire.validate import validate_file
