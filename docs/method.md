@@ -19,6 +19,10 @@ been run.
 - **Routes:** a publisher's API where it gives its articles (WordPress), a dump (Wikinews),
   or its article pages, found from its sitemap (SciDev.Net) or its listing pages (Africa Is a
   Country), each page saved once and replayed with no request.
+- **Third-party and sponsored pieces:** left out and counted. Besides partner categories,
+  republication notes and other holders' copyright lines, SciDev.Net's "Supported content"
+  pages (most name a funder) are kept only with SciDev.Net's own byline, the site's license
+  line and no other holder named.
 - **Languages:** English so far. Several included publishers also publish in other languages
   (Global Voices' Lingua sites, Alt News in Hindi, Factly in Telugu, SciDev.Net's other
   editions). Whether each edition carries the same license, and by which route it can be
@@ -138,8 +142,9 @@ human-human alpha.
 ## 4. Update rules
 - **New:** each weekly update adds the articles of the last 30 days that the previous version
   does not have (by the source's API), after the third-party filter. Sources read from their
-  article pages (series 0.3) need their own weekly route (the newest sitemap or listing
-  pages) before the first weekly update of that series.
+  article pages (series 0.3) have a route of their own: SciDev.Net's newest sitemap (the
+  articles changed since the previous version), and Africa Is a Country's listing pages 1 and
+  2 (the stories the previous version does not have). Each page is read once.
 - **New series:** a source enters only with a new series (0.3.0 after 0.2.N), built by
   `commonswire release build-from` from the latest published version plus the new sources'
   rows, so whatever the weekly updates added is kept.

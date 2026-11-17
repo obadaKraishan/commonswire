@@ -16,9 +16,19 @@ All notable changes to this project are documented here. The format follows
   - `data/audit/other_lists.csv` records what the Common Pile's news subset and Open
     Newswire say about each publisher, with where and when it was read.
     `data/audit/comparison.csv` sets that beside this project's status and reason code.
+  - Each list's facts carry the date of the list's own data (`data_date`: the Common Pile's
+    news files were added on 2024-05-27; Open Newswire's `feeds.csv` was last changed on
+    2025-11-11), and the comparison keeps both dates beside the date the publisher's pages
+    were read, since a difference today does not show that a tag was wrong when it was made.
+  - SINC's reason says what its clause forbids (publications made up chiefly of its
+    content) and why the corpus cannot meet it; SciDev.Net's row quotes its republishing
+    box on the authors' credit and the embed code. No verdict changed.
 - `commonswire release build-from`: a version of a new series, built from the latest
   published version's rows (with its held ids, third-party count and post counts) plus each
   new source's rows, through `release build`'s checks and `release check`. No requests.
+  For a new source read from its pages it also writes the weekly route's state
+  (`page_state`) from the saved backfill run its build summary names, so the first weekly
+  update reads only what came after the backfill.
 - Series 0.3 adds SciDev.Net and Africa Is a Country, read from their article pages.
 - `docs/sources.md` shows each row's reason code.
 - **Reason codes in the source registry.** A `reason_code` column (before `reason`) gives the
