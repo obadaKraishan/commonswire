@@ -24,11 +24,15 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from commonswire.changes import CHANGES_FILE, entries, read_changes
+from commonswire.changes import to_csv as changes_csv
 from commonswire.http import FetchError
 from commonswire.release import (
+    VARIABLE_COLUMNS,
     ReleaseError,
     _read_jsonl,
     collect,
+    columns,
     series_sources,
     verify,
     write_release,
@@ -84,6 +88,7 @@ def build_from_previous(
     takedowns_path: Path,
     baseline_path: Path,
     note: str = "",
+    changes: Path | None = None,
 ) -> tuple[dict[str, object], list[str]]:
     """Write version ``version`` to ``out``; return its manifest and the problems found."""
     if out.exists() and any(out.iterdir()):
@@ -109,6 +114,12 @@ def build_from_previous(
     missing = [s for s in new if not (rows_dir / f"{s}.jsonl").exists()]
     if missing:
         raise ReleaseError(f"no rows for {', '.join(missing)} in {rows_dir}; build them first")
+    joined: dict[str, int] = {}
+    if "n_links" in columns(version):
+        # The variables that need no model, for the published rows: from each source's rows
+        # as rebuilt from its saved answers (a row that has no saved answer keeps none).
+        for s in old:
+            joined[s] = join_variables(prev_rows.get(s, {}), rows_dir / f"{s}.jsonl")
     rows = {s: list(prev_rows.get(s, {}).values()) for s in old}
     rows.update({s: list(_read_jsonl(rows_dir / f"{s}.jsonl")) for s in new})
     rel = collect(root, version, registry, rows=rows, takedowns_path=takedowns_path)
@@ -141,6 +152,16 @@ def build_from_previous(
     }
     if note:
         extra["not_a_release"] = note
+    extra_files: dict[str, bytes] = {}
+    if joined:
+        extra["built_from"]["variables_joined"] = dict(sorted(joined.items()))  # type: ignore[index]
+    if changes is not None or (prev_dir / CHANGES_FILE).exists():
+        lines = read_changes(changes if changes is not None else prev_dir / CHANGES_FILE)
+        released = {
+            r["id"]: r for config in rel.rows.values() for r in config if r["source_id"] in new
+        }
+        lines += entries(version, released, new=released)
+        extra_files[CHANGES_FILE] = changes_csv(lines)
     out_manifest = write_release(
         rel,
         out,
@@ -149,5 +170,23 @@ def build_from_previous(
         card=card(rel, registry, third),
         licenses_md=licenses_md(rel, registry),
         extra=extra,
+        extra_files=extra_files or None,
     )
     return out_manifest, verify(out)
+
+
+def join_variables(prev: dict[str, dict], path: Path) -> int:
+    """Add the variables of the rows rebuilt in ``path`` to the published rows with the same
+    id (in place); return how many rows got them."""
+    if not path.exists():
+        return 0
+    n = 0
+    for d in _read_jsonl(path):
+        row = prev.get(d["id"])
+        if row is None:
+            continue
+        for col in VARIABLE_COLUMNS:
+            if col in d:
+                row[col] = d[col]
+        n += 1
+    return n

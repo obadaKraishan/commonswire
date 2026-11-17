@@ -611,6 +611,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                     language="en",
                     license=lic,
                     credit_line=credit,
+                    **wiki_variables(art.wikitext),
                 )
             except ValueError:
                 skipped["invalid"] += 1
@@ -981,6 +982,7 @@ def cmd_release_build_from(args: argparse.Namespace) -> int:
             takedowns_path=Path(args.takedowns),
             baseline_path=Path(args.baseline),
             note=args.note or "",
+            changes=Path(args.changes) if args.changes else None,
         )
     except ReleaseError as exc:
         print(str(exc), file=sys.stderr)
@@ -1216,6 +1218,38 @@ def cmd_update(args: argparse.Namespace) -> int:
     return {"ready": 0, "unchanged": 4}.get(result.status, 3)
 
 
+def wiki_variables(wikitext: str) -> dict[str, object]:
+    """Wikinews' variables that need no model, from a page's wikitext."""
+    from commonswire.variables import link_stats, wiki_categories, wiki_link_hosts
+
+    n, ext, hosts = link_stats(wiki_link_hosts(wikitext, "en.wikinews.org"), "en.wikinews.org")
+    return {
+        "publisher_categories": tuple(wiki_categories(wikitext)),
+        "n_links": n,
+        "n_links_external": ext,
+        "link_hosts": hosts,
+    }
+
+
+def cmd_changes(args: argparse.Namespace) -> int:
+    """The record of changes of published versions, from their files alone (no requests)."""
+    import json
+
+    from commonswire.changes import counts, history, to_csv
+
+    try:
+        lines = history([Path(f) for f in args.versions])
+    except (ValueError, OSError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(to_csv(lines))
+    print(json.dumps(counts(lines), indent=1))
+    print(f"{len(lines):,} lines in {out}")
+    return 0
+
+
 def cmd_update_route(args: argparse.Namespace) -> int:
     """One page source's weekly route alone, from a version: a dry run (no version written)."""
     from commonswire.pageupdate import run_route
@@ -1429,6 +1463,11 @@ def build_parser() -> argparse.ArgumentParser:
     rf.add_argument("--version", required=True, help="the new version, such as 0.3.0")
     rf.add_argument("--out", required=True, help="the new version's folder (new or empty)")
     rf.add_argument("--note", help="recorded in the manifest as not_a_release (test builds)")
+    rf.add_argument(
+        "--changes",
+        help="the record of changes up to the published version (commonswire changes), when "
+        "the published version carries none",
+    )
     rf.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     rf.add_argument("--takedowns", default=str(repo_root() / "data" / "takedowns.csv"))
     rf.add_argument("--baseline", default=str(repo_root() / "data" / "update-baseline.json"))
@@ -1497,6 +1536,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--offline", action="store_true", help="replay the saved answers; send no request"
     )
     up.set_defaults(func=cmd_update)
+
+    ch = sub.add_parser(
+        "changes", help="the record of changes of published versions (ids and dates, no requests)"
+    )
+    ch.add_argument("versions", nargs="+", help="the published versions' folders, oldest first")
+    ch.add_argument("--out", required=True, help="the CSV to write")
+    ch.set_defaults(func=cmd_changes)
 
     ur = sub.add_parser(
         "update-route",

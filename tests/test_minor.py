@@ -89,6 +89,7 @@ def test_a_new_series_keeps_the_published_rows_and_adds_the_new_sources(tmp_path
         "new_sources": ["gamma"],
         "rows_from_previous": 3,
         "rows_of_new_sources": 3,
+        "variables_joined": {"alpha": 0, "beta": 0},  # no rebuilt rows for them here
     }
     # alpha 1, alpha 2, beta 1, gamma 1; gamma 2 repeats alpha 2's text; gamma 3 is held.
     assert manifest["rows"] == 4

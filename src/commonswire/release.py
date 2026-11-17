@@ -133,13 +133,30 @@ def _series(version: str) -> tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
+#: The variables that need no model (``commonswire.variables``), released from series 0.3.
+VARIABLE_COLUMNS = (
+    "publisher_section",
+    "publisher_categories",
+    "publisher_tags",
+    "n_links",
+    "n_links_external",
+    "link_hosts",
+    "original_url",
+)
+VARIABLES_FROM = (0, 3)
+
+
 def columns(version: str) -> tuple[str, ...]:
     """The released columns of a version, in order: series 0.2 and later add ``translators``
-    after ``authors``; series 0.1 keeps the 18 columns version 0.1.0 was published with."""
+    after ``authors``; series 0.3 and later add the variables that need no model at the end;
+    series 0.1 keeps the 18 columns version 0.1.0 was published with."""
     if _series(version) < TRANSLATORS_FROM:
         return COLUMNS
     i = COLUMNS.index("authors") + 1
-    return (*COLUMNS[:i], "translators", *COLUMNS[i:])
+    cols = (*COLUMNS[:i], "translators", *COLUMNS[i:])
+    if _series(version) >= VARIABLES_FROM:
+        cols = (*cols, *VARIABLE_COLUMNS)
+    return cols
 
 
 def series_sources(version: str) -> tuple[str, ...]:
@@ -276,6 +293,7 @@ def collect(
         raise ReleaseError(f"{', '.join(unknown)} not in the registry (data/sources.csv)")
     checks = Checks()
     with_translators = "translators" in columns(version)
+    with_variables = "n_links" in columns(version)
     data: dict[str, dict] = {}
     by_id: dict[str, Row] = {}
     order = sorted(sources)
@@ -357,6 +375,7 @@ def collect(
         if config == CLASS_NC_ND or config not in grouped:
             checks.unreleasable_class.append(f"{rid} ({d['license']})")
             continue
+        variables_out: dict[str, object] = {}
         out = {
             "id": rid,
             "source_id": d["source_id"],
@@ -366,13 +385,26 @@ def collect(
         }
         if with_translators:
             out["translators"] = translators
+        language = d["language"]
+        if with_variables:
+            from commonswire.variables import row_language
+
+            language = row_language(d["source_id"], d.get("publisher_categories") or (), language)
+            for col in VARIABLE_COLUMNS:
+                value = d.get(col)
+                if col in ("publisher_categories", "publisher_tags", "link_hosts"):
+                    value = list(value or [])
+                elif col in ("publisher_section", "original_url"):
+                    value = value or ""
+                variables_out[col] = value
         grouped[config].append(
             {
                 **out,
+                **variables_out,
                 "published_at": _ts(d["published_at"]),
                 "updated_at": _ts(d.get("updated_at")),
                 "retrieved_at": _ts(d["retrieved_at"]),
-                "language": d["language"],
+                "language": language,
                 "section": d.get("section", ""),
                 "url": d["url"],
                 "license": d["license"],
@@ -400,11 +432,17 @@ def _schema(cols: tuple[str, ...] = COLUMNS):  # type: ignore[no-untyped-def]
         "authors": pa.list_(text),
         "translators": pa.list_(text),
         "near_duplicates": pa.list_(text),
+        "publisher_categories": pa.list_(text),
+        "publisher_tags": pa.list_(text),
+        "link_hosts": pa.list_(text),
+        "n_links": pa.int64(),
+        "n_links_external": pa.int64(),
         "published_at": ts,
         "updated_at": ts,
         "retrieved_at": ts,
     }
-    return pa.schema([pa.field(c, types.get(c, text), nullable=c == "updated_at") for c in cols])
+    nullable = ("updated_at", "n_links", "n_links_external")
+    return pa.schema([pa.field(c, types.get(c, text), nullable=c in nullable) for c in cols])
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -479,9 +517,11 @@ def write_release(
     card: str,
     licenses_md: str,
     extra: Mapping[str, object] | None = None,
+    extra_files: Mapping[str, bytes] | None = None,
 ) -> dict[str, object]:
     """Write the files of a checked release under ``out`` and return the manifest. ``extra``
-    adds keys to the manifest (an update's counts), before the list of files."""
+    adds keys to the manifest (an update's counts), before the list of files; ``extra_files``
+    adds files (series 0.3: ``changes.csv``)."""
     if not release.checks.ok:
         raise ReleaseError("the checks failed: " + "; ".join(release.checks.problems()))
     files: dict[str, bytes] = {}
@@ -517,6 +557,7 @@ def write_release(
     files["sources.csv"] = registry_path.read_bytes()
     files["LICENSES.md"] = licenses_md.encode("utf-8")
     files["README.md"] = card.encode("utf-8")
+    files.update(extra_files or {})
     all_rows = [r for config in release.rows.values() for r in config]
     as_of = max((r["retrieved_at"] for r in all_rows), default=None)
     out.mkdir(parents=True, exist_ok=True)
