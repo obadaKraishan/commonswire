@@ -1463,7 +1463,7 @@ News, INTL, guw. Home: <https://guw.wikinews.org/>. Checked on 2026-11-17.
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 490,554 bytes compressed. Copyright page read: not found.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 490,554 bytes compressed. Copyright page read: not found. Its footer statement is in Gun, which this project could not read with confidence; the license name in it (Creative Commons Attribution 4.0) is in English.
 
 ### Wikinews (he) (`wikinews_he`)
 
@@ -1606,7 +1606,7 @@ News, INTL, shn. Home: <https://shn.wikinews.org/>. Checked on 2026-11-17.
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
 - **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,087,465 bytes compressed. Copyright page read: yes.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,087,465 bytes compressed. Copyright page read: yes. Its footer statement is in Shan, which this project could not read with confidence; the license name in it (Creative Commons Attribution 4.0) is in English.
 
 ### Wikinews (sq) (`wikinews_sq`)
 
