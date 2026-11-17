@@ -1216,6 +1216,46 @@ def cmd_update(args: argparse.Namespace) -> int:
     return {"ready": 0, "unchanged": 4}.get(result.status, 3)
 
 
+def cmd_update_route(args: argparse.Namespace) -> int:
+    """One page source's weekly route alone, from a version: a dry run (no version written)."""
+    from commonswire.pageupdate import run_route
+    from commonswire.release import ReleaseError
+    from commonswire.update import redact
+
+    prev = Path(args.from_dir).resolve()
+    if not (prev / "manifest.json").exists():
+        print(f"no version at {prev} (no manifest.json)", file=sys.stderr)
+        return 2
+    work = Path(args.work)
+    try:
+        summary = run_route(
+            Path(args.root),
+            prev,
+            args.source_id,
+            work,
+            answers=Path(args.answers) if args.answers else None,
+            usage_log=Path(args.usage_log) if args.usage_log else None,
+            max_requests=args.max_requests,
+            max_mb=args.max_mb,
+            offline=args.offline,
+            registry_path=Path(args.sources),
+            say=lambda m: print(redact(m), flush=True),
+        )
+    except ReleaseError as exc:
+        print(redact(str(exc)), file=sys.stderr)
+        return 2
+    upd = summary["update"]
+    assert isinstance(upd, dict)
+    print(
+        f"route {args.source_id} from {summary['from_version']}: {upd['status']}; "
+        f"{upd['new']} new, {upd['changed']} changed, {upd['removed']} removed, "
+        f"{upd['held']} held; {upd['requests']} requests"
+        + (" (offline replay)" if args.offline else "")
+        + f"; summary in {work / 'route-summary.json'}"
+    )
+    return 0 if upd["status"] == "updated" else 3
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="commonswire",
@@ -1456,6 +1496,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--offline", action="store_true", help="replay the saved answers; send no request"
     )
     up.set_defaults(func=cmd_update)
+
+    ur = sub.add_parser(
+        "update-route",
+        help="one page source's weekly route alone, from a version (a dry run; no version)",
+    )
+    ur.add_argument("source_id", help="a source read from its pages (scidevnet, africasacountry)")
+    ur.add_argument("--from", dest="from_dir", required=True, help="the version to start from")
+    ur.add_argument("--work", required=True, help="the run's folder: answers and the summary")
+    ur.add_argument("--answers", help="where answers are saved once (default: WORK/answers)")
+    ur.add_argument("--usage-log", help="the request log (default: data/usage_log.csv)")
+    ur.add_argument(
+        "--max-requests",
+        type=int,
+        default=60,
+        help="requests the route may need, robots.txt and lists included (default: 60)",
+    )
+    ur.add_argument("--max-mb", type=float, default=50, help="the byte budget, in MB")
+    ur.add_argument("--offline", action="store_true", help="replay saved answers; send nothing")
+    ur.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    ur.set_defaults(func=cmd_update_route)
 
     rep = sub.add_parser("sample-report", help="aggregate a sample (counts only, no text)")
     rep.add_argument("source_id")
