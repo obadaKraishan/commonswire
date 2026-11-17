@@ -33,7 +33,7 @@ How the rule is read (rulings of 2026-11-13):
 
 ## Summary
 
-66 sources checked: 13 include, 36 pending, 17 exclude.
+151 sources checked: 14 include, 120 pending, 17 exclude.
 
 | Source | Kind | License | Bulk | Robots | Terms | Tracking | Status |
 |---|---|---|---|---|---|---|---|
@@ -41,6 +41,7 @@ How the rule is read (rulings of 2026-11-13):
 | Africa Is a Country | news | CC BY 4.0 | silent | allows | silent | no | include (`license_allows`) |
 | Alt News | fact-check | CC BY 3.0 | silent | allows | silent | no | include (`license_allows`) |
 | Balkan Diskurs | news | CC BY 3.0 | silent | allows | silent | no | include (`license_allows`) |
+| Balkan Diskurs (Bosnian) | news | CC BY 3.0 | silent | allows | silent | no | include (`license_allows`) |
 | EFF Deeplinks | advocacy | CC BY 4.0 | silent | allows | silent | no | include (`license_allows`) |
 | Factly | fact-check | CC BY 4.0 | silent | allows | silent | no | include (`license_allows`) |
 | Freedom of the Press Foundation | advocacy | CC BY 4.0 | silent | allows | silent | no | include (`license_allows`) |
@@ -53,6 +54,7 @@ How the rule is read (rulings of 2026-11-13):
 | Agenzia Fides | church-agency | CC BY 4.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
 | Agência Brasil | state-agency | NOASSERTION | silent | allows | silent | no | pending (`no_license`) |
 | Al-Jumhuriya | news | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
+| Alt News (Hindi) | fact-check | CC BY 3.0 | silent | allows | silent | no | pending (`conflicting_statements`) |
 | Arizona Mirror (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
 | Caravanserai | state-agency | NOASSERTION | silent | allows | silent | no | pending (`site_unavailable`) |
 | Chalkbeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
@@ -60,6 +62,57 @@ How the rule is read (rulings of 2026-11-13):
 | DOD News | official | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
 | Florida Phoenix (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
 | Georgia Recorder (States Newsroom) | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
+| Global Voices (am) | news | CC BY 3.0 | silent | allows | silent | no | pending (`statement_unread`) |
+| Global Voices (ar) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ay) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (bg) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (bn) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ca) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (cs) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (da) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (de) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (el) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (eo) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (es) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (fa) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (fil) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (fr) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (he) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (hi) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (hr) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (hu) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (id) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ig) | news | CC BY 3.0 | silent | allows | silent | no | pending (`statement_unread`) |
+| Global Voices (it) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ja) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (kk) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (km) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ko) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ku) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (mg) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (mk) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (my) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ne) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (nl) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (or) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (pa) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (pl) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (pt) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ro) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ru) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (sat) | news | CC BY 3.0 | silent | allows | silent | no | pending (`statement_unread`) |
+| Global Voices (sq) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (sr) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (sv) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (sw) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (tet) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (tr) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (uk) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (ur) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (uz) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (yo) | news | CC BY 3.0 | silent | allows | silent | no | pending (`statement_unread`) |
+| Global Voices (zh-Hans) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
+| Global Voices (zh-Hant) | news | CC BY 3.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
 | Healthbeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
 | KFF Health News | news | CC BY-NC-ND 4.0 | allows | allows | silent | no | pending (`nc_or_nd`) |
 | Liberty TV Radio | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`conflicting_statements`) |
@@ -85,6 +138,38 @@ How the rule is read (rulings of 2026-11-13):
 | The Marshall Project | news | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
 | US Department of State press releases | official | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
 | Votebeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
+| Wikinews (ar) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (bs) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ca) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (cs) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (de) | news | CC BY 2.5 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (el) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (eo) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (es) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (fa) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (fi) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (fr) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (guw) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (he) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (hu) | news | CC BY 3.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (it) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ja) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ko) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (li) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (nl) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (no) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (pl) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (pt) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ro) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ru) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (shn) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (sq) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (sr) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (sv) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (ta) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (tr) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (uk) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (zh) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | ZimFact | fact-check | NOASSERTION | silent | none | silent | no | pending (`site_unavailable`) |
 | CalMatters | news | NOASSERTION | silent | allows | forbids | no | exclude (`terms_forbid_automation`) |
 | Common Dreams | news | CC BY-NC-ND 3.0 | forbids | allows | silent | no | exclude (`bulk_clause`) |
@@ -151,6 +236,18 @@ News, BA, en, bs. Home: <https://balkandiskurs.com/en/>. Checked on 2026-11-16.
 - **Third-party material:** the license covers 'All content created by Balkan Diskurs'; photos, video and audio follow it 'unless otherwise stated'; how partner pieces are marked is not stated
 - **Status: include.** Reason code `license_allows`. Site-wide CC BY 3.0; the request to write in before republishing 'on a regular basis' is read as an invitation, as for Global Voices (to confirm).
 - **Notes:** the guidelines' example credit is 'This article was originally published by Balkan Diskurs'; published with the Post-Conflict Research Center; Bosnian edition beside English No terms of use page exists on the site, so no terms forbid automated collection (point 3 passes, as for a silent terms page). Re-read on 2026-11-16: the quoted words are unchanged.
+
+### Balkan Diskurs (Bosnian) (`balkandiskurs_bs`)
+
+News, BA, bs. Home: <https://balkandiskurs.com/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0>); "Sav sadržaj kreiran na Balkan Diskursu je objavljen pod licencom Creative Commons Attribution Only"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (<https://balkandiskurs.com/attribution-policy/>)
+- **Credit asked:** "Imate pravo da dijelite, ponovo objavljujete, prevodite ili preradite naše priče, uz oznaku da je originalni izvor platforma Balkan Diskurs i uz navođenje autora."
+- **Third-party material:** the license covers 'Sav sadržaj kreiran na Balkan Diskursu' (gloss: all content created on Balkan Diskurs); how partner pieces are marked is not stated
+- **Status: include.** Reason code `license_allows`. Its own attribution policy (in Bosnian) puts all content created on Balkan Diskurs under CC BY ('Creative Commons Attribution Only'); its footer says 'This site is licensed as Creative Commons Attribution 3.0'; robots.txt allows the pages and the API.
+- **Notes:** The Bosnian edition (the site's default language, hreflang bs). (gloss) 'All content created on Balkan Diskurs is published under the Creative Commons Attribution Only license. You may share, republish, translate or adapt our stories, noting Balkan Diskurs as the original source and naming the author.' Its root API lists 878 posts; whether it lists the Bosnian posts apart from the English ones is not established.
 
 ### EFF Deeplinks (`eff`)
 
@@ -294,6 +391,17 @@ News, INTL, ar, en. Home: <https://www.aljumhuriya.net/en/>. Checked on 2026-11-
 - **Status: pending.** Reason code `refused_requests`. The home page answered 403 to our client on 2026-11-16, so no page could be read: can the maintainer read https://www.aljumhuriya.net/en/ in a browser for its license line (Open Newswire quotes an Arabic line that names a Creative Commons license without saying which)?
 - **Notes:** Open Newswire's English feeds (feeds.csv at commit c4e1d10, 2025-11-11) tag it CC BY. robots.txt answered 200 and shuts out several AI crawlers by name, not this client. Where it is based was not read.
 
+### Alt News (Hindi) (`altnews_hi`)
+
+Fact-check, IN, hi. Home: <https://www.altnews.in/hindi/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://www.altnews.in/hindi/>); "CC BY 3.0 के तहत लाइसेंस प्राप्त"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found); "© 2026 ऑल्ट न्यूज़. सर्वाधिकार सुरक्षित."
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `conflicting_statements`. Its footer says 'licensed under CC BY 3.0' and also 'All rights reserved' (gloss of 'सर्वाधिकार सुरक्षित'), with no license link. Which one holds for its articles?
+- **Notes:** The Hindi edition of Alt News, linked from https://www.altnews.in/ as 'हिंदी'. (gloss) '© 2026 Alt News. All rights reserved. Pravda Media Foundation ... licensed under CC BY 3.0'. Its API lists 5180 posts (2017-04-02 to 2026-11-13).
+
 ### Arizona Mirror (States Newsroom) (`azmirror`)
 
 News, US, en. Home: <https://azmirror.com/>. Checked on 2026-11-13.
@@ -375,6 +483,567 @@ News, US, en. Home: <https://georgiarecorder.com/>. Checked on 2026-11-13.
 - **Third-party material:** Stories from other States Newsroom sites (such as Stateline) sit under /repub/ in the URL; partner stories (such as The 19th) name the partner in the byline and carry an 'originally reported by' line; the outlet's /feed/localFeed carries its own republishable stories
 - **Status: pending.** Reason code `nc_or_nd`. Georgia Recorder's own pages name CC BY-NC-ND 4.0 and are silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); does the States Newsroom RSS page (statesnewsroom.com/rss-feeds/), which invites republishers to ingest each outlet's /feed/localFeed, settle bulk use, and is a NonCommercial-NoDerivatives license acceptable for the corpus?
 - **Notes:** States Newsroom outlet; robots.txt shuts out AI crawlers (CCBot; GPTBot; ClaudeBot; anthropic-ai; Google-Extended; Bytespider); footer links only a privacy, ethics, DEIJ and AI policy (no terms of use read); article pages use the 'Republication Tracker Tool' plugin, but the republish code saved here holds no pixel or script, and no page requires one; AP and Getty images may not be republished; the license is stated in the footer of every page Not pursued for version 1 (maintainer's decision, 2026-11-13).
+
+### Global Voices (am) (`globalvoices_am`)
+
+News, INTL, am. Home: <https://am.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "ይህ ድረገጽ ንብረትነቱ የጋራ ፈጠራዎች ባሕርያት 3.0 Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `statement_unread`. The footer statement is in Amharic, which this project could not read with confidence; its link names CC BY 3.0. Does the statement grant CC BY 3.0 as the link says?
+- **Notes:** A Lingua edition of Global Voices at https://am.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 73 posts (newest 2020-09-01); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ar) (`globalvoices_ar`)
+
+News, INTL, ar. Home: <https://ar.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ar>); "هذا الموقع مرخص المشاع الإبداعي - النسبة 3.0 بعض الحقوق محفوظة"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ar.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ar. Its API lists 6512 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ay) (`globalvoices_aym`)
+
+News, INTL, ay. Home: <https://aym.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Aka sition lisinsyapa Creative Commons Attribution 3.0 Yaqhip Derechos Reservado-naka"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://aym.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 844 posts (newest 2026-09-19); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (bg) (`globalvoices_bg`)
+
+News, INTL, bg. Home: <https://bg.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Този сайт е под лиценз Creative Commons Attribution 3.0 Някои права запазени"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://bg.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 338 posts (newest 2025-09-01); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (bn) (`globalvoices_bn`)
+
+News, INTL, bn. Home: <https://bn.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "এই সাইটটি ক্রিয়েটিভ কমন্স এট্রিবিউশন্স ৩.০ লাইসেন্সের মাধ্যমে প্রকাশিত কিছু অধিকার সংরক্ষিত"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://bn.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 8721 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ca) (`globalvoices_ca`)
+
+News, INTL, ca. Home: <https://ca.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ca>); "Aquest web té la llicència Reconeixement 3.0 No adaptada (CC BY 3.0) Alguns drets reservats"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ca.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ca. Its API lists 874 posts (newest 2026-11-04); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (cs) (`globalvoices_cs`)
+
+News, INTL, cs. Home: <https://cs.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.cs>); "Tato stránka je licencována v rámci Creative Commons Uveďte autora 3.0 Některá práva vyhrazena"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://cs.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.cs. Its API lists 676 posts (newest 2022-02-16); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (da) (`globalvoices_da`)
+
+News, INTL, da. Home: <https://da.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.da>); "Denne side benyttes under følgende licens Creative Commons Tilskrivning 3.0 Nogle rettigheder forbeholdes"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://da.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.da. Its API lists 394 posts (newest 2023-03-11); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (de) (`globalvoices_de`)
+
+News, INTL, de. Home: <https://de.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.de>); "Diese Website ist lizenziert als Creative Commons Namensnennung 3.0 DE Lizenz Einige Rechte vorbehalten"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://de.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.de. Its words say '3.0 DE Lizenz' while the link is the unported 3.0 deed in German; the row follows the link. Its API lists 3318 posts (newest 2025-07-15); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (el) (`globalvoices_el`)
+
+News, INTL, el. Home: <https://el.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/gr/deed.el>); "Το περιεχόμενο του παρόντος ιστοχώρου υπάγεται σε Άδεια Χρήσης Creative Commons Attribution 3.0 Με επιφύλαξη μερικών δικαιωμάτων"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://el.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/gr/deed.el. Its words name 'Creative Commons Attribution 3.0'; its link is the Greek port (by/3.0/gr), which the release does not list as a license of its own yet. Its API lists 10869 posts (newest 2026-11-16); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (eo) (`globalvoices_eo`)
+
+News, INTL, eo. Home: <https://eo.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.eo>); "Ĉi tiu retejo ricevis permesilon per Krea Komunaĵo Atribuado 3.0 Kelkaj rajtoj rezervitaj"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://eo.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.eo. Its API lists 855 posts (newest 2026-11-15); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (es) (`globalvoices_es`)
+
+News, INTL, es. Home: <https://es.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.es>); "Este sitio está licenciado como Atribución Creative Commons 3.0. Por favor lea nuestra Pautas de Republicación para saber cómo redistribuir libremente nuestro trabajo Algunos derechos reservados"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://es.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.es. (gloss) It adds 'Please read our Republishing Guidelines to learn how to freely redistribute our work'; that page was not read. Its API lists 45948 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (fa) (`globalvoices_fa`)
+
+News, INTL, fa. Home: <https://fa.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.fa>); "این سایت تحت مجوز Creative Commons Attribution 3.0 است Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://fa.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.fa. Its API lists 1015 posts (newest 2024-12-20); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (fil) (`globalvoices_fil`)
+
+News, INTL, fil. Home: <https://fil.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "This site is licensed as Creative Commons Attribution 3.0 Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://fil.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 302 posts (newest 2025-04-09); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (fr) (`globalvoices_fr`)
+
+News, INTL, fr. Home: <https://fr.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.fr>); "Ce site est mis à disposition sous une Licence 3.0 Creative Commons (mention de l'auteur, du site et lien) Certains droits réservés"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://fr.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.fr. (gloss) 'Licence 3.0 Creative Commons (mention of the author, the site and a link)'. Its API lists 21691 posts (newest 2026-11-09); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (he) (`globalvoices_he`)
+
+News, INTL, he. Home: <https://he.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "אתר זה מורשה לשימוש תחת קריאייטיב קומונס ייחוס 3.0 חלק מהזכויות שמורות"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://he.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 33 posts (newest 2016-11-27); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (hi) (`globalvoices_hi`)
+
+News, INTL, hi. Home: <https://hi.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.hi>); "यह जालस्थल क्रिएटिव कॉमनस् अधिकार 3.0 अनुज्ञप्ति प्राप्त है कुछ अधिकार सुरक्षित"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://hi.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.hi. (gloss) It names 'Creative Commons rights 3.0'; the link names CC BY 3.0. Its API lists 271 posts (newest 2025-12-14); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (hr) (`globalvoices_hr`)
+
+News, INTL, hr. Home: <https://hr.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.hr>); "Ova stranica je ovlaštena kao Creative Commons Attribution 3.0 Neka prava su rezervirana"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://hr.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.hr. Its API lists 33 posts (newest 2026-09-06); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (hu) (`globalvoices_hu`)
+
+News, INTL, hu. Home: <https://hu.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.hu>); "Az oldal által használt licensz: Creative Commons 3.0 Szerzői jogvédelem alatt"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://hu.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.hu. (gloss) It renders 'Some rights reserved' as 'under copyright protection'. Its API lists 621 posts (newest 2023-05-26); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (id) (`globalvoices_id`)
+
+News, INTL, id. Home: <https://id.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.id>); "Situs ini berlisensi Creative Commons versi 3.0 Sebagian Hak Dilindungi"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://id.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.id. Its API lists 753 posts (newest 2025-09-30); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ig) (`globalvoices_ig`)
+
+News, INTL, ig. Home: <https://ig.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Saitị nwere ikike dịka Ihe njiri mara ihe okike 3.0 Ejikwachitụrụ ụfọdụ ikike"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `statement_unread`. The footer statement is in Igbo, which this project could not read with confidence; its link names CC BY 3.0. Does the statement grant CC BY 3.0 as the link says?
+- **Notes:** A Lingua edition of Global Voices at https://ig.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 79 posts (newest 2026-11-12); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (it) (`globalvoices_it`)
+
+News, INTL, it. Home: <https://it.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.it>); "questo sito è coperto dalla Creative Commons Attribuzione 3.0 Alcuni diritti riservati"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://it.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.it. Its API lists 10696 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ja) (`globalvoices_jp`)
+
+News, INTL, ja. Home: <https://jp.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ja>); "このサイトはCreative Commons Attribution 3.0ライセンスで公開しています Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://jp.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ja. Its API lists 2905 posts (newest 2026-11-02); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (kk) (`globalvoices_kk`)
+
+News, INTL, kk. Home: <https://kk.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Сайт «Creative Commons» лицензиясы лиценсиясымен жұмыс істеуде Құқықтар шамалы түрде қорғалған"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://kk.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. (gloss) 'The site works under the Creative Commons license': no version in its words; the link names CC BY 3.0. Its API lists 17 posts (newest 2026-02-21); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (km) (`globalvoices_km`)
+
+News, INTL, km. Home: <https://km.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.km>); "សាយ នេះ ត្រូវបាន ផ្តល់សិទ្ធ ជា Creative Commons Attribution 3.0 Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://km.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.km. Its API lists 32 posts (newest 2013-12-13); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ko) (`globalvoices_ko`)
+
+News, INTL, ko. Home: <https://ko.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ko>); "이 사이트는 크리에이티브 커먼스 저작권 정책을 따르고 있습니다. Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ko.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ko. (gloss) 'This site follows the Creative Commons copyright policy': no version in its words; the link names CC BY 3.0. Its API lists 422 posts (newest 2024-08-29); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ku) (`globalvoices_ku`)
+
+News, INTL, ku. Home: <https://ku.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "This site is licensed as Creative Commons Attribution 3.0 هەندێک مافی پارێزراوە"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ku.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 4 posts (newest 2018-04-29); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (mg) (`globalvoices_mg`)
+
+News, INTL, mg. Home: <https://mg.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Ny marik-ity takelaka ity dia efa voapetraka Creative Commons Attribution 3.0 Zo Sasantsasany Voatokana"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://mg.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 20675 posts (newest 2026-10-23); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (mk) (`globalvoices_mk`)
+
+News, INTL, mk. Home: <https://mk.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Овој сајт е лиценциран под Криејтив комонс - Наведи извор 3.0 Некои права задржани"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://mk.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 2554 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (my) (`globalvoices_my`)
+
+News, INTL, my. Home: <https://my.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "ဤ စာ မျက်နှာ သည် Creative Commons Attribution 3.0 အရ ခွင့် ပြု ချက် ရ ယူထား ပါ သည်။ Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://my.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 132 posts (newest 2018-11-06); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ne) (`globalvoices_ne`)
+
+News, INTL, ne. Home: <https://ne.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "यो साइट क्रियटिभ कमन्स लाइसेन्स अन्तर्गत संचालित छ केही अधिकार सुरक्षित"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ne.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. (gloss) 'This site operates under a Creative Commons license': no version in its words; the link names CC BY 3.0. Its API lists 298 posts (newest 2026-10-14); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (nl) (`globalvoices_nl`)
+
+News, INTL, nl. Home: <https://nl.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.nl>); "Deze site valt onder een Creative Commons Attribution 3.0-licentie Sommige rechten voorbehouden"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://nl.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.nl. Its API lists 2282 posts (newest 2026-11-10); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (or) (`globalvoices_or`)
+
+News, INTL, or. Home: <https://or.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "ଏହି ସାଇଟଟି Creative Commons Attribution 3.0 ରେ ଲାଇସେନ୍ସ ହୋଇଛି କିଛି କପିରାଇଟ ସଂରକ୍ଷିତ"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://or.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 35 posts (newest 2023-02-20); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (pa) (`globalvoices_pa`)
+
+News, INTL, pa. Home: <https://pa.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "ਇਹ ਸਾਈਟ ਕ੍ਰੀਏਟਿਵ ਕਾਮਨਜ਼ ਐਟਰੀਬਿਊਸ਼ਨ 3.0 ਲਸੰਸ ਅਧੀਨ ਹੈ ਕੁਝ ਹੱਕ ਰਾਖਵੇਂ"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://pa.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 121 posts (newest 2025-03-18); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (pl) (`globalvoices_pl`)
+
+News, INTL, pl. Home: <https://pl.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.pl>); "Strona udostępniona na licencji Creative Commons Uznanie autorstwa 3.0 Pewne prawa zastrzeżone"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://pl.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.pl. Its API lists 2044 posts (newest 2023-05-24); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (pt) (`globalvoices_pt`)
+
+News, INTL, pt. Home: <https://pt.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.pt_BR>); "Este site está licenciado como Creative Commons Atribuição 3.0 Alguns direitos reservados"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://pt.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.pt_BR. Its API lists 7902 posts (newest 2026-11-16); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ro) (`globalvoices_ro`)
+
+News, INTL, ro. Home: <https://ro.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ro>); "Acest site funcționează cu licență Atribuire Creative Commons 3.0 Drepturi rezervate"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ro.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ro. Its API lists 780 posts (newest 2026-10-26); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ru) (`globalvoices_ru`)
+
+News, INTL, ru. Home: <https://ru.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.ru>); "Сайт имеет лицензию Creative Commons Атрибуция 3.0 Некоторые права защищены"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ru.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.ru. Its API lists 9573 posts (newest 2026-11-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (sat) (`globalvoices_sat`)
+
+News, INTL, sat. Home: <https://sat.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "ᱱᱚᱣᱟ ᱥᱟᱭᱤᱴ ᱠᱨᱤᱭᱮᱴᱤᱵᱷ ᱠᱳᱢᱳᱱᱥ ᱟᱴᱨᱤᱵᱩᱥᱚᱱ ᱓ᱹ᱐ ᱞᱮᱠᱟᱛᱮ ᱞᱟᱭᱥᱮᱱᱥ ᱟᱠᱟᱱᱟ ᱛᱤᱱᱟᱹᱝ ᱟᱹᱭᱫᱟᱹᱨ ᱨᱟᱠᱷᱟ ᱜᱮᱭᱟ"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `statement_unread`. The footer statement is in Santali (Ol Chiki script), which this project could not read with confidence; its link names CC BY 3.0. Does the statement grant CC BY 3.0 as the link says?
+- **Notes:** A Lingua edition of Global Voices at https://sat.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 19 posts (newest 2026-09-12); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (sq) (`globalvoices_sq`)
+
+News, INTL, sq. Home: <https://sq.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Kjo faqe është licensuar si Creative Commons Attribution 3.0 Disa të Drejta të Rezervuara"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://sq.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 889 posts (newest 2025-01-23); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (sr) (`globalvoices_sr`)
+
+News, INTL, sr. Home: <https://sr.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Ова страница је лиценцирана под Нека права задржана"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://sr.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. (gloss) 'This page is licensed under' with no license named in its words; the link names CC BY 3.0. Its API lists 1947 posts (newest 2026-11-15); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (sv) (`globalvoices_sv`)
+
+News, INTL, sv. Home: <https://sv.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.sv>); "Den här sidan är licenserad under Creative Commons Erkännande 3.0 En del rättigheter har reserverats"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://sv.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.sv. Its API lists 364 posts (newest 2020-06-12); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (sw) (`globalvoices_sw`)
+
+News, INTL, sw. Home: <https://sw.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Tovuti hii ina leseni ya Haki Miliki ya Creative Commons 3.0 Haki Kadhaa Zimehifadhiwa"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://sw.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 1748 posts (newest 2022-10-14); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (tet) (`globalvoices_tet`)
+
+News, INTL, tet. Home: <https://tet.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "This site is licensed as Creative Commons Attribution 3.0 Some Rights Reserved"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://tet.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 15 posts (newest 2017-03-01); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (tr) (`globalvoices_tr`)
+
+News, INTL, tr. Home: <https://tr.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.tr>); "Bu site Creative Commons Attribution 3.0 ile lisanslıdır. Bazı hakları saklıdır"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://tr.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.tr. Its API lists 282 posts (newest 2021-04-18); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (uk) (`globalvoices_uk`)
+
+News, INTL, uk. Home: <https://uk.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.uk>); "Сайт має ліцензію Зазначення Авторства 3.0 Деякі права захищені"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://uk.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.uk. Its API lists 1394 posts (newest 2026-09-28); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (ur) (`globalvoices_ur`)
+
+News, INTL, ur. Home: <https://ur.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "کے تحت لائسنسڈ ہے کرئیٹو کامنس ایٹریبیوشنز 3.0یہ سائٹ کچھ حقوق محفوظ ہیں"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://ur.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 196 posts (newest 2023-05-20); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (uz) (`globalvoices_uz`)
+
+News, INTL, uz. Home: <https://uz.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Сайт Creative Commons Attribution 3.0 томонидан лицензиялаштирилган Баъзи ҳуқуқлар ҳимоя қилинган"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://uz.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 11 posts (newest 2021-02-17); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (yo) (`globalvoices_yo`)
+
+News, INTL, yo. Home: <https://yo.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "Àṣẹ ibùdó yìí jẹ́ %cc_license_link Àwọn Àṣẹ Kan J'ẹ́fipamọ́"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `statement_unread`. The footer shows an unfilled template placeholder (%cc_license_link) where the license should be named, though it links CC BY 3.0. Is the link enough?
+- **Notes:** A Lingua edition of Global Voices at https://yo.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/. Its API lists 122 posts (newest 2026-10-31); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (zh-Hans) (`globalvoices_zhs`)
+
+News, INTL, zh-Hans. Home: <https://zhs.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.zh_TW>); "本站以創作共用釋出條款 3.0 授權 保留部分权利"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://zhs.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.zh_TW. Its license link is the zh_TW deed of CC BY 3.0. Its API lists 5645 posts (newest 2024-10-03); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
+
+### Global Voices (zh-Hant) (`globalvoices_zht`)
+
+News, INTL, zh-Hant. Home: <https://zht.globalvoices.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/deed.zh_TW>); "本站以創作共用釋出條款 3.0 授權 CC 保留部分權利"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `third_party_unclear`. Points 1 to 3 hold on its own pages (a site-wide CC BY 3.0 statement, read in its own language; robots.txt allows the pages and the API). Its own pages read (home page and one article) do not say how others' material is marked. Does Global Voices' attribution policy ('all content published on Global Voices', 'our sites') cover this edition's third-party marking?
+- **Notes:** A Lingua edition of Global Voices at https://zht.globalvoices.org/. Footer license link: https://creativecommons.org/licenses/by/3.0/deed.zh_TW. Its API lists 6234 posts (newest 2026-11-06); Its article page credits the writer and the translator in separate, localized credit sections, and lists the story's other language versions (class translation-language); the markup read does not mark which version is the original.
 
 ### Healthbeat (`healthbeat`)
 
@@ -663,6 +1332,358 @@ News, US, en. Home: <https://www.votebeat.org/>. Checked on 2026-11-13.
 - **Third-party material:** Stories are CC 'unless otherwise noted'; the page does not say how partner or wire stories are noted
 - **Status: pending.** Reason code `nc_or_nd`. Votebeat licenses its stories CC BY-NC-ND 4.0 'unless otherwise noted' and is silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); may an NC-ND source silent on bulk enter the corpus?
 - **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text). Not pursued for version 1 (maintainer's decision, 2026-11-13).
+
+### Wikinews (ar) (`wikinews_ar`)
+
+News, INTL, ar. Home: <https://ar.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.ar>); "المحتوى متاح وفق CC BY-SA 4.0 ما لم يرد خلاف ذلك."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 10,452,306 bytes compressed. Copyright page read: yes.
+
+### Wikinews (bs) (`wikinews_bs`)
+
+News, INTL, bs. Home: <https://bs.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Sadržaj je dostupan pod licencom Creative Commons Attribution 4.0 osim ako nije drugačije navedeno."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 635,167 bytes compressed. Copyright page read: not found.
+
+### Wikinews (ca) (`wikinews_ca`)
+
+News, INTL, ca. Home: <https://ca.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "El contingut està disponible sota la llicència Creative Commons Attribution 4.0 si no s'indica el contrari."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 4,563,174 bytes compressed. Copyright page read: yes.
+
+### Wikinews (cs) (`wikinews_cs`)
+
+News, INTL, cs. Home: <https://cs.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Text je dostupný pod Creative Commons Attribution 4.0, pokud není uvedeno jinak."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 5,195,102 bytes compressed. Copyright page read: yes.
+
+### Wikinews (de) (`wikinews_de`)
+
+News, INTL, de. Home: <https://de.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://creativecommons.org/licenses/by/2.5/>); "Der Inhalt ist verfügbar unter CC BY 2.5, sofern nicht anders angegeben."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 19,079,364 bytes compressed. Copyright page read: yes.
+
+### Wikinews (el) (`wikinews_el`)
+
+News, INTL, el. Home: <https://el.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Το περιεχόμενο είναι διαθέσιμο υπό Creative Commons Attribution 4.0 εκτός αν αναφέρεται διαφορετικά."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,551,286 bytes compressed. Copyright page read: yes.
+
+### Wikinews (eo) (`wikinews_eo`)
+
+News, INTL, eo. Home: <https://eo.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "La enhavo estas disponebla laŭ Creative Commons Attribution 4.0, se ne estas alia indiko."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,996,421 bytes compressed. Copyright page read: yes.
+
+### Wikinews (es) (`wikinews_es`)
+
+News, INTL, es. Home: <https://es.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "El contenido está disponible bajo la licencia Creative Commons Attribution 4.0, salvo que se indique lo contrario."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 16,753,692 bytes compressed. Copyright page read: yes.
+
+### Wikinews (fa) (`wikinews_fa`)
+
+News, INTL, fa. Home: <https://fa.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.fa>); "محتوا تحت CC BY-SA 4.0 در دسترس است، مگر اینکه خلافش ذکر شده باشد."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,627,858 bytes compressed. Copyright page read: yes.
+
+### Wikinews (fi) (`wikinews_fi`)
+
+News, INTL, fi. Home: <https://fi.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Sisältö on käytettävissä lisenssillä Creative Commons Attribution 4.0, ellei toisin mainita."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,163,297 bytes compressed. Copyright page read: yes.
+
+### Wikinews (fr) (`wikinews_fr`)
+
+News, INTL, fr. Home: <https://fr.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.fr>); "Le contenu est disponible sous licence CC BY-SA 4.0 sauf mention contraire."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 25,346,880 bytes compressed. Copyright page read: yes.
+
+### Wikinews (guw) (`wikinews_guw`)
+
+News, INTL, guw. Home: <https://guw.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Nuhe tin tofi lẹpo tin to Creative Commons Attribution 4.0 glọ adavo eyin mí dọdọ e ma yinmọ."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 490,554 bytes compressed. Copyright page read: not found.
+
+### Wikinews (he) (`wikinews_he`)
+
+News, INTL, he. Home: <https://he.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "התוכן זמין לפי תנאי Creative Commons Attribution 4.0 אלא אם כן נאמר אחרת."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,088,852 bytes compressed. Copyright page read: yes.
+
+### Wikinews (hu) (`wikinews_hu`)
+
+News, INTL, hu. Home: <https://hu.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 3.0 (<https://creativecommons.org/licenses/by/3.0/>); "A lap szövege CC BY 3.0 alatt érhető el, ha nincs külön jelölve."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,286,251 bytes compressed. Copyright page read: not found.
+
+### Wikinews (it) (`wikinews_it`)
+
+News, INTL, it. Home: <https://it.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Il contenuto è disponibile in base alla licenza Creative Commons Attribution 4.0, se non diversamente specificato."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 15,211,477 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ja) (`wikinews_ja`)
+
+News, INTL, ja. Home: <https://ja.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "コンテンツは、特に記載されていない限り、Creative Commons Attribution 4.0のもとで利用可能です。"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 10,082,447 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ko) (`wikinews_ko`)
+
+News, INTL, ko. Home: <https://ko.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "별도로 명시하지 않은 경우, 내용은 Creative Commons Attribution 4.0에 따라 사용할 수 있습니다."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,346,418 bytes compressed. Copyright page read: yes.
+
+### Wikinews (li) (`wikinews_li`)
+
+News, INTL, li. Home: <https://li.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "De inhawd is besjikbaar ónger de Creative Commons Attribution 4.0 behauve is angers aangegeve."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,783,033 bytes compressed. Copyright page read: not found.
+
+### Wikinews (nl) (`wikinews_nl`)
+
+News, INTL, nl. Home: <https://nl.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "De inhoud is beschikbaar onder de licentie Creative Commons Attribution 4.0 tenzij anders aangegeven."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 7,118,433 bytes compressed. Copyright page read: yes.
+
+### Wikinews (no) (`wikinews_no`)
+
+News, INTL, no. Home: <https://no.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Innholdet er tilgjengelig under Creative Commons Attribution 4.0 hvis ikke annet er angitt."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 871,166 bytes compressed. Copyright page read: yes.
+
+### Wikinews (pl) (`wikinews_pl`)
+
+News, INTL, pl. Home: <https://pl.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Treść udostępniana na licencji Creative Commons Attribution 4.0, o ile nie podano inaczej."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 21,981,516 bytes compressed. Copyright page read: yes.
+
+### Wikinews (pt) (`wikinews_pt`)
+
+News, INTL, pt. Home: <https://pt.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Conteúdo disponibilizado nos termos da Creative Commons Attribution 4.0, salvo indicação em contrário."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 33,765,093 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ro) (`wikinews_ro`)
+
+News, INTL, ro. Home: <https://ro.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Conținutul este disponibil sub Creative Commons Attribution 4.0, exceptând cazurile în care se specifică altfel."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,880,019 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ru) (`wikinews_ru`)
+
+News, INTL, ru. Home: <https://ru.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Если не указано иное, содержание доступно по лицензии Creative Commons Attribution 4.0."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,129,517,443 bytes compressed. Copyright page read: yes.
+
+### Wikinews (shn) (`wikinews_shn`)
+
+News, INTL, shn. Home: <https://shn.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "ၸိူဝ်းၶဝ်ႈပႃးဝႆႉၼႆႉ မၼ်းတေၸၢင်ႈၸႂ်ႉလႆႈ ၵႃႈတီႈ မ်ႂ Creative Commons Attribution 4.0"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,087,465 bytes compressed. Copyright page read: yes.
+
+### Wikinews (sq) (`wikinews_sq`)
+
+News, INTL, sq. Home: <https://sq.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Përmbajtja ofrohet nën Creative Commons Attribution 4.0 përveç nëse shënohet ndryshe."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 789,986 bytes compressed. Copyright page read: not found.
+
+### Wikinews (sr) (`wikinews_sr`)
+
+News, INTL, sr. Home: <https://sr.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Садржај је доступан под лиценцом Creative Commons Attribution 4.0 осим ако је другачије наведено."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 26,228,074 bytes compressed. Copyright page read: not found.
+
+### Wikinews (sv) (`wikinews_sv`)
+
+News, INTL, sv. Home: <https://sv.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.sv>); "Innehållet är tillgängligt under CC BY-SA 4.0 om ingenting annat anges."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,299,927 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ta) (`wikinews_ta`)
+
+News, INTL, ta. Home: <https://ta.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "வேறுவகையாகக் குறிப்பிடப்பட்டிருந்தாலன்றி இவ்வுள்ளடக்கம் Creative Commons Attribution 4.0 இல் கீழ் கிடைக்கும்."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 3,452,817 bytes compressed. Copyright page read: yes.
+
+### Wikinews (tr) (`wikinews_tr`)
+
+News, INTL, tr. Home: <https://tr.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Aksi belirtilmedikçe içerik Creative Commons Attribution 4.0 lisansı altında kullanılabilir."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,838,514 bytes compressed. Copyright page read: yes.
+
+### Wikinews (uk) (`wikinews_uk`)
+
+News, INTL, uk. Home: <https://uk.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Вміст доступний на умовах Creative Commons Attribution 4.0, якщо не вказано інше."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 3,383,767 bytes compressed. Copyright page read: not found.
+
+### Wikinews (zh) (`wikinews_zh`)
+
+News, INTL, zh. Home: <https://zh.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "除非另有声明,本网站内容采用Creative Commons Attribution 4.0授权。"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** not stated
+- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 33,815,460 bytes compressed. Copyright page read: yes.
 
 ### ZimFact (`zimfact`)
 
