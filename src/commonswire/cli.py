@@ -1238,6 +1238,7 @@ def cmd_update_route(args: argparse.Namespace) -> int:
             max_requests=args.max_requests,
             max_mb=args.max_mb,
             offline=args.offline,
+            only_removals=args.only_removals,
             registry_path=Path(args.sources),
             say=lambda m: print(redact(m), flush=True),
         )
@@ -1514,6 +1515,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ur.add_argument("--max-mb", type=float, default=50, help="the byte budget, in MB")
     ur.add_argument("--offline", action="store_true", help="replay saved answers; send nothing")
+    ur.add_argument(
+        "--only-removals",
+        action="store_true",
+        help="the removal check alone: every sitemap, or the whole listing (a dry run of it)",
+    )
     ur.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     ur.set_defaults(func=cmd_update_route)
 

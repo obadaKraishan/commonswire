@@ -49,7 +49,20 @@ def aiac_source():
     )
 
 
-def scidev_page(*, byline='By: <a href="/global/x/">Ana Invented</a>', body=None, ld_date=True):
+LICENSE_FOOTER = (
+    "<footer><p>All site content, except where otherwise noted, is licensed under a "
+    '<a href="https://www.scidev.net/global/content/media.html">Creative Commons Attribution '
+    "License</a></p></footer>"
+)
+
+
+def scidev_page(
+    *,
+    byline='By: <a href="/global/x/">Ana Invented</a>',
+    body=None,
+    ld_date=True,
+    footer=LICENSE_FOOTER,
+):
     body = body or (
         "<p>An invented first paragraph about a made-up study.</p>"
         "<figure><img src='x.jpg'><figcaption>© Someone Else 2026</figcaption></figure>"
@@ -82,7 +95,7 @@ def scidev_page(*, byline='By: <a href="/global/x/">Ana Invented</a>', body=None
         '<div class="fl-module fl-module-fl-post-content fl-node-1">'
         f'<div class="fl-module-content">{body}</div></div>'
         '<div class="republish-popup"><textarea>&lt;p&gt;copy&lt;/p&gt;</textarea></div>'
-        "</body></html>"
+        f"{footer}</body></html>"
     )
 
 
@@ -273,11 +286,7 @@ def test_only_a_republication_note_counts_not_a_sentence_in_the_essay():
     assert not published_elsewhere(f"{long}\n\n{long} which was first published in 1965.")
 
 
-SD_FOOTER = (
-    "<footer><p>All site content, except where otherwise noted, is licensed under a "
-    '<a href="https://www.scidev.net/global/content/media.html">Creative Commons Attribution '
-    "License</a></p></footer>"
-)
+SD_FOOTER = LICENSE_FOOTER
 SD_SUPPORTED = "https://www.scidev.net/global/supported-content/an-invented-piece/"
 SD_OWN_BYLINE = (
     'By: <a href="https://www.scidev.net/global/author.ana-invented.html">Ana Invented</a>'
@@ -289,7 +298,7 @@ def supported_page(*, byline=SD_OWN_BYLINE, footer=SD_FOOTER, body=None):
         "<p>An invented paragraph about an invented project.</p>"
         "<p><em>This article was supported by the Invented Fund.</em></p>"
     )
-    return scidev_page(byline=byline, body=body).replace("</body>", f"{footer}</body>")
+    return scidev_page(byline=byline, body=body, footer=footer)
 
 
 def test_licenses_outside_captions():
@@ -319,14 +328,14 @@ def test_licenses_outside_captions():
             },
             "supported content without a byline of its own",
         ),
-        ({"footer": ""}, "supported content without the site's license line"),
+        ({"footer": ""}, "no site license line on the page"),
         (
             {
                 "body": "<p>An invented paragraph.</p><p><em>This piece uses invented data, "
                 'under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA'
                 "</a>.</em></p>"
             },
-            "supported content naming another license",
+            "another license named outside an image's caption",
         ),
         (
             {
@@ -344,11 +353,32 @@ def test_supported_content_is_kept_only_when_it_is_scidevnets_own(tmp_path, kwar
     assert f.third_party_reason(item) == reason
 
 
-def test_the_supported_content_rule_leaves_other_sections_alone(tmp_path):
+def test_the_license_checks_hold_for_every_section_the_byline_check_for_supported(tmp_path):
     f = fetcher(SciDevNetFetcher, scidev_source(), tmp_path)
     news = "https://www.scidev.net/global/news/an-invented-story/"
     item = f.item_from_page(news, supported_page(byline="By:", footer=""))
     assert not item.hints["license_line"] and not item.hints["byline_own"]
-    assert f.third_party_reason(item) is None  # held for no byline, not dropped
-    other = "https://www.scidev.net/global/opinions/an-invented-view/"
-    assert f.item_from_page(other, supported_page()).hints["byline_own"] is True
+    assert f.third_party_reason(item) == "no site license line on the page"
+    held = f.item_from_page(news, supported_page(byline="By:"))
+    assert f.third_party_reason(held) is None  # held for no byline, not dropped
+    cc = '<p>Data <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC</a>.</p>'
+    other = f.item_from_page(news, supported_page(body=f"<p>An invented paragraph.</p>{cc}"))
+    assert f.third_party_reason(other) == "another license named outside an image's caption"
+    view = "https://www.scidev.net/global/opinions/an-invented-view/"
+    assert f.item_from_page(view, supported_page()).hints["byline_own"] is True
+
+
+def test_legacy_brackets_and_escaped_embed_code_are_cleaned(tmp_path):
+    from commonswire.fetchers.pages import clean_legacy_body
+
+    body = (
+        '<p>An invented paragraph.</p><p>&lt;<a href="/x">An invented link</a>&gt;</p>'
+        "<p>&lt;div id=&#8217;player-1&#8242;&gt;&lt;/div&gt;&lt;script&gt;&lt;/script&gt;</p>"
+    )
+    cleaned = clean_legacy_body(body)
+    assert "&lt;" not in cleaned and '<a href="/x">An invented link</a>' in cleaned
+    assert "player" not in cleaned and "An invented paragraph." in cleaned
+    f = fetcher(SciDevNetFetcher, scidev_source(), tmp_path)
+    url = "https://www.scidev.net/global/opinions/an-invented-view/"
+    art = f.build(f.item_from_page(url, scidev_page(body=body)), datetime.now(timezone.utc))
+    assert "<" not in art.text and "An invented link" in art.text
