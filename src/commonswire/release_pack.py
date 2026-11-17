@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import csv
 import io
 import json
 import re
@@ -156,7 +157,7 @@ INDEX_COLUMNS = (
 SOURCE_COLUMNS = (
     ("source_id", "id", "The source's id"),
     ("name", "string", "The source's name"),
-    ("kind", "string", "news, official, advocacy, fact-check or portal"),
+    ("kind", "string", "news, fact-check, official, advocacy, portal, state- or church-agency"),
     ("homepage", "url", "The source's home page"),
     ("country", "string", "Where it is based (INTL when international)"),
     ("languages", "string", "The languages it publishes in"),
@@ -173,11 +174,12 @@ SOURCE_COLUMNS = (
     ("terms_automation", "string", "Whether its terms allow, forbid or are silent on automation"),
     ("tracking_required", "string", "Whether republishing requires a tracking pixel"),
     ("third_party_rule", "string", "How its own articles are told apart from republished ones"),
-    ("access", "string", "The route used: api, feed, dump or pages"),
+    ("access", "string", "The route used: api, feed, dump, sitemap or listing"),
     ("est_articles_per_day", "decimal", "About how many articles it publishes a day"),
     ("archive_from", "string", "Where its archive starts"),
     ("credit_line", "string", "The credit line template filled in for every row"),
     ("status", "string", "include, pending or exclude"),
+    ("reason_code", "string", "Why it has its status, as one code from a fixed list"),
     ("reason", "string", "Why, for pending and exclude"),
     ("notes", "string", "Other notes from the review"),
 )
@@ -247,6 +249,12 @@ def _schema(path: str, release: Path | None = None) -> tuple[tuple[str, str, str
 
         have = pq.read_schema(release / path).names
         by_name = {c[0]: c for c in ROW_COLUMNS}
+        return tuple(by_name[n] for n in have)
+    if path == "sources.csv" and release is not None:
+        # Versions 0.1.x and 0.2.x ship the registry without reason_code: list what is there.
+        with (release / path).open(newline="", encoding="utf-8") as fh:
+            have = next(csv.reader(fh))
+        by_name = {c[0]: c for c in SOURCE_COLUMNS}
         return tuple(by_name[n] for n in have)
     return {"index.csv": INDEX_COLUMNS, "sources.csv": SOURCE_COLUMNS}.get(path)
 

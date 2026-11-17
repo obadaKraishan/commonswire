@@ -141,3 +141,12 @@ def test_blocked_pages_and_the_render_command(tmp_path, capsys):
         == 0
     )
     assert out.read_text().startswith("# Sources")
+
+
+def test_the_reason_code_is_shown_when_the_registry_has_one():
+    from commonswire.render import paragraph
+
+    coded = parse_row(row())
+    assert "**Status: include.** Reason code `license_allows`." in paragraph(coded)
+    legacy = parse_row({k: v for k, v in row().items() if k != "reason_code"})
+    assert "Reason code" not in paragraph(legacy)

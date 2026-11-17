@@ -6,13 +6,18 @@ from datetime import date
 import pytest
 
 from commonswire.sources import (
+    CODE_STATUS,
+    LEGACY_FIELDS,
+    REASON_CODES,
     SOURCE_FIELDS,
     Source,
     check_quotes,
     load_sources,
     normalize_for_match,
     parse_row,
+    read_registry,
     read_rows,
+    reason_code_problems,
     rule_problems,
     validate_sources,
 )
@@ -46,6 +51,7 @@ def row(**over):
         "archive_from": "2005-09",
         "credit_line": "Example News, CC BY 4.0",
         "status": "include",
+        "reason_code": "license_allows",
         "reason": "",
         "notes": "",
     }
@@ -247,6 +253,111 @@ def test_load_sources_raises_on_any_problem(tmp_path):
     bad = write_csv(tmp_path, [row(credit_line="")])
     with pytest.raises(ValueError, match="1 problem"):
         load_sources(bad)
+
+
+# ---- reason codes ----
+
+
+def test_the_registry_of_versions_0_1_and_0_2_is_still_read_without_codes(tmp_path):
+    legacy = {k: v for k, v in row().items() if k != "reason_code"}
+    path = write_csv(tmp_path, [legacy], fields=LEGACY_FIELDS)
+    rows, coded = read_registry(path)
+    assert not coded and "reason_code" not in rows[0]
+    sources, out = validate_sources(path, TODAY)
+    assert out == [] and sources[0].reason_code == ""
+    assert list(load_sources(path)) == ["example_news"]
+
+
+def test_a_registry_with_the_column_needs_a_code_on_every_row(tmp_path):
+    rows, coded = read_registry(write_csv(tmp_path, [row()]))
+    assert coded and rows[0]["reason_code"] == "license_allows"
+    _, out = validate_sources(write_csv(tmp_path, [row(reason_code="")]), TODAY)
+    assert out and "give reason_code, one of: license_allows" in out[0]
+
+
+def test_an_unknown_reason_code_is_a_field_error(tmp_path):
+    _, out = validate_sources(write_csv(tmp_path, [row(reason_code="because")]), TODAY)
+    assert any("reason_code: unknown reason code 'because'" in p for p in out)
+
+
+def test_every_code_has_a_status_and_a_description():
+    assert set(CODE_STATUS) == set(REASON_CODES)
+    assert set(CODE_STATUS.values()) == {"include", "pending", "exclude"}
+    assert [c for c, s in CODE_STATUS.items() if s == "include"] == ["license_allows"]
+
+
+@pytest.mark.parametrize(
+    ("over", "message"),
+    [
+        ({"reason_code": "nc_or_nd", "status": "include"}, "goes with status pending"),
+        (
+            {"reason_code": "license_allows", "status": "pending", "reason": "?"},
+            "license_allows goes with status include, but status is pending",
+        ),
+        (
+            {"reason_code": "bulk_clause", "status": "exclude", "reason": "x"},
+            "bulk_clause needs bulk_clause forbids",
+        ),
+        (
+            {"reason_code": "refused_requests", "status": "pending", "reason": "?"},
+            "refused_requests needs robots blocked",
+        ),
+        (
+            {"reason_code": "nc_or_nd", "status": "pending", "reason": "?"},
+            "nc_or_nd needs a NonCommercial or NoDerivatives license",
+        ),
+        (
+            {"reason_code": "third_party_portal", "status": "exclude", "reason": "x"},
+            "third_party_portal needs kind portal",
+        ),
+        (
+            {"reason_code": "no_license", "status": "pending", "reason": "?"},
+            "no_license needs license NOASSERTION",
+        ),
+    ],
+)
+def test_a_code_must_fit_the_row(over, message):
+    out = reason_code_problems(parse_row(row(**over)))
+    assert any(message in p for p in out), out
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {},
+        {
+            "reason_code": "bulk_clause",
+            "status": "exclude",
+            "reason": "x",
+            "bulk_clause": "forbids",
+            "quote_bulk": "Do not republish all our stories.",
+        },
+        {
+            "reason_code": "refused_requests",
+            "status": "pending",
+            "reason": "can the maintainer read it?",
+            "robots": "blocked",
+        },
+        {
+            "reason_code": "nc_or_nd",
+            "status": "pending",
+            "reason": "?",
+            "license": "CC-BY-NC-ND-4.0",
+        },
+        {"reason_code": "site_unavailable", "status": "pending", "reason": "back later?"},
+        {"reason_code": "conflicting_statements", "status": "pending", "reason": "which one?"},
+    ],
+)
+def test_codes_that_fit(over):
+    src = parse_row(row(**over))
+    assert reason_code_problems(src) == []
+    assert rule_problems(src, TODAY) == []
+
+
+def test_state_and_church_agencies_and_listing_pages_are_known():
+    for kind in ("state-agency", "church-agency"):
+        assert parse_row(row(kind=kind)).kind == kind
+    assert parse_row(row(access="listing")).access == ("listing",)
 
 
 # ---- quotes ----

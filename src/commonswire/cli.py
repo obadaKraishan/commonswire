@@ -275,6 +275,21 @@ def cmd_sources_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_audit_compare(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.audit import compare, counts, read_other_lists, write_comparison
+    from commonswire.sources import load_sources
+
+    registry = load_sources(Path(args.sources))
+    other = read_other_lists(Path(args.lists), registry)
+    rows = compare(registry, other)
+    write_comparison(rows, Path(args.out))
+    print(f"wrote {args.out} ({len(rows)} publishers, {len(other)} facts from other lists)")
+    print(json.dumps(counts(rows), indent=2, sort_keys=True))
+    return 0
+
+
 def _wordpress_fetcher(root: Path, source_id: str, sources_path: str):  # type: ignore[no-untyped-def]
     from commonswire.fetchers import WORDPRESS
     from commonswire.fetchers.base import ReplayStore
@@ -1097,6 +1112,16 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     render.add_argument("--out", default=str(repo_root() / "docs" / "sources.md"))
     render.set_defaults(func=cmd_sources_render)
+
+    aud = sub.add_parser("audit", help="compare the registry with other lists of open news")
+    aud_sub = aud.add_subparsers(dest="audit_command", metavar="STEP", required=True)
+    cmp_ = aud_sub.add_parser(
+        "compare", help="write data/audit/comparison.csv and print the counts (no requests)"
+    )
+    cmp_.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    cmp_.add_argument("--lists", default=str(repo_root() / "data" / "audit" / "other_lists.csv"))
+    cmp_.add_argument("--out", default=str(repo_root() / "data" / "audit" / "comparison.csv"))
+    cmp_.set_defaults(func=cmd_audit_compare)
 
     val = sub.add_parser("validate", help="check a JSON Lines file of articles")
     val.add_argument("file")

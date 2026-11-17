@@ -7,6 +7,25 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Reason codes in the source registry.** A `reason_code` column (before `reason`) gives the
+  reason for each source's status as one code from a fixed list: `license_allows` for
+  `include`; `bulk_clause`, `tracker_required`, `terms_forbid_automation`, `robots_forbid`,
+  `third_party_portal` and `rights_reserved` for `exclude`; `nc_or_nd`, `no_license`,
+  `conflicting_statements`, `partial_license`, `extra_conditions`, `third_party_unclear`,
+  `refused_requests` and `site_unavailable` for `pending`. `sources check` refuses a code that
+  does not go with the row's status or with the field it names (for example `bulk_clause`
+  without `bulk_clause=forbids`). The free-text `reason` stays. A registry without the column
+  (the `sources.csv` that versions 0.1.x and 0.2.x ship) is still read, with no code required,
+  so the weekly update of a 0.2.x version is unchanged. The Kaggle metadata lists the columns
+  a version's `sources.csv` has.
+- Two source kinds, `state-agency` (a news agency or site run or paid for by a state) and
+  `church-agency`, and the access route `listing` (archive listing pages). Like `official`
+  and `advocacy`, these kinds get a verdict but are not collected unless the maintainer
+  decides so.
+- `commonswire audit compare`: joins the registry with `data/audit/other_lists.csv` (what other
+  lists of openly licensed news say about each publisher, with where and when it was read)
+  into `data/audit/comparison.csv`, one row per publisher, and prints the counts by status and
+  reason code, overall and for the publishers each list tags as openly licensed. No requests.
 - `commonswire update`: the weekly update in one command, from a published version in a
   folder (downloaded or local) to the next version, built and checked, in another folder,
   with no state of its own. It reads each source that still publishes over the last 30 days

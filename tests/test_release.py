@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -63,7 +64,13 @@ def registry_csv(tmp_path):
         for s, (n, k, lic, c) in TEMPLATES.items()
     ]
     rows.append(
-        row(source_id="delta", name="Delta", status="pending", reason="Does it allow bulk use?")
+        row(
+            source_id="delta",
+            name="Delta",
+            status="pending",
+            reason_code="extra_conditions",
+            reason="Does it allow bulk use?",
+        )
     )
     return write_csv(tmp_path, rows)
 
@@ -741,3 +748,22 @@ def test_archive_leaves_out_the_request_log_and_needs_zenodo_json(tmp_path):
     subprocess.run([*git, "add", ".zenodo.json"], check=True)
     subprocess.run([*git, "commit", "-qm", "y"], check=True)
     assert main(["--root", str(repo), "release", "zenodo", "--version", "9.9.0"]) == 0
+
+
+def test_kaggle_lists_the_registry_columns_a_version_has(tmp_path, series):
+    from commonswire.release_pack import kaggle_folder
+    from commonswire.sources import LEGACY_FIELDS
+
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    # A version of series 0.1 or 0.2 ships the registry without reason_code.
+    with (out / "sources.csv").open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    with (out / "sources.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=LEGACY_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    meta = json.loads((kaggle_folder(out, tmp_path / "k") / "dataset-metadata.json").read_text())
+    by = {r["path"]: r for r in meta["resources"]}
+    names = [f["name"] for f in by["sources.csv"]["schema"]["fields"]]
+    assert names == LEGACY_FIELDS and "reason_code" not in names

@@ -61,9 +61,53 @@ SOURCE_FIELDS = [
     "archive_from",
     "credit_line",
     "status",
+    "reason_code",
     "reason",
     "notes",
 ]
+#: The registry's columns before ``reason_code`` was added. Versions 0.1.x and 0.2.x ship a
+#: ``sources.csv`` with this header, so it is still read; its rows have no reason code.
+LEGACY_FIELDS = [f for f in SOURCE_FIELDS if f != "reason_code"]
+
+#: Why a source has its status: one code per row, from this fixed list (the free-text
+#: ``reason`` stays). The status each code goes with is in :data:`CODE_STATUS`.
+REASON_CODES: dict[str, str] = {
+    "license_allows": "a license or public-domain statement allows unchanged redistribution, "
+    "and nothing on the publisher's pages conflicts",
+    "nc_or_nd": "a NonCommercial or NoDerivatives license, silent on bulk use",
+    "bulk_clause": "a clause against systematic, wholesale, bulk or automatic republishing",
+    "tracker_required": "republishing requires a tracking pixel or counter",
+    "terms_forbid_automation": "the terms of use forbid automated collection",
+    "robots_forbid": "robots.txt forbids the pages or feeds used",
+    "third_party_portal": "a portal of other outlets' stories, with no license to them",
+    "rights_reserved": "all rights reserved: no license allows redistribution",
+    "no_license": "no license is named (no statement, or a permission of the publisher's own)",
+    "conflicting_statements": "the publisher's own pages contradict each other on the license",
+    "partial_license": "the license covers only some of the publisher's articles, which needs "
+    "the maintainer's decision",
+    "extra_conditions": "conditions added to the license that the corpus cannot meet",
+    "third_party_unclear": "no way to tell the publisher's own articles from third-party ones",
+    "refused_requests": "the site refused scripted requests, so its pages could not be read",
+    "site_unavailable": "the site was not there to read (suspended or gone)",
+}
+#: The status each reason code goes with.
+CODE_STATUS: dict[str, str] = {
+    "license_allows": "include",
+    "bulk_clause": "exclude",
+    "tracker_required": "exclude",
+    "terms_forbid_automation": "exclude",
+    "robots_forbid": "exclude",
+    "third_party_portal": "exclude",
+    "rights_reserved": "exclude",
+    "nc_or_nd": "pending",
+    "no_license": "pending",
+    "conflicting_statements": "pending",
+    "partial_license": "pending",
+    "extra_conditions": "pending",
+    "third_party_unclear": "pending",
+    "refused_requests": "pending",
+    "site_unavailable": "pending",
+}
 
 QUOTE_FIELDS = ("quote_license", "quote_bulk", "quote_attribution", "quote_terms")
 MAX_QUOTE = 300
@@ -103,11 +147,18 @@ RESTRICTED_LICENSES = frozenset(
 )
 KNOWN_LICENSES = OPEN_LICENSES | RESTRICTED_LICENSES | {NO_LICENSE, ALL_RIGHTS_RESERVED}
 
-Kind = Literal["news", "official", "advocacy", "fact-check", "portal"]
+#: ``state-agency`` is a news agency or news site run or paid for by a state; ``church-agency``
+#: one run by a church. Like ``official`` and ``advocacy``, they get a verdict but are not
+#: collected unless the maintainer decides so.
+Kind = Literal[
+    "news", "fact-check", "official", "advocacy", "portal", "state-agency", "church-agency"
+]
+#: The kinds that are collected when their status is ``include``.
+COLLECTED_KINDS = frozenset({"news", "fact-check"})
 Clause = Literal["allows", "silent", "forbids"]
 Robots = Literal["allows", "forbids", "none", "blocked"]
 Status = Literal["include", "pending", "exclude"]
-ACCESS = frozenset({"dump", "api", "feed", "sitemap"})
+ACCESS = frozenset({"dump", "api", "feed", "sitemap", "listing"})
 
 _ID = re.compile(r"^[a-z0-9][a-z0-9_]*$")
 _LANG = re.compile(r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$")
@@ -146,6 +197,7 @@ class Source(BaseModel):
     archive_from: str = ""
     credit_line: str = ""
     status: Status
+    reason_code: str = ""
     reason: str = ""
     notes: str = ""
 
@@ -211,6 +263,13 @@ class Source(BaseModel):
             f"unknown license {v!r}: use an SPDX id such as CC-BY-4.0, public-domain, "
             "NOASSERTION (no license named) or a LicenseRef- name"
         )
+
+    @field_validator("reason_code")
+    @classmethod
+    def _reason_code(cls, v: str) -> str:
+        if v and v not in REASON_CODES:
+            raise ValueError(f"unknown reason code {v!r}; use one of {', '.join(REASON_CODES)}")
+        return v
 
     @field_validator("est_articles_per_day", mode="before")
     @classmethod
@@ -348,11 +407,14 @@ def rule_problems(src: Source, today: date | None = None) -> list[str]:
     return out
 
 
-def read_rows(path: Path) -> list[dict[str, str]]:
+def read_registry(path: Path) -> tuple[list[dict[str, str]], bool]:
+    """The registry's rows, and whether its header carries ``reason_code``. Both the current
+    header (:data:`SOURCE_FIELDS`) and the one versions 0.1.x and 0.2.x ship
+    (:data:`LEGACY_FIELDS`) are read; any other header is refused."""
     with Path(path).open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
-        if reader.fieldnames != SOURCE_FIELDS:
-            missing = [f for f in SOURCE_FIELDS if f not in (reader.fieldnames or [])]
+        if reader.fieldnames not in (SOURCE_FIELDS, LEGACY_FIELDS):
+            missing = [f for f in LEGACY_FIELDS if f not in (reader.fieldnames or [])]
             extra = [f for f in (reader.fieldnames or []) if f not in SOURCE_FIELDS]
             detail = []
             if missing:
@@ -363,7 +425,11 @@ def read_rows(path: Path) -> list[dict[str, str]]:
                 f"{path}: the header must list the registry columns in order"
                 + (f" ({'; '.join(detail)})" if detail else "")
             )
-        return list(reader)
+        return list(reader), reader.fieldnames == SOURCE_FIELDS
+
+
+def read_rows(path: Path) -> list[dict[str, str]]:
+    return read_registry(path)[0]
 
 
 def parse_row(row: Mapping[str, str]) -> Source:
@@ -379,9 +445,40 @@ def _plain_errors(exc: ValidationError) -> list[str]:
     return out
 
 
+def reason_code_problems(src: Source) -> list[str]:
+    """A registry that has the ``reason_code`` column needs a code on every row, and the code
+    must fit the row: its status, and the field that the code names."""
+    code = src.reason_code
+    if not code:
+        return [f"give reason_code, one of: {', '.join(REASON_CODES)}"]
+    out = []
+    if CODE_STATUS[code] != src.status:
+        out.append(
+            f"reason_code {code} goes with status {CODE_STATUS[code]}, but status is {src.status}"
+        )
+    needs: dict[str, tuple[bool, str]] = {
+        "bulk_clause": (src.bulk_clause == "forbids", "bulk_clause forbids"),
+        "tracker_required": (src.tracking_required == "yes", "tracking_required yes"),
+        "terms_forbid_automation": (src.terms_automation == "forbids", "terms_automation forbids"),
+        "robots_forbid": (src.robots == "forbids", "robots forbids"),
+        "third_party_portal": (src.kind == "portal", "kind portal"),
+        "rights_reserved": (src.license_family == "closed", "a license that reserves all rights"),
+        "nc_or_nd": (
+            src.license_family == "restricted",
+            "a NonCommercial or NoDerivatives license",
+        ),
+        "no_license": (src.license_family == "none", "license NOASSERTION (no license named)"),
+        "refused_requests": (src.robots == "blocked", "robots blocked"),
+    }
+    ok, what = needs.get(code, (True, ""))
+    if not ok:
+        out.append(f"reason_code {code} needs {what}")
+    return out
+
+
 def validate_sources(path: Path, today: date | None = None) -> tuple[list[Source], list[str]]:
     """Read and check the registry. Returns the valid rows and every problem found."""
-    rows = read_rows(path)
+    rows, coded = read_registry(path)
     sources: list[Source] = []
     problems: list[str] = []
     seen: dict[str, int] = {}
@@ -400,6 +497,8 @@ def validate_sources(path: Path, today: date | None = None) -> tuple[list[Source
             problems.append(f"{label}: homepage is also on line {homes[src.homepage]}")
         homes.setdefault(src.homepage, line)
         problems += [f"{label}: {m}" for m in rule_problems(src, today)]
+        if coded:
+            problems += [f"{label}: {m}" for m in reason_code_problems(src)]
         sources.append(src)
     return sources, problems
 
