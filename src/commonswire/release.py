@@ -52,6 +52,19 @@ SERIES: dict[tuple[int, int], tuple[str, ...]] = {
         "altnews",
         "globalvoices",
     ),
+    # Series 0.3 adds the publishers read from their article pages (rights audit of
+    # 2026-11-16): SciDev.Net and Africa Is a Country.
+    (0, 3): (
+        "wikinews_en",
+        "360info",
+        "thepublicrecord",
+        "balkandiskurs",
+        "factly",
+        "altnews",
+        "globalvoices",
+        "scidevnet",
+        "africasacountry",
+    ),
 }
 #: The first series whose rows carry ``translators`` (after ``authors``); older series keep
 #: the columns they were published with.

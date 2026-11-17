@@ -960,6 +960,44 @@ def _corpus_report(root: Path) -> dict | None:
     return json.loads(path.read_text())
 
 
+def cmd_release_build_from(args: argparse.Namespace) -> int:
+    """A version of a new series: the previous version's rows plus the new sources' (no
+    requests)."""
+    from commonswire.minor import build_from_previous
+    from commonswire.release import ReleaseError
+    from commonswire.sources import load_sources
+
+    root = Path(args.root)
+    out = Path(args.out)
+    registry = load_sources(Path(args.sources))
+    try:
+        manifest, problems = build_from_previous(
+            root,
+            Path(args.from_dir),
+            args.version,
+            out,
+            registry_path=Path(args.sources),
+            registry=registry,
+            takedowns_path=Path(args.takedowns),
+            baseline_path=Path(args.baseline),
+            note=args.note or "",
+        )
+    except ReleaseError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    built = manifest["built_from"]
+    per = manifest["rows_by_configuration"]
+    print(
+        f"version {args.version} from {built['from_version']} plus "
+        f"{', '.join(built['new_sources']) or 'no new source'}: {manifest['rows']:,} rows ("
+        + ", ".join(f"{c} {n:,}" for c, n in per.items())
+        + f"); held {len(manifest['held_rows'])}; in {out}"
+    )
+    for problem in problems:
+        print(f"release check: {problem}", file=sys.stderr)
+    return 1 if problems else 0
+
+
 def cmd_release_build(args: argparse.Namespace) -> int:
     """Write data/release/<version>/ from the built rows (no requests)."""
     from commonswire.release import ReleaseError, collect, verify, write_release
@@ -1339,6 +1377,18 @@ def build_parser() -> argparse.ArgumentParser:
     rb.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     rb.add_argument("--overwrite", action="store_true", help="rewrite an unpublished version")
     rb.set_defaults(func=cmd_release_build)
+    rf = rel_sub.add_parser(
+        "build-from",
+        help="a new series' version: a published version's rows plus new sources (no requests)",
+    )
+    rf.add_argument("--from", dest="from_dir", required=True, help="the published version")
+    rf.add_argument("--version", required=True, help="the new version, such as 0.3.0")
+    rf.add_argument("--out", required=True, help="the new version's folder (new or empty)")
+    rf.add_argument("--note", help="recorded in the manifest as not_a_release (test builds)")
+    rf.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    rf.add_argument("--takedowns", default=str(repo_root() / "data" / "takedowns.csv"))
+    rf.add_argument("--baseline", default=str(repo_root() / "data" / "update-baseline.json"))
+    rf.set_defaults(func=cmd_release_build_from)
     rc = rel_sub.add_parser("check", help="check a written version against its manifest")
     rc.add_argument("--version", required=True)
     rc.set_defaults(func=cmd_release_check)
