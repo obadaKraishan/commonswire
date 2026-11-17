@@ -268,6 +268,56 @@ page, quoted as read on the date checked.
     Liberty TV Radio (10,358).
   - Its code also lists Caravanserai as Public Domain, commented out.
 
+## Language editions (read on 2026-11-17)
+Each language edition of an included publisher is a registry row of its own (`edition_of`
+names the publisher's main row). It is ruled on its own pages: its home page and its license
+footer, its robots.txt, one article page, and its policy or copyright page where one was
+found. The main row's verdict is never carried over.
+
+A license line is quoted in the edition's own language, word for word, with the address it
+links to. An English gloss beside it in the notes is marked "(gloss)" and is this project's.
+
+- **Found:**
+  - 51 Global Voices Lingua sites, listed on its Lingua page;
+  - 32 Wikinews editions: 31 linked from its portal, and the Russian one, linked from the
+    English copyright page;
+  - Alt News' Hindi edition, linked from its English home page;
+  - Balkan Diskurs' Bosnian site (its `hreflang`).
+
+  Not found on their own pages: SciDev.Net's other editions (its root and sitemap index list
+  only `/global/`), and editions of 360info, The Public Record and Africa Is a Country.
+- **Factly's Telugu stories are on its main site,** in its "Telugu" category (4,532 posts),
+  not on an edition of their own. Versions 0.1.0 to 0.2.2 label them `en`; series 0.3 takes
+  the language from Factly's own category.
+- **Verdicts:** 1 `include` and 84 `pending`; none excluded.
+  - **Balkan Diskurs (Bosnian): `include`.** Its own attribution policy, in Bosnian, puts
+    "Sav sadržaj kreiran na Balkan Diskursu" (all content created on Balkan Diskurs) under
+    CC BY.
+  - **47 Global Voices editions: `pending` (`third_party_unclear`).** Each footer states
+    CC BY 3.0 in its own language and links it; robots.txt allows the pages and the API. But
+    the edition's own pages read do not say how others' material is marked. The question is
+    whether Global Voices' attribution policy, on its English site ("all content published on
+    Global Voices", "our sites"), covers them.
+  - **4 Global Voices editions: `pending` (`statement_unread`).**
+    - Amharic, Igbo and Santali: statements this project could not read with confidence.
+    - Yoruba: its footer shows an unfilled template placeholder where the license should be
+      named.
+  - **32 Wikinews editions: `pending` (`partial_license`).**
+    - All are closed and read-only since 4 May 2026 (the Foundation's notice), so their route
+      is the dump.
+    - Each footer names today's license: CC BY 4.0 on 26, CC BY-SA 4.0 on Arabic, Persian,
+      French and Swedish, CC BY 2.5 on German, CC BY 3.0 on Hungarian.
+    - Older articles carry other licenses, or are in the public domain, by dates that differ
+      from edition to edition. These are read from each copyright page where one was found
+      (25 of 32).
+  - **Alt News (Hindi): `pending` (`conflicting_statements`).** Its footer says both "CC BY
+    3.0 के तहत लाइसेंस प्राप्त" (licensed under CC BY 3.0) and "सर्वाधिकार सुरक्षित" (all rights
+    reserved), with no license link.
+- **Translations.** Global Voices editions credit the writer and the translator in separate,
+  localized credit sections (for example "Escrito por" and "Traducido por"). An article lists
+  the story's other language versions; 43 of the 47 article pages read link a post on
+  another Global Voices site. The markup read does not mark which version is the original.
+
 ## The audit in the release
 - **Version 0.3.0's `sources.csv`** carries the `reason_code` column. Every published version
   already ships the registry as it was when the version was built.
