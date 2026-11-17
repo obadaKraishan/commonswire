@@ -4,7 +4,10 @@ This is the text of the dataset card of version 0.2.0, as `commonswire release b
 0.2.0` writes it (`data/release/<version>/README.md`, the card on Hugging Face). Version 0.2.0
 was published on 2026-11-14 (tag `v0.2.0`); the card of version 0.1.0 stays under the tag
 `v0.1.0`. The weekly versions after it (0.2.1, 0.2.2, ...) have the same card with their own
-counts and a section "This update"; the current one is on Hugging Face. Version 0.2.0's metadata block, which Hugging Face reads for the license and the configurations,
+counts and a section "This update"; the current one is on Hugging Face. The paragraph on
+removals at the source (under "Removals and corrections") is given below as the card has it
+from the version after 0.2.2, when the count check of older articles was added; 0.2.0's card
+said that older articles were not checked again yet. Version 0.2.0's metadata block, which Hugging Face reads for the license and the configurations,
 is:
 
 ```yaml
@@ -179,11 +182,13 @@ every file.
   honored, and a user agent that names the project. Blocks are never worked around.
 
 ## Removals and corrections
-- **At the source.** Each update looks again at the last 30 days of every source that still
-  publishes: an article
-  edited at its source gets its new text and status `changed` in the next version, and an
-  article removed at its source is dropped from the next version. Older articles are not
-  checked again yet; a monthly check is planned.
+- **At the source.** Each update asks every source that still publishes for the articles it
+  published or edited in the last 30 days. An article edited at its source, however old, gets
+  its new text and status `changed` in the next version; an article of the last 30 days that
+  was removed at its source is dropped from the next version. For older articles, each update
+  also compares every source's post count per year with the counts of the version before; in
+  a year whose count fell, it lists that year's posts and drops each article whose page is
+  gone. A removal offset by a back-dated post in the same year is missed.
 - **On request.** Publishers, writers and people named in an article can ask for a removal or a
   correction with the [takedown and correction form](https://github.com/obadaKraishan/commonswire/issues/new?template=takedown.yml). Requests are answered
   within 14 days. An article taken down goes on a list of ids (`data/takedowns.csv` in the

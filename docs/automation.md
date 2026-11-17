@@ -137,6 +137,11 @@ drive.
    - their own page (360info, The Public Record, Balkan Diskurs: one request each);
    - for Global Voices, its story listing from page 1 on, until every new story is found with
      its credit block. The writers and translators are kept apart.
+
+   Then the **count check** of older rows (section 5): for each year of the source's archive,
+   the site's post count, compared with the counts the published version recorded. A year
+   whose count fell is listed, and the page of each released row missing from that listing is
+   read once (404 or 410: removed).
 4. **It builds the next version.** That is the published rows, plus the new ones, with the
    changed ones replaced, minus the removed ones and the takedown list. The build uses
    `release build`'s own code:
@@ -147,9 +152,10 @@ drive.
 
    Then `release check` runs on the files, and Hugging Face's validator on the card.
 5. **It stops after the build** when:
-   - a source refused, failed or ran over its byte budget (100 MB a source, 300 MB a run). That
-     source's rows are carried over unchanged and the source is named; a refusal is never
-     worked around;
+   - a source refused, failed or ran over its byte budget (100 MB a source, 300 MB a run), or
+     a drop in its counts needed more requests than the run allows (section 5). That source's
+     rows are carried over unchanged and the source is named; a refusal is never worked
+     around;
    - a check failed;
    - the version would shrink by more than 1% in all, or for one source by more than 1% and
      more than 10 rows.
@@ -160,14 +166,14 @@ drive.
    summary.
 
 **Held rows are not published**, so the manifest carries what the next run needs: the ids of
-held rows, with source, day and reason (never an address or a name), and the count of
-third-party posts dropped. Version 0.2.0 was built before updates existed, so its 275 held
+held rows, with source, day and reason (never an address or a name), the count of
+third-party posts dropped, and each source's post counts per year (`post_counts`). Version 0.2.0 was built before updates existed, so its 275 held
 rows and its count of 2,476 third-party posts are in `data/update-baseline.json`. That file is
 checked against 0.2.0's manifest (by SHA-256) and against its card.
 
 **Edits and removals.** The edited-since listing covers articles of every age, so an article
-corrected at its source, however old, gets its new text in the next version. Removals are
-checked only for the last 30 days (section 5 gives the options for older ones).
+corrected at its source, however old, gets its new text in the next version. Removals of the
+last 30 days are found by the listing; older ones by the count check (section 5).
 
 **What the run shows in public.** The run's log, its job summary and the pull request carry
 counts, ids and hosts only: never article text, a title, a name or an article's address. An
@@ -283,7 +289,8 @@ takedown requests and writes the failure issue.
 
 ## 5. Removed and corrected articles older than 30 days
 Edits of any age are already caught (section 2). A WordPress site lists no deleted posts, so
-older removals take extra requests. The options, with their weekly cost in requests:
+older removals take extra requests. Three options were weighed, with their weekly cost in
+requests as estimated on 2026-11-14 (the dry run below counted 80 years, not 67):
 
 | Option | Requests a week | Finds |
 |---|---|---|
@@ -291,8 +298,77 @@ older removals take extra requests. The options, with their weekly cost in reque
 | B. Rolling re-check: a fixed number of old article pages a week, oldest checked first. | 200 (about 20 MB) | about 200 of 149,000 rows a week, so the whole corpus every 14 years: an estimate of the removal rate, not a check |
 | C. Full id listing (`_fields=id,link`, 100 a page) once a month. | about 1,500 a month (Global Voices alone has 1,045 pages, about 3 hours at its 10-second crawl-delay) | every removal, up to a month late |
 
-A is the option chosen. It is cheap in requests and finds removals in the week they happen.
-It is not built yet; until it is, removals of articles older than 30 days are not checked.
+**A is built** (`commonswire.counts`, inside `commonswire update`; merged after its dry run of
+2026-11-17). How it works:
+
+- **The counts.** For each source that still publishes and each year of its archive (from
+  the year of its oldest released row), one request:
+  `/wp-json/wp/v2/posts?per_page=1&after=...&before=...&_fields=id`, read from the
+  `X-WP-Total` header. A past year is counted whole; the current year up to the day before the
+  run, since every site's time zone has published those days by then. The manifest keeps the
+  counts (`post_counts`: per source and year, the count and the day its range ends).
+- **The comparison.** The next update reads the same ranges again. The current year takes
+  one more request: the days the previous version counted (to compare) and the longer range
+  (to record). The compared range reaches past the start of the 30-day window, so every
+  older post is covered by one or the other.
+- **No counts yet.** A version without `post_counts` (0.2.2 and every version before it)
+  makes the run a baseline run: it records the counts and compares nothing, and says so in
+  its summary and in the card. The run of 2026-11-23 is the baseline run; the run of
+  2026-11-30 is the first to compare.
+- **A count that fell.** The run lists that year's posts (links only, 100 a page, with two
+  days added on each side, so that a row's day in UTC and the site's own day cannot fall on
+  different sides of the edge) and reads, once, the page of each released row missing from
+  that listing, logged by its id. 404 or 410: the row is removed, as in the window. Any other
+  answer: the row stays and is counted (`rows_kept`). A fall that the window's own removals
+  explain (a removal of the last 30 days inside the compared range) is not listed. Rows the
+  run has already read (listed in the window, edited or checked) are not checked again.
+- **A count that rose.** A back-dated or restored post. Today's rules already take it: its
+  modified date falls in the window, so the edited-since listing reads it, and `daily`'s rules
+  make it a new row (or hold or drop it). Nothing more is done; the rise is reported.
+- **The ceiling.** The requests that drops may cost in one run (listing pages and page
+  checks, over all sources) are limited to 200 (`--max-count-requests`). The largest year of
+  any source, Global Voices' 2007 (14,967 posts), takes 150 listing pages, which leaves 50
+  page checks; at its 10-second crawl-delay that is about 33 minutes. Before a year is
+  listed, the run checks that its pages fit (its count divided by 100, plus 2), and before the
+  page checks, that the missing rows fit. Past the ceiling the source stops, named with the
+  year (status `over_ceiling`): a removal on that scale is for the maintainer to look at.
+  Its rows and its previous counts are carried over, so the drop is still there the next
+  week. A manual run with `allow_skipped` delivers the other sources meanwhile.
+- **A source that refuses the count requests** is skipped like any refusing source
+  (section 2, step 5), and its previous counts are carried over.
+- **What it misses.** A removal offset by a back-dated post in the same range in the same
+  week; and older posts published between two runs more than 29 days apart, which the window
+  no longer reaches and the previous counts did not cover.
+- **What it shows.** The summary and the pull request's description get one line per
+  source: years checked, drops (year and size), rises, rows checked and rows removed. Counts
+  and years only.
+
+### The count check's dry run (2026-11-17)
+One dry run from the maintainer's Mac, from version 0.2.2 as published on Hugging Face's
+`main` (commit `b61cbc8d`), on 2026-11-17 from 00:05:54 UTC. It was a baseline run, since
+0.2.2 has no counts: 80 years were recorded and nothing was compared.
+
+| Source | Years | Count requests | All requests | Bytes | Posts counted | Rows released (0.2.2) |
+|---|---|---|---|---:|---:|---:|
+| 360info | 2021 to 2026 (6) | 6 | 10 | 267,761 | 2,425 | 2,401 |
+| Alt News | 2016 to 2026 (11) | 11 | 16 | 530,126 | 5,822 | 5,804 |
+| Balkan Diskurs | 2014 to 2026 (13) | 13 | 17 | 147,076 | 897 | 880 |
+| Factly | 2014 to 2026 (13) | 13 | 19 | 883,079 | 15,161 | 15,108 |
+| Global Voices | 2004 to 2026 (23) | 23 | 32 | 1,424,106 | 104,481 | 101,566 |
+| The Public Record | 2013 to 2026 (14) | 14 | 20 | 604,341 | 2,773 | 2,754 |
+| **All** | 80 | 80 | 114 | 3,856,489 | 131,559 | 128,513 |
+
+- 114 requests (80 of them counts, 1,133 bytes of answers between them), 3.86 MB, 782 s
+  (13 minutes; the update of 2026-11-16 took 430 s on GitHub's runner, and the first dry
+  run, with no counts, 510 s from the same Mac). Every
+  answer was 200 but Global Voices' usual 301; no source refused.
+- 0.2.2 to 0.2.3: 4 new, 2 changed, 0 removed, 275 held; every check passed. Being a dry
+  run, it was never to be delivered, and its folder is never uploaded.
+- The sites count a little more than the released rows (Global Voices 104,481 posts, 101,566
+  rows): their counts include the third-party and held posts.
+- **The weekly cost from 2026-11-30:** 86 count requests (80, plus one for each source's
+  current year), about 5 minutes more per run, most of it Global Voices' 24 at 10 seconds. A week with a
+  drop costs up to 200 more.
 
 ## 6. Switching it on, and off
 It is switched on in mode `pull-request`, with:

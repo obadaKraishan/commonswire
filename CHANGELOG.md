@@ -49,6 +49,21 @@ All notable changes to this project are documented here. The format follows
   cite" section in the README, `doi` and `identifiers` in `CITATION.cff`, and a line in the
   dataset card from the next version on.
 
+- The count check of older rows, inside `commonswire update` (`commonswire.counts`): for
+  each source that still publishes and each year of its archive, one request reads the
+  site's post count (`per_page=1`, the `X-WP-Total` header), and the version's manifest keeps
+  the counts (`post_counts`). The next update compares the same ranges. A year whose count
+  fell is listed (links only), and the page of each released row missing from that listing is
+  read once: 404 or 410 removes the row, by the window's own rule, and any other answer leaves
+  it in place, counted. A fall the window's own removals explain is not listed, a rise is
+  reported (the edited-since listing already takes a back-dated post as a new row), and
+  a version with no counts makes the run a baseline run that records them and compares
+  nothing. The requests drops may cost in one run have a ceiling (`--max-count-requests`,
+  200 by default, over all sources: Global Voices' largest year takes 150 listing pages);
+  past it the source stops, named with the year. The
+  summary and the pull request's description give one line per source: years checked, drops,
+  rises, rows checked and rows removed.
+
 ### Changed
 - `docs/automation.md` describes the weekly update as built: what GitHub and Hugging Face
   allow (with links), the run's steps and stops, the delivery modes and their risks, the
@@ -72,6 +87,9 @@ All notable changes to this project are documented here. The format follows
 - The README's status line no longer names a version or row counts; it points to the dataset
   card on Hugging Face for the current version. The README and the docs say the dataset is
   updated weekly by an automatic run that the maintainer approves.
+- `docs/automation.md`, section 5, describes the count check as built, with its dry run of
+  2026-11-17 (a baseline run from 0.2.2: 80 years counted with 80 requests); the README,
+  `docs/method.md` and `docs/data-card.md` say how older removals are found.
 - `docs/automation.md` records the first weekly run on GitHub (0.2.0 to 0.2.1, 2026-11-15):
   per source, the requests, the checks and the time it took, in place of the estimate, and
   that Hugging Face opens the weekly pull request as a draft.
@@ -83,6 +101,10 @@ All notable changes to this project are documented here. The format follows
   longer compares the rows with the local corpus report, which describes the last local build
   and so falls short by the week's new rows; it prints one line saying the comparison was
   skipped. A locally built version is compared as before.
+- Two rows removed in the same update were taken for copies of each other (a removed row
+  keeps the hash of the empty text), so the second was counted as an exact duplicate instead
+  of a removal. Removed rows now stay out of the duplicate checks; both were left out of the
+  release either way, and no published version had two.
 
 ## [0.2.0] - 2026-11-14
 

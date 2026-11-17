@@ -1034,6 +1034,7 @@ def cmd_update(args: argparse.Namespace) -> int:
             open_takedowns=args.open_takedowns,
             open_dataset_prs=args.open_dataset_prs,
             allow_skipped=frozenset(filter(None, (args.allow_skipped or "").split(","))),
+            max_count_requests=args.max_count_requests,
             dry_run=args.dry_run,
             offline=args.offline,
             say=lambda m: print(redact(m), flush=True),
@@ -1250,6 +1251,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--open-dataset-prs", type=int, default=0, help="open pull requests on the dataset"
     )
     up.add_argument("--allow-skipped", help="sources that may be skipped without a stop")
+    up.add_argument(
+        "--max-count-requests",
+        type=int,
+        default=200,
+        help="requests the count check may spend on drops in one run (default: 200)",
+    )
     up.add_argument("--now", help="the run's time (ISO 8601; default: now)")
     up.add_argument(
         "--dry-run", action="store_true", help="mark the build as never to be delivered"

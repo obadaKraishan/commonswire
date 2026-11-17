@@ -222,6 +222,25 @@ def test_collect_dedups_checks_and_groups(tmp_path, series):
     assert {x["status"] for x in r.rows["by-sa"]} == {"live", "changed"}
 
 
+def test_two_removed_rows_are_both_counted_as_removed_not_as_duplicates(tmp_path, series):
+    rows_dir = corpus(tmp_path)
+    gone = article("alpha", 8, "Another invented story later removed.", days=9)
+    gone = {**gone, "text": "", "content_hash": text_hash(""), "status": "removed"}
+    with (rows_dir / "alpha.jsonl").open("a") as fh:
+        fh.write(json.dumps(gone) + "\n")
+    (tmp_path / "data" / "takedowns.csv").write_text(
+        f"id,requested_on,basis\n{gone['id']},2026-11-16,x\n"
+    )
+    r = collect(tmp_path, "9.9.0", load_sources(registry_csv(tmp_path)))
+    # Both have the empty text's hash; neither is taken for a copy of the other.
+    assert dict(r.checks.exact_duplicates) == {"same_text:beta": 1}
+    assert dict(r.checks.removed) == {"alpha": 1} and dict(r.checks.taken_down) == {"alpha": 1}
+    (tmp_path / "data" / "takedowns.csv").write_text("id,requested_on,basis\n")
+    r = collect(tmp_path, "9.9.0", load_sources(registry_csv(tmp_path)))
+    assert dict(r.checks.removed) == {"alpha": 2}
+    assert dict(r.checks.exact_duplicates) == {"same_text:beta": 1}
+
+
 def test_collect_refuses_missing_rows_and_unknown_sources(tmp_path, series, monkeypatch):
     registry = load_sources(registry_csv(tmp_path))
     with pytest.raises(ReleaseError, match="no rows for alpha, beta, gamma"):

@@ -55,7 +55,9 @@ print(articles[0]["title"], articles[0]["credit_line"])
   Kaggle mirror follows about once a month. Each update asks every source that still
   publishes for what it published or edited in the last 30 days. An article corrected at its source, however old, gets its new text and the status
   `changed`. An article of those 30 days removed at its source, or any article taken down on
-  request, is left out of the next version.
+  request, is left out of the next version. For older articles, each update compares every
+  source's post count per year with the version before and leaves out an article whose page
+  is gone (from the update of 2026-11-30; the one before records the first counts).
 
 ## What it is not
 - It is **not every news outlet.** Most news sites do not allow redistribution, and they are
