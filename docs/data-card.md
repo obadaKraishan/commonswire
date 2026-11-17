@@ -233,3 +233,40 @@ Please cite the version you used, and credit the newsrooms as each row's credit 
 ```
 
 Version 0.2.0, collected up to 2026-11-14. Code: https://github.com/obadaKraishan/commonswire (Apache-2.0).
+
+---
+
+# DRAFT for version 0.3.0 (not the published card)
+
+**DRAFT, interim.** These numbers come from a local test build (never uploaded) of 0.2.2
+plus the two new sources, made while SciDev.Net's pages were still being read: SciDev.Net's
+row count below covers only its oldest 1,645 pages (2001 to 2004), of 13,302. The real 0.3.0
+is built at release time from the latest published 0.2.N, so it also holds what the weekly
+updates add until then.
+
+## Changes since 0.2.x (planned)
+- **Two new sources, read from their article pages** (their APIs do not give their articles):
+  - **SciDev.Net** (news on science and development, CC BY 2.0). Its republishing box asks
+    republishers to "credit our authors", so a page with no byline is held.
+  - **Africa Is a Country** (essays and news analysis, CC BY 4.0): 2,485 rows, 2009-08-06 to
+    2026-11-13. 30 pieces that say they first appeared elsewhere are left out.
+- **A new license version in `by`: CC BY 2.0** (SciDev.Net). The `by` configuration then
+  holds CC BY 2.0, 2.5, 3.0 and 4.0, each article with its own.
+- **The rights audit.** `sources.csv` gains a `reason_code` column (one code from a fixed list
+  for every publisher's status), and the registry holds 66 publishers: 13 include, 36 pending,
+  17 exclude. How each was read, and how this compares with the Common Pile's news sources
+  and Open Newswire's tags, is in the repository's `docs/rights-audit.md`.
+
+## Interim test build (2026-11-17)
+| | 0.2.2 (published) | 0.3.0 test build (interim) |
+|---|---|---|
+| Rows | 149,164 | 153,017 |
+| `by` / `by-sa` / `pd` | 144,456 / 2,754 / 1,954 | 148,309 / 2,754 / 1,954 |
+| Words | 55.2 million | 58.8 million |
+| Sources | 7 | 9 |
+| Held back | 275 | 543 (268 more: SciDev.Net pages with no byline) |
+| Third-party pieces left out | 2,476 | 2,515 |
+| Near-duplicate pairs across sources | 1 | 1 (none new) |
+
+The `by`, `by-sa` and `pd` counts are those of `release check`, which passed on the test
+build.
