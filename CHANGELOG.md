@@ -79,6 +79,10 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 - A byte budget used up at robots.txt was taken for an unreachable robots.txt and reported as
   a refusal; it is now reported as the budget.
+- `release check` of a version built by `update` (its manifest has an `update` block) no
+  longer compares the rows with the local corpus report, which describes the last local build
+  and so falls short by the week's new rows; it prints one line saying the comparison was
+  skipped. A locally built version is compared as before.
 
 ## [0.2.0] - 2026-11-14
 
