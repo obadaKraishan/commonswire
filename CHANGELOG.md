@@ -7,6 +7,20 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **The rights audit of 2026-11-16** (`docs/rights-audit.md`, DRAFT). The registry has a
+  reason code on every row and 66 publishers (13 include, 36 pending, 17 exclude).
+  - Eight publishers were added: those in Open Newswire's English open-license feeds that had
+    no row.
+  - The include and exclude rows that the Common Pile or Open Newswire tags as openly
+    licensed were re-read, with their quoted words unchanged; no verdict changed.
+  - `data/audit/other_lists.csv` records what the Common Pile's news subset and Open
+    Newswire say about each publisher, with where and when it was read.
+    `data/audit/comparison.csv` sets that beside this project's status and reason code.
+- `commonswire release build-from`: a version of a new series, built from the latest
+  published version's rows (with its held ids, third-party count and post counts) plus each
+  new source's rows, through `release build`'s checks and `release check`. No requests.
+- Series 0.3 adds SciDev.Net and Africa Is a Country, read from their article pages.
+- `docs/sources.md` shows each row's reason code.
 - **Reason codes in the source registry.** A `reason_code` column (before `reason`) gives the
   reason for each source's status as one code from a fixed list: `license_allows` for
   `include`; `bulk_clause`, `tracker_required`, `terms_forbid_automation`, `robots_forbid`,

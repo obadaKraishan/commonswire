@@ -12,8 +12,17 @@ been run.
   `data/sources.csv`.
 - **Out of scope:** third-party material (wire copy, partner stories, syndicated pieces) is
   dropped before any coding and counted per source.
-- **Languages:** to be decided for version 1: English only, or every language the clean sources
-  publish (Global Voices publishes in more than 40).
+- **Sources:** every publisher's rights are read on its own pages under the clean-source rule
+  (`docs/rights-audit.md`, `docs/sources.md`); only news and fact-checking publishers whose
+  status is `include` are collected. Official, advocacy, state and church agencies get a
+  verdict but are not collected unless the maintainer decides so.
+- **Routes:** a publisher's API where it gives its articles (WordPress), a dump (Wikinews),
+  or its article pages, found from its sitemap (SciDev.Net) or its listing pages (Africa Is a
+  Country), each page saved once and replayed with no request.
+- **Languages:** English so far. Several included publishers also publish in other languages
+  (Global Voices' Lingua sites, Alt News in Hindi, Factly in Telugu, SciDev.Net's other
+  editions). Whether each edition carries the same license, and by which route it can be
+  read, is checked edition by edition before it enters.
 
 ## 2. Variables
 Every coded value is stored on its row with its provenance: the codebook version, the model and
@@ -128,7 +137,12 @@ human-human alpha.
 
 ## 4. Update rules
 - **New:** each weekly update adds the articles of the last 30 days that the previous version
-  does not have (by the source's API), after the third-party filter.
+  does not have (by the source's API), after the third-party filter. Sources read from their
+  article pages (series 0.3) need their own weekly route (the newest sitemap or listing
+  pages) before the first weekly update of that series.
+- **New series:** a source enters only with a new series (0.3.0 after 0.2.N), built by
+  `commonswire release build-from` from the latest published version plus the new sources'
+  rows, so whatever the weekly updates added is kept.
 - **Changed:** an article whose text hash differs from the stored one is marked `changed`, its
   new text replaces the old in the next release, and its coded variables are coded again.
   Sources that report edits (for example a modified date in their API) are checked first.
