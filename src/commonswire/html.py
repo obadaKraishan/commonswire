@@ -220,3 +220,25 @@ _TAG = re.compile(r"<\s*/?\s*[a-zA-Z][a-zA-Z0-9-]*(\s[^<>]*)?/?\s*>")
 def has_markup(text: str) -> bool:
     """True if the text still holds an HTML tag."""
     return bool(_TAG.search(text))
+
+
+def element_html(html: str, cls: str, tag: str | None = None) -> str | None:
+    """The outer HTML of the first element whose class list holds ``cls`` (and whose tag is
+    ``tag``, when given), nested elements of the same tag included; None when there is none.
+    Used to cut an article's body or byline block out of a whole page."""
+    start = re.compile(
+        rf"""<({tag or r"[a-zA-Z][a-zA-Z0-9]*"})\b[^>]*\bclass\s*=\s*["']([^"']*)["'][^>]*>"""
+    )
+    for m in start.finditer(html):
+        if cls not in m.group(2).split():
+            continue
+        name = m.group(1).lower()
+        depth = 0
+        for t in re.finditer(rf"<(/?){name}\b[^>]*?(/?)>", html[m.start() :], re.I):
+            if t.group(2):  # <div/>: opens and closes
+                continue
+            depth += -1 if t.group(1) else 1
+            if depth == 0:
+                return html[m.start() : m.start() + t.end()]
+        return html[m.start() :]
+    return None

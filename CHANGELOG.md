@@ -22,6 +22,20 @@ All notable changes to this project are documented here. The format follows
   `church-agency`, and the access route `listing` (archive listing pages). Like `official`
   and `advocacy`, these kinds get a verdict but are not collected unless the maintainer
   decides so.
+- `commonswire backfill-pages SOURCE --run RUN`: a source's archive from its article pages,
+  for sources whose API does not give their articles. The list of articles comes from the
+  source's sitemap index (SciDev.Net) or its listing pages (Africa Is a Country), saved once;
+  each article page is then fetched once through the polite client, logged by the article's
+  id, and saved unchanged with a record of its answer. A refusal stops the run (never worked
+  around), a 404 or 410 is recorded, a failure is tried again on the next run, and `--check`
+  names any gap with no request.
+- Page fetchers for SciDev.Net and Africa Is a Country (`commonswire.fetchers.pages`), and
+  `commonswire build SOURCE --run RUN` for them (no requests). The byline is read from the
+  page's own byline block only (SciDev.Net's JSON-LD names the account that posted). A
+  SciDev.Net page with no byline is held, since its republishing box asks republishers to
+  credit the authors. Pages that say they were first published elsewhere, or that end with
+  another holder's copyright line, are dropped and counted; an image's credit line is not
+  taken for the article's.
 - `commonswire audit compare`: joins the registry with `data/audit/other_lists.csv` (what other
   lists of openly licensed news say about each publisher, with where and when it was read)
   into `data/audit/comparison.csv`, one row per publisher, and prints the counts by status and

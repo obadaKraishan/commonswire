@@ -336,6 +336,62 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
     }
 
 
+def cmd_backfill_pages(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.http import make_client
+    from commonswire.pagebackfill import (
+        PAGE_ROUTES,
+        PageProgress,
+        check_pages,
+        collect_urls,
+        fetch_pages,
+    )
+    from commonswire.sources import load_sources
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    if args.source_id not in PAGE_ROUTES:
+        print(
+            f"no page backfill for {args.source_id}; there are: {', '.join(PAGE_ROUTES)}",
+            file=sys.stderr,
+        )
+        return 2
+    folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+    if args.check:
+        r = check_pages(folder)
+        print(f"{args.source_id} {args.run}: " + json.dumps(r, sort_keys=True))
+        return 0 if r["complete"] else 1
+    src = load_sources(Path(args.sources)).get(args.source_id)
+    if src is None or src.status != "include":
+        print(f"{args.source_id} is not include in the registry", file=sys.stderr)
+        return 2
+    route = PAGE_ROUTES[args.source_id]
+    client = make_client(root, byte_budget=int(args.max_mb * 1e6))
+    progress = PageProgress(source_id=args.source_id, run=args.run)
+    urls = collect_urls(client, route, folder, progress, say=lambda m: print(m, flush=True))
+    print(f"{args.source_id}: {len(urls):,} article addresses in {folder / 'urls.json'}")
+    if not args.lists_only:
+        fetch_pages(
+            client,
+            route,
+            urls,
+            folder,
+            progress,
+            max_requests=args.max_requests,
+            say=lambda m: print(m, flush=True),
+        )
+    r = check_pages(folder)
+    print(
+        f"{args.source_id}: {progress.requests_this_run:,} requests and "
+        f"{progress.bytes_this_run / 1e6:,.1f} MB this run; {r['recorded']:,} of {r['urls']:,} "
+        f"recorded {r['by_status']}; " + (progress.stopped or "no stop")
+    )
+    return 1 if progress.stopped else 0
+
+
 def cmd_backfill(args: argparse.Namespace) -> int:
     from commonswire.backfill import backfill_wordpress, check_backfill
 
@@ -378,10 +434,55 @@ def cmd_backfill(args: argparse.Namespace) -> int:
     return 0 if progress.finished or progress.stopped.startswith("stopped after") else 1
 
 
+def _build_pages(args: argparse.Namespace) -> int:
+    import json
+
+    from commonswire.fetchers.base import ReplayStore
+    from commonswire.fetchers.pages import PAGE_FETCHERS
+    from commonswire.http import make_client
+    from commonswire.pagebackfill import build_page_rows
+    from commonswire.sources import load_sources
+    from commonswire.validate import validate_file
+
+    root = Path(args.root)
+    registry = load_sources(Path(args.sources))
+    if args.source_id not in registry:
+        raise SystemExit(f"{args.source_id} is not in the registry")
+    folder = root / "data" / "raw" / "backfill" / args.source_id / args.run
+    fetcher = PAGE_FETCHERS[args.source_id](
+        make_client(root), registry[args.source_id], ReplayStore(folder)
+    )
+    out = root / "data" / "interim" / "rows" / f"{args.source_id}.jsonl"
+    result = build_page_rows(fetcher, folder, out)
+    check = validate_file(out, registry)
+    info = result.summary()
+    info.update(
+        run=args.run,
+        validate_errors=len(check.errors),
+        validate_warnings=len(check.warnings),
+    )
+    path = root / "data" / "evidence" / "backfill" / f"{args.source_id}.build.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(
+        f"{args.source_id}: {result.seen} pages read, {result.kept} rows kept "
+        f"({result.releasable} releasable, {result.credited_to_source} credited to the source "
+        f"itself), dropped {dict(sorted(result.dropped.items()))}; validate: "
+        f"{len(check.errors)} errors, {len(check.warnings)} warnings"
+    )
+    for msg in check.errors[:5]:
+        print(f"  error: {msg}")
+    return 0 if check.ok else 1
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     import json
 
     from commonswire.backfill import build_rows
+    from commonswire.fetchers.pages import PAGE_FETCHERS
+
+    if args.source_id in PAGE_FETCHERS:
+        return _build_pages(args)
     from commonswire.daily import load_rows, replay_daily
     from commonswire.sources import load_sources
     from commonswire.validate import validate_file
@@ -1163,6 +1264,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bf.set_defaults(func=cmd_backfill)
 
+    bp = sub.add_parser(
+        "backfill-pages",
+        help="save a source's article pages, from a sitemap or listing pages (resumable)",
+    )
+    bp.add_argument("source_id")
+    bp.add_argument("--run", required=True, help="the run's name, such as its start date")
+    bp.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bp.add_argument("--max-mb", type=float, default=1000, help="stop after this many megabytes")
+    bp.add_argument("--max-requests", type=int, help="stop after this many page requests")
+    bp.add_argument("--lists-only", action="store_true", help="build urls.json only")
+    bp.add_argument("--check", action="store_true", help="check a saved run (no requests)")
+    bp.set_defaults(func=cmd_backfill_pages)
     bd = sub.add_parser("build", help="build rows from a saved backfill (no requests)")
     bd.add_argument("source_id")
     bd.add_argument("--run", default=_today())
