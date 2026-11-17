@@ -72,6 +72,14 @@ PAGE_ROUTES: dict[str, PageRoute] = {
         sitemap_pattern=r"^https://www\.scidev\.net/global/article-sitemap\d*\.xml$",
         article_pattern=r"^https://www\.scidev\.net/global/[^?#]+$",
     ),
+    # No API, feed or sitemap: the front-page category, 20 stories a page, newest first.
+    "africasacountry": PageRoute(
+        source_id="africasacountry",
+        kind="listing",
+        start="https://africasacountry.com/category/front-page",
+        next_page="https://africasacountry.com/category/front-page?page={n}",
+        article_pattern=r"^https://africasacountry\.com/\d{4}/\d{2}/[a-z0-9-]+$",
+    ),
 }
 
 
