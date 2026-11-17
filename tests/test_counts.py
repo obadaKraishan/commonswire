@@ -105,7 +105,7 @@ def test_counts_that_hold_cost_a_request_a_year_and_list_nothing(tmp_path):
     m, _ = released(tmp_path / "next")
     assert m["post_counts"]["factly"]["2026"] == {"posts": 5, "before": "2026-11-19"}
     md = res.markdown()
-    assert "(0 of 150 requests used for drops)" in md
+    assert "(0 of 200 requests used for drops)" in md
     assert "| factly | 3 | none | none | 0 | 0 |" in md
     readme = (tmp_path / "next" / "README.md").read_text()
     assert "compared with 9.9.0's (7 years): 0 fell" in readme

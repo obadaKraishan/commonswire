@@ -1254,8 +1254,8 @@ def build_parser() -> argparse.ArgumentParser:
     up.add_argument(
         "--max-count-requests",
         type=int,
-        default=150,
-        help="requests the count check may spend on drops in one run (default: 150)",
+        default=200,
+        help="requests the count check may spend on drops in one run (default: 200)",
     )
     up.add_argument("--now", help="the run's time (ISO 8601; default: now)")
     up.add_argument(

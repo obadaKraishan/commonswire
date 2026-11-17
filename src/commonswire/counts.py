@@ -34,8 +34,10 @@ from commonswire.http import FetchError, PoliteClient
 from commonswire.schema import canonical_url
 
 #: Requests a run may spend on falls in the counts (listing pages and page checks), shared
-#: by every source; past it the source stops for the maintainer to look at.
-MAX_COUNT_REQUESTS = 150
+#: by every source; past it the source stops for the maintainer to look at. The largest year
+#: of any source (Global Voices' 2007: 14,967 posts on 2026-11-17) takes 150 listing pages,
+#: which leaves 50 for page checks.
+MAX_COUNT_REQUESTS = 200
 PER_PAGE = 100
 #: Days added on each side of a range when it is listed, so that a row's day in UTC and the
 #: site's own day (its time zone) cannot fall on different sides of the edge.
