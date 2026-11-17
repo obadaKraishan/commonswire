@@ -27396,3 +27396,11 @@ time,host,path,query_keys,status,bytes,note
 2026-11-17T13:37:32+00:00,www.scidev.net,cw_c44a2066a80e71a2,,200,213735,backfill:scidevnet
 2026-11-17T13:37:34+00:00,www.scidev.net,cw_698ec6f1c8de7f40,,200,200683,backfill:scidevnet
 2026-11-17T13:37:36+00:00,www.scidev.net,cw_8867b93dcfbb859e,,200,198634,backfill:scidevnet
+2026-11-17T17:17:17+00:00,www.scidev.net,/robots.txt,,200,274,robots
+2026-11-17T17:17:21+00:00,www.scidev.net,/global/sitemap_index.xml,,200,4215,update:scidevnet
+2026-11-17T17:17:25+00:00,www.scidev.net,/global/article-sitemap14.xml,,200,146176,update:scidevnet
+2026-11-17T17:17:27+00:00,www.scidev.net,cw_698ec6f1c8de7f40,,200,201345,update:scidevnet
+2026-11-17T17:18:00+00:00,africasacountry.com,/robots.txt,,200,1248,robots
+2026-11-17T17:18:02+00:00,africasacountry.com,/category/front-page,,200,37500,update:africasacountry
+2026-11-17T17:18:05+00:00,africasacountry.com,/category/front-page,page,200,36394,update:africasacountry
+2026-11-17T17:18:07+00:00,africasacountry.com,cw_bc431d5f8a3f855a,,200,43496,update:africasacountry
