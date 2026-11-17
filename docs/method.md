@@ -135,9 +135,11 @@ human-human alpha.
 - **Removed or corrected away:** an article that its source has removed (404 or 410, or gone
   from the source's API), or that its publisher asks to remove, is marked `removed`; its row
   stays with its metadata and its text is dropped in the next release.
-- **Older removals:** an edit of any age is caught by the source's edited-since listing, but
-  removals are checked for the last 30 days only; the options for older ones, with their cost
-  in requests, are in `docs/automation.md`, section 5.
+- **Older removals:** an edit of any age is caught by the source's edited-since listing.
+  Removals older than 30 days are found by the count check: each update compares every
+  source's post count per year with the counts of the version before, and in a year whose
+  count fell it lists the year and checks the page of each released row missing from it
+  (`docs/automation.md`, section 5).
 - **Takedowns:** requests through the takedown form are answered within 14 days and applied in
   the next release.
 

@@ -59,7 +59,8 @@ All notable changes to this project are documented here. The format follows
   reported (the edited-since listing already takes a back-dated post as a new row), and
   a version with no counts makes the run a baseline run that records them and compares
   nothing. The requests drops may cost in one run have a ceiling (`--max-count-requests`,
-  150 by default, over all sources); past it the source stops, named with the year. The
+  200 by default, over all sources: Global Voices' largest year takes 150 listing pages);
+  past it the source stops, named with the year. The
   summary and the pull request's description give one line per source: years checked, drops,
   rises, rows checked and rows removed.
 
@@ -86,6 +87,9 @@ All notable changes to this project are documented here. The format follows
 - The README's status line no longer names a version or row counts; it points to the dataset
   card on Hugging Face for the current version. The README and the docs say the dataset is
   updated weekly by an automatic run that the maintainer approves.
+- `docs/automation.md`, section 5, describes the count check as built, with its dry run of
+  2026-11-17 (a baseline run from 0.2.2: 80 years counted with 80 requests); the README,
+  `docs/method.md` and `docs/data-card.md` say how older removals are found.
 - `docs/automation.md` records the first weekly run on GitHub (0.2.0 to 0.2.1, 2026-11-15):
   per source, the requests, the checks and the time it took, in place of the estimate, and
   that Hugging Face opens the weekly pull request as a draft.
