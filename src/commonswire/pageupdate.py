@@ -271,7 +271,11 @@ def update_pages(
             wanted, newest, res.route, listed = _sitemap_candidates(
                 client, route, through, known, note, read_all=removals or only_removals
             )
-            new_state = {**state, "through": _iso(newest)}
+            # The mark moves only when the pages changed after it are read.
+            new_state = {
+                **state,
+                "through": state.get("through") if only_removals else _iso(newest),
+            }
             if listed is not None:
                 new_state["removals_checked"] = today
             lists = int(res.route["sitemaps_read"]) + 1  # type: ignore[call-overload]
