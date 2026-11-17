@@ -10,6 +10,10 @@ held-byline rule are the same as for every other source.
   says "You have to credit our authors", so a page with no byline is held. The body is the
   post-content module; the closing "© SciDev.Net" line is the source's own. Pages that say
   they were first published elsewhere, or carry another holder's copyright line, are dropped.
+  Its "Supported content" pages (the breadcrumb's label; most name a funder) are kept only
+  with SciDev.Net's own byline (every name linked to one of its author pages), the site's
+  license line, and no other holder named (no Creative Commons link in the body outside an
+  image's caption); any other is left out as third-party or sponsored material.
 - **Africa Is a Country** (CC BY 4.0). The byline is the header's author list; the date is
   the header's ``MM.DD.YYYY`` (no time is given: rows take 00:00 UTC). Its license names no
   author requirement, so a page with no byline is credited to the source. Pieces that say
@@ -63,6 +67,30 @@ def published_elsewhere(text: str) -> bool:
 
 #: Words that mark a line as an image's credit.
 IMAGE_CREDIT = re.compile(r"\b(?:image|photo|picture|credit|illustration)s?\b", re.I)
+#: Words (or photo sites) that mark the block around a license link as an image's credit.
+IMAGE_BLOCK = re.compile(
+    r"image|photo|picture|credit|illustration|flickr|wikimedia|pexels|unsplash", re.I
+)
+_CC_LINK = re.compile(r"creativecommons\.org/licenses/", re.I)
+_BLOCK_OPEN = re.compile(r"<(?:p|div|figcaption|li|td|blockquote|h[1-6])\b[^>]*>", re.I)
+
+
+def licenses_outside_captions(body: str) -> int:
+    """Creative Commons license links in an article body that are not an image's credit: the
+    block that holds the link is no caption (``figcaption``, a ``wp-caption`` class, inside a
+    ``<figure>``) and names no image or photo site before the link."""
+    n = 0
+    for m in _CC_LINK.finditer(body):
+        before = body[max(0, m.start() - 600) : m.start()]
+        opens = list(_BLOCK_OPEN.finditer(before))
+        block = before[opens[-1].start() :] if opens else before
+        in_figure = before.rfind("<figure") > before.rfind("</figure")
+        if in_figure or re.search(r"caption", block, re.I):
+            continue
+        if IMAGE_BLOCK.search(_TAGS.sub(" ", block)):
+            continue
+        n += 1
+    return n
 
 
 def _text(fragment: str) -> str:
@@ -129,6 +157,16 @@ class SciDevNetFetcher(PageFetcher):
     source_id = "scidevnet"
     requires_byline = True
     own_notes = (r"(?m)^©\s*SciDev\.Net\b[^\n]*$",)
+    #: The line every page of the site carries (its footer), linked to the media page.
+    LICENSE_LINE = (
+        "All site content, except where otherwise noted, is licensed under a Creative Commons "
+        "Attribution License"
+    )
+    #: A byline link to one of the site's own author pages (three address forms).
+    OWN_AUTHOR_PAGE = re.compile(
+        r"^(?:https://www\.scidev\.net)?/global/(?:author|\?post_type=author)", re.I
+    )
+    SUPPORTED = "supported-content"
 
     def item_from_page(self, url: str, html: str) -> Item:
         nodes = jsonld_nodes(html)
@@ -142,11 +180,15 @@ class SciDevNetFetcher(PageFetcher):
         if not body:
             raise ValueError("no post-content module: not an article page")
         raw_names: list[str] = []
+        targets: list[str] = []
         for h4 in re.findall(r"<h4\b[^>]*>(.*?)</h4>", html, re.S | re.I):
             label = _text(re.sub(r"<a\b.*?</a>", "", h4, flags=re.S | re.I))
-            links = re.findall(r"<a\b[^>]*>(.*?)</a>", h4, re.S | re.I)
+            links = re.findall(r"<a\b([^>]*)>(.*?)</a>", h4, re.S | re.I)
             if links and label.lower().rstrip(": ").startswith("by"):
-                raw_names = links
+                raw_names = [inner for _attrs, inner in links]
+                for attrs, _inner in links:
+                    href = re.search(r"""href\s*=\s*["']([^"']*)["']""", attrs, re.I)
+                    targets.append(unescape(href.group(1)).strip() if href else "")
                 break
         authors, itself = self.names(raw_names)
         text = article_text(body, self.drop_classes + self.embed_classes)
@@ -173,6 +215,9 @@ class SciDevNetFetcher(PageFetcher):
                 "byline_is_source": itself,
                 "other_holders": holders,
                 "elsewhere": published_elsewhere(text),
+                "byline_own": bool(targets) and all(self.OWN_AUTHOR_PAGE.match(t) for t in targets),
+                "license_line": self.LICENSE_LINE in _text(html),
+                "other_licenses": licenses_outside_captions(body),
             },
         )
 
@@ -181,6 +226,13 @@ class SciDevNetFetcher(PageFetcher):
             return "another holder's copyright line"
         if item.hints.get("elsewhere"):
             return "says it was published elsewhere first"
+        if item.section == self.SUPPORTED:
+            if not item.authors or not item.hints.get("byline_own"):
+                return "supported content without a byline of its own"
+            if not item.hints.get("license_line"):
+                return "supported content without the site's license line"
+            if item.hints.get("other_licenses"):
+                return "supported content naming another license"
         return None
 
 

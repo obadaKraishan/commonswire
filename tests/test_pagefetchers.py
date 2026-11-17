@@ -271,3 +271,84 @@ def test_only_a_republication_note_counts_not_a_sentence_in_the_essay():
     end = f"{long}\n\n{long}\n\n{long} It was first published in an invented journal."
     assert published_elsewhere(end)
     assert not published_elsewhere(f"{long}\n\n{long} which was first published in 1965.")
+
+
+SD_FOOTER = (
+    "<footer><p>All site content, except where otherwise noted, is licensed under a "
+    '<a href="https://www.scidev.net/global/content/media.html">Creative Commons Attribution '
+    "License</a></p></footer>"
+)
+SD_SUPPORTED = "https://www.scidev.net/global/supported-content/an-invented-piece/"
+SD_OWN_BYLINE = (
+    'By: <a href="https://www.scidev.net/global/author.ana-invented.html">Ana Invented</a>'
+)
+
+
+def supported_page(*, byline=SD_OWN_BYLINE, footer=SD_FOOTER, body=None):
+    body = body or (
+        "<p>An invented paragraph about an invented project.</p>"
+        "<p><em>This article was supported by the Invented Fund.</em></p>"
+    )
+    return scidev_page(byline=byline, body=body).replace("</body>", f"{footer}</body>")
+
+
+def test_licenses_outside_captions():
+    from commonswire.fetchers.pages import licenses_outside_captions
+
+    cc = '<a href="https://creativecommons.org/licenses/by-nc/2.0/">CC BY-NC</a>'
+    assert licenses_outside_captions(f"<p>Invented data, under {cc}.</p>") == 1
+    assert licenses_outside_captions(f'<p class="wp-caption-text">A view. {cc}</p>') == 0
+    assert licenses_outside_captions(f"<figure><img src='x'><p>{cc}</p></figure>") == 0
+    assert licenses_outside_captions(f"<p>Photo: Someone / Flickr ({cc})</p>") == 0
+    assert licenses_outside_captions("<p>No license link here.</p>") == 0
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "reason"),
+    [
+        ({}, None),
+        ({"byline": "By:"}, "supported content without a byline of its own"),
+        (
+            {"byline": 'By: <a href="https://partner.example/team/">Ana Invented</a>'},
+            "supported content without a byline of its own",
+        ),
+        (
+            {
+                "byline": SD_OWN_BYLINE
+                + ' and <a href="https://partner.example/b/">Ben Invented</a>'
+            },
+            "supported content without a byline of its own",
+        ),
+        ({"footer": ""}, "supported content without the site's license line"),
+        (
+            {
+                "body": "<p>An invented paragraph.</p><p><em>This piece uses invented data, "
+                'under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA'
+                "</a>.</em></p>"
+            },
+            "supported content naming another license",
+        ),
+        (
+            {
+                "body": "<p>An invented paragraph.</p><p>Photo: Invented / Flickr "
+                '(<a href="https://creativecommons.org/licenses/by/2.0/">CC BY</a>)</p>'
+            },
+            None,
+        ),
+    ],
+)
+def test_supported_content_is_kept_only_when_it_is_scidevnets_own(tmp_path, kwargs, reason):
+    f = fetcher(SciDevNetFetcher, scidev_source(), tmp_path)
+    item = f.item_from_page(SD_SUPPORTED, supported_page(**kwargs))
+    assert item.section == "supported-content"
+    assert f.third_party_reason(item) == reason
+
+
+def test_the_supported_content_rule_leaves_other_sections_alone(tmp_path):
+    f = fetcher(SciDevNetFetcher, scidev_source(), tmp_path)
+    news = "https://www.scidev.net/global/news/an-invented-story/"
+    item = f.item_from_page(news, supported_page(byline="By:", footer=""))
+    assert not item.hints["license_line"] and not item.hints["byline_own"]
+    assert f.third_party_reason(item) is None  # held for no byline, not dropped
+    other = "https://www.scidev.net/global/opinions/an-invented-view/"
+    assert f.item_from_page(other, supported_page()).hints["byline_own"] is True
