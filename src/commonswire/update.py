@@ -23,14 +23,19 @@
    the removed ones and the takedown list, through ``release build``'s own checks (every row
    validated and its credit line checked), the near-duplicate flags over every row, the card
    and the manifest, then ``release check`` on the written files.
-4. **Stops after the build:** a source that refused, failed or ran over its byte budget (it is
-   skipped, its rows carried over, and it is named; never worked around), a failed check, or
-   a version that would shrink by more than ``max_shrink`` in all or for one source.
+   After the window, the **count check** (:mod:`commonswire.counts`) reads each year's post
+   count and compares it with the previous version's; a year whose count fell is listed, and
+   the page of each released row missing from it is read (404 or 410: removed).
+4. **Stops after the build:** a source that refused, failed, ran over its byte budget or past
+   the count check's ceiling (it is skipped, its rows carried over, and it is named; never
+   worked around), a failed check, or a version that would shrink by more than ``max_shrink``
+   in all or for one source.
 
 Held rows are not published, so the manifest carries their ids to the next version (with the
-source, the day and the reason, never an address or a name), and the count of third-party
-posts dropped; version 0.2.0's come from ``data/update-baseline.json``. A run commits nothing,
-so its requests are summed per host and day into the manifest (``update.requests``).
+source, the day and the reason, never an address or a name), the count of third-party posts
+dropped, and each source's post counts per year (``post_counts``); version 0.2.0's held rows
+and count come from ``data/update-baseline.json``. A run commits nothing, so its requests
+are summed per host and day into the manifest (``update.requests``).
 
 Every answer is saved once in the run's answer folder (:class:`commonswire.http.AnswerCache`):
 a stopped run resumes without asking again, and ``--offline`` replays a finished run with no
@@ -49,6 +54,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
+from commonswire.counts import (
+    MAX_COUNT_REQUESTS,
+    Allowance,
+    CountCeiling,
+    CountCheck,
+    check_counts,
+)
 from commonswire.daily import DailyResult, _removed, _take
 from commonswire.fetchers import WORDPRESS
 from commonswire.fetchers.base import ReplayStore
@@ -178,7 +190,7 @@ class SourceUpdate:
     """What one source's update did: counts only."""
 
     source_id: str
-    status: str = "updated"  # updated, closed, refused, failed, over_budget
+    status: str = "updated"  # updated, closed, refused, failed, over_budget, over_ceiling
     note: str = ""
     listed: int = 0
     new: int = 0
@@ -197,10 +209,12 @@ class SourceUpdate:
     new_ids: list[str] = field(default_factory=list)
     changed_ids: list[str] = field(default_factory=list)
     removed_ids: list[str] = field(default_factory=list)
+    #: The count check of older rows (None for a closed or skipped source).
+    count: CountCheck | None = None
 
     @property
     def skipped(self) -> bool:
-        return self.status in ("refused", "failed", "over_budget")
+        return self.status in ("refused", "failed", "over_budget", "over_ceiling")
 
     def summary(self) -> dict[str, object]:
         return {
@@ -218,7 +232,22 @@ class SourceUpdate:
             "dropped": dict(sorted(self.dropped.items())),
             "requests": self.requests,
             "bytes": self.bytes,
+            "count_check": self.count.summary() if self.count else None,
         }
+
+    def count_line(self) -> str:
+        """The count check in one line: years checked, drops, rows checked, rows removed."""
+        c = self.count
+        if c is None:
+            return f"{self.source_id} count check: not run ({self.status.replace('_', ' ')})"
+        if c.baseline:
+            return f"{self.source_id} count check: {len(c.counts)} years recorded (baseline)"
+        drops = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items())) or "none"
+        rises = ", ".join(f"{y} ({n})" for y, n in sorted(c.rises.items())) or "none"
+        return (
+            f"{self.source_id} count check: {c.years_checked} years checked; drops {drops}; "
+            f"rises {rises}; {c.rows_checked} rows checked, {c.rows_removed} removed"
+        )
 
     def line(self) -> str:
         if self.status == "closed":
@@ -358,11 +387,14 @@ def update_wordpress(
     prev_as_of: str,
     pages_dir: Path,
     held: dict[str, dict] | None = None,
+    prev_counts: dict[str, dict] | None = None,
+    allowance: Allowance | None = None,
 ) -> tuple[dict[str, dict], SourceUpdate]:
-    """One source's update over the window. Returns the source's rows after the update (the
-    previous rows unchanged if the source refused, failed or ran over its budget) and what
-    happened, as counts and ids. ``held`` is the previous version's held rows (id -> source,
-    day, reason)."""
+    """One source's update over the window, then its count check. Returns the source's rows
+    after the update (the previous rows unchanged if the source refused, failed, or ran over
+    its budget or the count check's ceiling) and what happened, as counts and ids. ``held`` is
+    the previous version's held rows (id -> source, day, reason), ``prev_counts`` its post
+    counts per year for this source (None: none recorded yet, so a baseline run)."""
     from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     sid = fetcher.source_id
@@ -462,10 +494,27 @@ def update_wordpress(
             if resp.status in (404, 410):
                 rows[rid] = _removed(d)
                 res.seen_ids.add(rid)
+        res.count = check_counts(
+            fetcher.api_base,
+            client,
+            prev,
+            prev_counts,
+            now=now,
+            rows=rows,
+            skip=res.seen_ids | {rid for rid, _ in missing},
+            removed_in_window={
+                rid: d["published_at"] for rid, d in missing if rows[rid]["status"] == "removed"
+            },
+            allowance=allowance or Allowance(),
+            note=note,
+        )
+        res.seen_ids.update(res.count.removed_ids)
     except (Blocked, Disallowed) as exc:
         return dict(prev), _skipped(res, client, "refused", exc)
     except BudgetExceeded as exc:
         return dict(prev), _skipped(res, client, "over_budget", exc)
+    except CountCeiling as exc:
+        return dict(prev), _skipped(res, client, "over_ceiling", exc)
     except _ListingStopped as exc:
         why = str(exc)
         status = (
@@ -575,6 +624,11 @@ class UpdateResult:
     requests: dict[str, dict[str, dict]] = field(default_factory=dict)
     out: str = ""
     size_bytes: int = 0
+    #: The count check: True if the previous version had no counts (nothing was compared),
+    #: and the requests falls cost against the run's ceiling.
+    count_baseline: bool = False
+    count_limit: int = MAX_COUNT_REQUESTS
+    count_used: int = 0
 
     @property
     def ready_to_deliver(self) -> bool:
@@ -615,6 +669,11 @@ class UpdateResult:
                 "taken_down": sorted(self.taken_down_ids),
             },
             "checks": self.checks,
+            "count_check": {
+                "baseline": self.count_baseline,
+                "ceiling": self.count_limit,
+                "requests_for_drops": self.count_used,
+            },
             "requests": self.requests,
             "out": self.out,
             "size_bytes": self.size_bytes,
@@ -644,6 +703,34 @@ class UpdateResult:
                 f"{u.requests} | {u.bytes:,} |"
             )
         lines.append("")
+        live = {sid: u for sid, u in self.sources.items() if u.status != "closed"}
+        if live:
+            lines += [
+                "Count check of older rows"
+                + (
+                    f" (a baseline run: {self.from_version} has no post counts, so they are "
+                    "recorded and nothing is compared)"
+                    if self.count_baseline
+                    else f" ({self.count_used} of {self.count_limit} requests used for drops)"
+                )
+                + ":",
+                "",
+                "| Source | Years checked | Drops | Rises | Rows checked | Rows removed |",
+                "|---|---|---|---|---|---|",
+            ]
+            for sid, u in live.items():
+                c = u.count
+                if c is None:
+                    lines.append(f"| {sid} | not run ({u.status.replace('_', ' ')}) | | | | |")
+                    continue
+                drops = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items())) or "none"
+                rises = ", ".join(f"{y} ({n})" for y, n in sorted(c.rises.items())) or "none"
+                checked = f"0 of {len(c.counts)} recorded" if c.baseline else str(c.years_checked)
+                lines.append(
+                    f"| {sid} | {checked} | {drops} | {rises} | {c.rows_checked} | "
+                    f"{c.rows_removed} |"
+                )
+            lines.append("")
         for sid, u in self.sources.items():
             if u.note and u.status != "closed":
                 lines.append(f"- {sid}: {u.note}")
@@ -687,6 +774,7 @@ def run_update(
     open_takedowns: int = 0,
     open_dataset_prs: int = 0,
     allow_skipped: frozenset[str] = frozenset(),
+    max_count_requests: int = MAX_COUNT_REQUESTS,
     dry_run: bool = True,
     offline: bool = False,
     clients: ClientFactory | None = None,
@@ -762,6 +850,9 @@ def run_update(
     log = UsageLog(usage_log or work / "usage_log.csv")
     clients = clients or default_clients(root, lock_dir or work / "locks")
     budget_left = int(max_mb * 1e6)
+    allowance = Allowance(limit=max_count_requests)
+    prev_counts: dict[str, dict] | None = manifest.get("post_counts")
+    res.count_baseline, res.count_limit = prev_counts is None, max_count_requests
     merged: dict[str, dict[str, dict]] = {}
     for sid in sources:
         if sid in CLOSED:
@@ -786,13 +877,30 @@ def run_update(
             prev_as_of=str(manifest.get("as_of", "")),
             pages_dir=answers / "pages",
             held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
+            prev_counts=None if prev_counts is None else prev_counts.get(sid),
+            allowance=allowance,
         )
         budget_left -= client.bytes_used
         log.recent.extend(src_log.recent)
         merged[sid] = rows
         res.sources[sid] = upd
         say(upd.line())
+        say(upd.count_line())
     res.requests = requests_by_host_and_day(log.recent)
+    res.count_used = allowance.used
+    # The counts the next update compares: this run's, or for a skipped source the previous
+    # version's (so a drop it could not look at is still there next week).
+    post_counts: dict[str, dict] = {}
+    for sid, u in res.sources.items():
+        if u.count is not None and not u.skipped:
+            post_counts[sid] = u.count.counts
+        elif prev_counts and sid in prev_counts:
+            post_counts[sid] = prev_counts[sid]
+    if res.count_baseline:
+        res.notes.append(
+            f"count check: {manifest['version']} has no post counts, so this run records them "
+            "and compares nothing (a baseline run); the next update compares them"
+        )
 
     # 3. The build, with the counts carried from the previous version.
     rel = collect(
@@ -847,15 +955,24 @@ def run_update(
     if res.stop_reasons and not rel.checks.ok:
         return _finish(res, clock)
 
+    counted = [u.count for u in res.sources.values() if u.count is not None and not u.skipped]
     update_info = {
         "from_version": manifest["version"],
         "window_days": window,
         "as_of": now.date().isoformat(),
         **changes,
+        "count_check": {
+            "baseline": res.count_baseline,
+            "sources": len(counted),
+            "years_checked": sum(c.years_checked for c in counted),
+            "drops": sum(len(c.drops) for c in counted),
+            "rows_removed": sum(c.rows_removed for c in counted),
+        },
     }
     extra = {
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
+        "post_counts": post_counts,
         "update": {
             **update_info,
             "since": res.since,

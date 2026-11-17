@@ -49,6 +49,20 @@ All notable changes to this project are documented here. The format follows
   cite" section in the README, `doi` and `identifiers` in `CITATION.cff`, and a line in the
   dataset card from the next version on.
 
+- The count check of older rows, inside `commonswire update` (`commonswire.counts`): for
+  each source that still publishes and each year of its archive, one request reads the
+  site's post count (`per_page=1`, the `X-WP-Total` header), and the version's manifest keeps
+  the counts (`post_counts`). The next update compares the same ranges. A year whose count
+  fell is listed (links only), and the page of each released row missing from that listing is
+  read once: 404 or 410 removes the row, by the window's own rule, and any other answer leaves
+  it in place, counted. A fall the window's own removals explain is not listed, a rise is
+  reported (the edited-since listing already takes a back-dated post as a new row), and
+  a version with no counts makes the run a baseline run that records them and compares
+  nothing. The requests drops may cost in one run have a ceiling (`--max-count-requests`,
+  150 by default, over all sources); past it the source stops, named with the year. The
+  summary and the pull request's description give one line per source: years checked, drops,
+  rises, rows checked and rows removed.
+
 ### Changed
 - `docs/automation.md` describes the weekly update as built: what GitHub and Hugging Face
   allow (with links), the run's steps and stops, the delivery modes and their risks, the

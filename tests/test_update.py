@@ -117,6 +117,14 @@ class Site:
         self.pages: dict[str, tuple[int, str]] = {}
         self.listing: dict[int, str] = {}
         self.refuse: set[str] = set()
+        #: Post counts per year (5 if not set) and the links a year's listing gives.
+        self.counts: dict[str, dict[int, int]] = {"factly": {}, "globalvoices": {}, "tpr": {}}
+        self.year_links: dict[str, dict[int, list[str]]] = {
+            "factly": {},
+            "globalvoices": {},
+            "tpr": {},
+        }
+        self.refuse_counts: set[str] = set()
 
     def __call__(self, url, headers, timeout, max_bytes):
         self.calls.append(url)
@@ -134,6 +142,20 @@ class Site:
         if "/wp-json/wp/v2/" in path:
             if host in self.refuse:
                 return answer(403, "no")
+            if q.get("per_page") == "1" and q.get("_fields") == "id":  # a post count
+                if host in self.refuse_counts:
+                    return answer(403, "no")
+                n = self.counts[sid].get(int(q["after"][:4]) + 1, 5)
+                return answer(200, '[{"id": 1}]' if n else "[]", {"X-WP-Total": str(n)})
+            if q.get("_fields") == "link":  # a year's listing, links only
+                links = self.year_links[sid].get(int(q["after"][:4]) + 1, [])
+                page = int(q["page"])
+                chunk = links[(page - 1) * 100 : page * 100]
+                if page > 1 and not chunk:
+                    return answer(400, "{}")
+                pages = str(max(1, -(-len(links) // 100)))
+                body = json.dumps([{"link": x} for x in chunk])
+                return answer(200, body, {"X-WP-TotalPages": pages})
             if q.get("page") != "1":
                 return answer(400, "{}")
             if path.endswith("/categories"):
@@ -527,7 +549,7 @@ def test_a_refusing_source_is_skipped_and_named(tmp_path):
     again = World(tmp_path / "b")
     again.site.refuse.add("factly.in")
     ok = again.run(allow_skipped=frozenset({"factly"}))
-    assert ok.status == "ready" and "skipped, as allowed" in ok.notes[0]
+    assert ok.status == "ready" and any("skipped, as allowed" in n for n in ok.notes)
 
 
 def test_a_failing_listing_or_budget_stops_the_source(tmp_path):
@@ -670,10 +692,14 @@ def test_cli_update_offline_writes_the_summary(tmp_path, capsys):
         str(tmp_path / "none.json"),
         "--offline",
         "--dry-run",
+        "--max-count-requests",
+        "10",
     ]
     assert main(argv) == 0
     out = capsys.readouterr().out
     assert "update 9.9.0 -> 9.9.1: ready (dry run" in out and "factly: updated" in out
+    assert "factly count check: 3 years recorded (baseline)" in out
+    assert "note: count check: 9.9.0 has no post counts" in out
     summary = json.loads((tmp_path / "work" / "summary.json").read_text())
     assert summary["dry_run"] is True and summary["ready_to_deliver"] is False
     assert (tmp_path / "work" / "summary.md").read_text().startswith("**CommonsWire 9.9.1**")

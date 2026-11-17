@@ -172,12 +172,29 @@ def card(
 ) -> str:
     """The dataset card of a release, with the Hugging Face metadata block on top. ``update``
     (from ``commonswire update``) adds a short section on what changed since the version it
-    was built from: ``from_version``, ``window_days``, ``as_of``, and the counts ``new``,
-    ``changed``, ``removed`` and ``taken_down``."""
+    was built from: ``from_version``, ``window_days``, ``as_of``, the counts ``new``,
+    ``changed``, ``removed`` and ``taken_down``, and ``count_check`` (``baseline``, ``sources``,
+    ``years_checked``, ``drops``, ``rows_removed``)."""
     f = facts(release, registry, third_party)
     update_section = ""
     if update:
         new = int(update["new"])  # type: ignore[call-overload]
+        counted = update.get("count_check")
+        count_text = ""
+        if isinstance(counted, dict) and counted.get("baseline"):
+            count_text = (
+                " This version is the first to record each source's post count per year, so "
+                "the next update can check older articles for removals."
+            )
+        elif isinstance(counted, dict):
+            drops, gone = int(counted["drops"]), int(counted["rows_removed"])
+            count_text = (
+                f" The post counts per year of {_n(int(counted['sources']))} sources were "
+                f"compared with {update['from_version']}'s ({_n(int(counted['years_checked']))} "
+                f"years): {_n(drops)} fell, and {_n(gone)} older "
+                f"{'article was' if gone == 1 else 'articles were'} found removed (counted "
+                "above)."
+            )
         update_section = (
             "\n## This update\n"
             + _wrap(
@@ -186,6 +203,7 @@ def card(
                 f"to {update['as_of']}: {_n(new)} new {'row' if new == 1 else 'rows'}, "
                 f"{_n(int(update['changed']))} changed, {_n(int(update['removed']))} removed "  # type: ignore[call-overload]
                 f"at their source, and {_n(int(update['taken_down']))} taken down on request."  # type: ignore[call-overload]
+                + count_text
             )
             + "\n"
         )
@@ -484,8 +502,10 @@ every file.
 - **At the source.** Each update asks every source that still publishes for the articles it
   published or edited in the last 30 days. An article edited at its source, however old, gets
   its new text and status `changed` in the next version; an article of the last 30 days that
-  was removed at its source is dropped from the next version. Removals of older articles are
-  not checked yet.
+  was removed at its source is dropped from the next version. For older articles, each update
+  also compares every source's post count per year with the counts of the version before; in
+  a year whose count fell, it lists that year's posts and drops each article whose page is
+  gone. A removal offset by a back-dated post in the same year is missed.
 - **On request.** Publishers, writers and people named in an article can ask for a removal or a
   correction with the [takedown and correction form]({ISSUE_FORM}). Requests are answered
   within 14 days. An article taken down goes on a list of ids (`data/takedowns.csv` in the
