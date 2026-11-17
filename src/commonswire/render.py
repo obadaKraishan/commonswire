@@ -120,7 +120,9 @@ def render_sources_md(
     for s in ordered:
         out.append(
             f"| {s.name} | {s.kind} | {license_label(s.license)} | {s.bulk_clause} | "
-            f"{s.robots} | {s.terms_automation} | {s.tracking_required} | {s.status} |"
+            f"{s.robots} | {s.terms_automation} | {s.tracking_required} | {s.status}"
+            + (f" (`{s.reason_code}`)" if s.reason_code else "")
+            + " |"
         )
     for status in STATUS_ORDER:
         group = [s for s in ordered if s.status == status]
