@@ -118,6 +118,11 @@ class SciDev:
             "s": sd_url("invented-s", "supported-content"),  # left out: another license
         }
         t.add(INDEX, (200, index("article-sitemap.xml", "article-sitemap2.xml")))
+        # The first sitemap: older articles (read only by the removal check).
+        t.add(
+            f"{SD}/article-sitemap.xml",
+            (200, sitemap((self.urls["a"], "2026-11-01T00:00:00+00:00"), (self.urls["d"], old))),
+        )
         t.add(
             f"{SD}/article-sitemap2.xml",
             (
@@ -143,6 +148,7 @@ class SciDev:
 
     def run(self, **kw):
         kw.setdefault("state", {"through": THROUGH})
+        kw.setdefault("removals", False)
         return update_pages(self.f, self.client, self.prev, now=NOW, prev_as_of=THROUGH, **kw)
 
 
@@ -164,7 +170,7 @@ def test_the_sitemap_route_reads_only_pages_changed_after_the_mark(tmp_path):
     assert f"{SD}/article-sitemap.xml" not in asked  # the newest one starts before the mark
     assert upd.new == 1 and upd.held == 1 and upd.changed == 1 and upd.removed == 1
     assert upd.route == {"route": "sitemap", "sitemaps_read": 1, "after_mark": 6, "unchanged": 1}
-    assert upd.dropped == {"third_party:supported content naming another license": 1}
+    assert upd.dropped == {"third_party:another license named outside an image's caption": 1}
     assert upd.third_party_new == 1
     assert rows[article_id(w.urls["b"])]["status"] == "changed"
     assert rows[article_id(w.urls["g"])]["status"] == "removed"
@@ -194,10 +200,9 @@ def test_the_walk_goes_back_while_a_sitemap_starts_after_the_mark(tmp_path):
     w.transport.routes[f"{SD}/article-sitemap2.xml"] = [
         (200, sitemap((sd_url("invented-n"), late)))
     ]
-    w.transport.add(
-        f"{SD}/article-sitemap.xml",
-        (200, sitemap((w.urls["a"], "2026-11-01T00:00:00+00:00"), (w.urls["c"], late))),
-    )
+    w.transport.routes[f"{SD}/article-sitemap.xml"] = [
+        (200, sitemap((w.urls["a"], "2026-11-01T00:00:00+00:00"), (w.urls["c"], late)))
+    ]
     w.transport.add(sd_url("invented-n"), (200, sd_page("n")))
     _rows, upd, state = w.run()
     assert upd.status == "updated" and upd.route["sitemaps_read"] == 2
@@ -282,10 +287,10 @@ def test_the_listing_route_reads_new_stories_only(tmp_path):
     t.add(new, (200, aiac_page(date="11.18.2026")))
     seen = [article_id(republished)]
     rows, upd, state = update_pages(
-        f, client, prev, now=NOW, prev_as_of=THROUGH, state={"seen": seen}
+        f, client, prev, now=NOW, prev_as_of=THROUGH, state={"seen": seen}, removals=False
     )
     assert upd.status == "updated" and upd.new == 1 and upd.listed == 1
-    assert upd.route == {"route": "listing", "listing_pages_read": 2, "unchanged": 0}
+    assert upd.route == {"route": "listing", "listing_pages_read": 2, "reread": 0, "unchanged": 0}
     assert republished not in [u for u, _ in t.calls]  # seen last time: not read again
     assert state["seen"] == sorted(article_id(u) for u in [new, republished, *olds])
     assert article_id(new) in rows
@@ -299,14 +304,16 @@ def test_the_listing_reads_on_until_it_meets_a_known_story_or_stops(tmp_path):
     t.add(f"{FRONT}?page=3", (200, listing(fresh[2], olds[0])))
     for i, u in enumerate(fresh[:3]):
         t.add(u, (200, aiac_page(date="11.18.2026", body=f"<p>Fresh {i}.</p>")))
-    _rows, upd, _state = update_pages(f, client, prev, now=NOW, prev_as_of=THROUGH, state=None)
+    _rows, upd, _state = update_pages(
+        f, client, prev, now=NOW, prev_as_of=THROUGH, state=None, removals=False
+    )
     assert upd.status == "updated" and upd.route["listing_pages_read"] == 3 and upd.new == 3
     # No page up to the cap shares a story with the previous version.
     f2, client2, t2, prev2, _ = aiac(tmp_path / "b")
     for n in range(1, 7):
         t2.add(FRONT if n == 1 else f"{FRONT}?page={n}", (200, listing(f"{AIAC}/2026/11/z-{n}")))
     rows, upd, state = update_pages(
-        f2, client2, prev2, now=NOW, prev_as_of=THROUGH, state={"seen": ["cw_x"]}
+        f2, client2, prev2, now=NOW, prev_as_of=THROUGH, state={"seen": ["cw_x"]}, removals=False
     )
     assert upd.status == "failed" and "share no story" in upd.note
     assert rows == prev2 and state == {"seen": ["cw_x"]}
@@ -315,7 +322,9 @@ def test_the_listing_reads_on_until_it_meets_a_known_story_or_stops(tmp_path):
 def test_a_listing_that_ends_early_is_read_to_its_end(tmp_path):
     f, client, t, prev, olds = aiac(tmp_path)
     t.add(FRONT, (200, listing(olds[0])))
-    _rows, upd, state = update_pages(f, client, prev, now=NOW, prev_as_of=THROUGH, state=None)
+    _rows, upd, state = update_pages(
+        f, client, prev, now=NOW, prev_as_of=THROUGH, state=None, removals=False
+    )
     assert upd.status == "updated" and upd.route["listing_pages_read"] == 2
     assert state == {"seen": [article_id(olds[0])]}
 
@@ -391,7 +400,7 @@ def two_sources(tmp_path):
     )
     for url, answers in t.routes.items():
         w.transport.routes[url] = answers
-    w.transport.add(FRONT, (200, listing(olds[0])))
+    w.transport.add(FRONT, (200, listing(*olds)))
     return w, out, reg_path, takedowns
 
 
@@ -407,8 +416,16 @@ def test_run_route_dry_run_then_an_offline_replay(tmp_path, page_series, capsys)
         registry_path=reg_path,
         now=NOW,
     )
-    assert s1["update"]["status"] == "updated" and s1["state_after"] == {
-        "through": "2026-11-21T08:00:00Z"
+    assert s1["update"]["status"] == "updated"
+    assert s1["state_after"] == {
+        "through": "2026-11-21T08:00:00Z",
+        "removals_checked": "2026-11-23",
+    }
+    assert s1["update"]["route"]["removal_check"] == {
+        "listed": 8,
+        "rows_not_listed": 0,
+        "confirmed_removed": 0,
+        "still_answer": 0,
     }
     assert s1["rows_before"] == 5 and s1["new_ids"] == [article_id(w.new["e"])]
     calls = len(w.transport.calls)
@@ -464,7 +481,11 @@ def test_the_weekly_update_takes_the_page_route_and_keeps_its_state(tmp_path, pa
     assert (sd.new, sd.changed, sd.removed, sd.held) == (1, 1, 1, 1)
     assert aa.status == "updated" and aa.new == 0
     manifest = json.loads((tmp_path / "next" / "manifest.json").read_text())
-    assert manifest["page_state"]["scidevnet"] == {"through": "2026-11-21T08:00:00Z"}
+    assert manifest["page_state"]["scidevnet"] == {
+        "through": "2026-11-21T08:00:00Z",
+        "removals_checked": "2026-11-23",
+    }
+    assert manifest["page_state"]["africasacountry"]["full_walk"] == "2026-11-23"
     assert manifest["update"]["sources"]["scidevnet"]["route"]["route"] == "sitemap"
     held = {h["id"] for h in manifest["held_rows"]}
     assert article_id(w.new["h"]) in held
@@ -482,3 +503,119 @@ def test_a_wordpress_only_update_writes_no_page_state(tmp_path, monkeypatch):
     manifest = json.loads((tmp_path / "next" / "manifest.json").read_text())
     assert "page_state" not in manifest
     assert all("route" not in s for s in manifest["update"]["sources"].values())
+
+
+def test_the_removal_check_confirms_each_missing_row_by_its_own_page(tmp_path):
+    w = SciDev(tmp_path)
+    # Row d leaves the sitemaps and its page answers 404 (the fake site's default): removed.
+    w.transport.routes[f"{SD}/article-sitemap.xml"] = [(200, sitemap())]
+    rows, upd, state = w.run(removals=True)
+    assert upd.status == "updated", upd.note
+    check = upd.route["removal_check"]
+    assert check["rows_not_listed"] == 1 and check["confirmed_removed"] == 1
+    assert check["still_answer"] == 0 and upd.route["sitemaps_read"] == 2
+    assert rows[article_id(w.urls["d"])]["status"] == "removed" and upd.removed == 2  # and g
+    assert state["removals_checked"] == "2026-11-23"
+    log = (tmp_path / "usage_log.csv").read_text()
+    assert article_id(w.urls["d"]) in log and "invented-d" not in log
+    # A row that left the sitemaps but whose page still answers stays.
+    w2 = SciDev(tmp_path / "b")
+    w2.transport.routes[f"{SD}/article-sitemap.xml"] = [(200, sitemap())]
+    w2.transport.add(w2.urls["d"], (200, sd_page("d")))
+    rows2, upd2, _ = w2.run(removals=True)
+    assert upd2.route["removal_check"]["still_answer"] == 1
+    assert rows2[article_id(w2.urls["d"])] is w2.prev[article_id(w2.urls["d"])]
+    # Any other answer is a failure, never a removal.
+    w3 = SciDev(tmp_path / "c")
+    w3.transport.routes[f"{SD}/article-sitemap.xml"] = [(200, sitemap())]
+    w3.transport.add(w3.urls["d"], (500, "down"))
+    assert w3.run(removals=True)[1].status == "failed"
+
+
+def test_more_missing_rows_than_the_ceiling_stop_the_source(tmp_path, monkeypatch):
+    from commonswire import pageupdate
+
+    monkeypatch.setattr(pageupdate, "MAX_REMOVAL_CONFIRMATIONS", 0)
+    w = SciDev(tmp_path)
+    w.transport.routes[f"{SD}/article-sitemap.xml"] = [(200, sitemap())]
+    rows, upd, state = w.run(removals=True)
+    assert upd.status == "over_ceiling" and "more than the 0 pages" in upd.note
+    assert rows == w.prev and state == {"through": THROUGH}
+    asked = {u for u, _ in w.transport.calls}
+    assert w.urls["d"] not in asked  # nothing confirmed past the ceiling
+    monkeypatch.setattr(pageupdate, "MAX_REMOVAL_CONFIRMATIONS", 25)
+    # The weekly page limit counts the confirmations too (6 changed pages and 1 to confirm).
+    w2 = SciDev(tmp_path / "b")
+    w2.transport.routes[f"{SD}/article-sitemap.xml"] = [(200, sitemap())]
+    assert w2.run(removals=True, max_pages=6)[1].status == "over_budget"
+
+
+def test_only_removals_reads_every_sitemap_and_no_changed_page(tmp_path):
+    w = SciDev(tmp_path)
+    _rows, upd, state = w.run(removals=True, only_removals=True)
+    assert upd.status == "updated" and upd.listed == 0 and upd.route["sitemaps_read"] == 2
+    assert {u for u, _ in w.transport.calls} & set(w.new.values()) == set()
+    assert state["removals_checked"] == "2026-11-23"
+
+
+def test_a_listing_is_walked_in_full_once_a_month_and_recent_stories_reread(tmp_path):
+    f, client, t, prev, olds = aiac(tmp_path)
+    recent = f"{AIAC}/2026/11/invented-recent"
+    prev[article_id(recent)] = built(
+        f, recent, aiac_page(date="11.10.2026", body='<p class="po-bo__paragraph">Recent.</p>')
+    )
+    t.add(FRONT, (200, listing(recent, olds[0])))
+    t.add(f"{FRONT}?page=2", (200, listing(olds[1])))
+    t.add(f"{FRONT}?page=3", (200, listing(olds[1])))  # brings nothing new: the walk ends
+    t.add(recent, (200, aiac_page(date="11.10.2026", body="<p>Recent, corrected.</p>")))
+    t.add(olds[2], (410, "gone"))
+    state = {"seen": [], "full_walk": "2026-10-01"}
+    rows, upd, new_state = update_pages(f, client, prev, now=NOW, prev_as_of=THROUGH, state=state)
+    assert upd.status == "updated", upd.note
+    assert upd.route["reread"] == 1 and upd.changed == 1  # the recent story was edited
+    assert upd.route["walk_pages_read"] == 3
+    assert upd.route["removal_check"]["confirmed_removed"] == 1
+    assert rows[article_id(olds[2])]["status"] == "removed"
+    assert new_state["full_walk"] == "2026-11-23"
+    # Walked less than four weeks ago: no walk this week.
+    f2, client2, t2, prev2, olds2 = aiac(tmp_path / "b")
+    t2.add(FRONT, (200, listing(*olds2)))
+    _rows, upd2, st2 = update_pages(
+        f2, client2, prev2, now=NOW, prev_as_of=THROUGH, state={"full_walk": "2026-11-10"}
+    )
+    assert "walk_pages_read" not in upd2.route and st2["full_walk"] == "2026-11-10"
+    # A listing with more pages than the walk reads stops the source.
+    from commonswire import pageupdate
+
+    f3, client3, t3, prev3, olds3 = aiac(tmp_path / "c")
+    for n in range(1, 5):
+        t3.add(
+            FRONT if n == 1 else f"{FRONT}?page={n}", (200, listing(*olds3, f"{AIAC}/2026/01/p{n}"))
+        )
+    old_max = pageupdate.MAX_WALK_PAGES
+    pageupdate.MAX_WALK_PAGES = 3
+    try:
+        _r, upd3, _s = update_pages(f3, client3, prev3, now=NOW, prev_as_of=THROUGH, state=None)
+    finally:
+        pageupdate.MAX_WALK_PAGES = old_max
+    assert upd3.status == "failed" and "more than 3 pages" in upd3.note
+
+
+def test_only_removals_on_a_listing_walks_and_confirms_nothing_else(tmp_path, page_series, capsys):
+    w, out, reg_path, _ = two_sources(tmp_path)
+    args = [
+        "--root", str(tmp_path), "update-route", "africasacountry", "--from", str(out), "--work",
+        str(tmp_path / "w"), "--sources", str(reg_path), "--only-removals",
+    ]  # fmt: skip
+    from commonswire import pageupdate
+
+    real = pageupdate.default_clients
+    pageupdate.default_clients = lambda root, locks: make_clients(w.transport)
+    try:
+        assert main(args) == 0
+    finally:
+        pageupdate.default_clients = real
+    summary = json.loads((tmp_path / "w" / "route-summary.json").read_text())
+    assert summary["only_removals"] is True and summary["update"]["new"] == 0
+    assert summary["update"]["route"]["walk_pages_read"] == 2
+    assert summary["update"]["route"]["removal_check"]["rows_not_listed"] == 0

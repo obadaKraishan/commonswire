@@ -52,6 +52,20 @@ All notable changes to this project are documented here. The format follows
   route's state (`page_state`: a date, or ids) goes into the next manifest. A source that
   would need more than 60 requests in a week stops before reading its pages. Page sources
   have no post counts, so the count check does not cover them.
+- SciDev.Net's two license checks hold for every section: a page that lacks the site's
+  license line, or names another Creative Commons license outside an image's caption, is left
+  out and counted, whatever its section ("Supported content" pages also need SciDev.Net's own
+  byline). Two legacy forms in its older bodies are cleaned before the text is taken: the
+  angle brackets printed around a link's label, and a paragraph that only shows escaped
+  markup (a player's embed code).
+- The page route re-reads Africa Is a Country's stories of the last 30 days each week, so
+  their edits are seen by text hash as for the other sources.
+- The removal check of the page sources: each week every SciDev.Net article sitemap is
+  compared with the released rows, and every 28 days Africa Is a Country's whole listing is
+  walked. A released row that is no longer listed is read once and marked removed only when
+  its own page answers 404 or 410. More than 25 such rows in one run stop the source
+  (`over_ceiling`), and the weekly limit of 60 article pages counts these reads too.
+  `update-route --only-removals` runs the check alone, as a dry run.
 - `commonswire update-route SOURCE --from VERSION --work DIR`: one page source's weekly route
   alone, as a dry run (`--max-requests` caps it; `--offline` replays it). It writes a summary
   of counts and ids, never a version.
