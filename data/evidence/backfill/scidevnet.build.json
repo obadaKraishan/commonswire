@@ -1,0 +1,25 @@
+{
+  "credited_to_source": 3,
+  "dropped": {
+    "answer:404": 2,
+    "invalid:Value error, text is empty; only a removed article may have no text": 1,
+    "invalid:Value error, text still holds HTML tags; give plain text": 7,
+    "not_an_article:no post-content module: not an article page": 17,
+    "third_party:another holder's copyright line": 1,
+    "third_party:says it was published elsewhere first": 78,
+    "third_party:supported content naming another license": 2,
+    "third_party:supported content without a byline of its own": 4
+  },
+  "first": "2001-05-15",
+  "kept": 13190,
+  "last": "2026-11-16",
+  "raw_bytes": 2552735984,
+  "raw_files": 13300,
+  "releasable": 10582,
+  "rows_bytes": 56636865,
+  "run": "2026-11-16",
+  "seen": 13300,
+  "source_id": "scidevnet",
+  "validate_errors": 0,
+  "validate_warnings": 21
+}
