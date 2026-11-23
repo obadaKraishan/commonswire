@@ -350,9 +350,12 @@ links to. An English gloss beside it in the notes is marked "(gloss)" and is thi
   | Greek | public domain before 2005-09-25; CC BY 2.5 to the page's last edit (2018-12-28); later not placed (held) | "Από τις 25 Σεπτεμβρίου όλα τα περιεχόμενα που δημοσιεύονται στα Βικινέα αδειοδοτούνται με τους όρους της Αναφορά προέλευσης 2.5 Γενικό (CC BY 2.5)." |
 
   Each of the eight pages also bars copyrighted text (quoted in `third_party_rule`), as the
-  English edition's does. The English row also says that pages carrying another license
-  notice are left out; the dump reader does not do that yet, which is a question for the
-  maintainer before these editions are read.
+  English edition's does. **A page with a notice of its own** (the maintainer's rule,
+  2026-11-23): a page that carries a license or copyright notice of its own that differs from
+  its edition's license for its creation date is held and counted, by edition; the table's
+  license applies only to pages with no notice of their own, or with one that agrees with it.
+  An image's caption or gallery is the image's notice, not the page's. (The English row says
+  the same of its pages, which the dump reader of versions 0.1.0 to 0.2.x did not check.)
 - **Wikinews editions still `pending`,** each with the question its page leaves:
   - German (`third_party_unclear`): the page dates its licenses but says nothing about text
     copied from elsewhere;

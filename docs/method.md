@@ -64,7 +64,9 @@ been run.
 - **Wikinews' editions: licenses by date.** Each edition's copyright page dates its licenses
   differently. An article takes the license of its creation date (its first revision in the
   dump), from its edition's table (`commonswire.licensing`); a date the table does not place is
-  held and counted. Editions whose page gives no usable table stay `pending`.
+  held and counted. A page that carries a license or copyright notice of its own that
+  differs from that license is held and counted too (an image's caption is the image's
+  notice, not the page's). Editions whose page gives no usable table stay `pending`.
 - **Balkan Diskurs (Bosnian)** is read like the English edition (API, then each article page for
   its byline); the two editions name each other in their pages' `hreflang` tags.
 

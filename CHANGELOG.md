@@ -28,8 +28,11 @@ All notable changes to this project are documented here. The format follows
   exactly one version in the group credits no translator.
 - **Wikinews' editions by date:** license-by-date tables for eight editions, read on their
   own copyright pages (`commonswire.licensing`). An article takes the license of its creation
-  date; a date the table does not place is held. Sixteen editions stay pending, each with the
-  question its page leaves.
+  date; a date the table does not place is held, and so is a page that carries a license or
+  copyright notice of its own that differs from that license (counted by edition). Sixteen
+  editions stay pending, each with the question its page leaves. `commonswire
+  wikinews-edition` saves an edition's dumps once (md5 checked), counts its templates
+  (`--census`), and builds its rows by creation date (the stub history's first revision).
 - **Tags:** `backfill --tags` asks new archives for each post's tags and saves the site's tag
   names; `commonswire backfill-tags` reads the tags of an archive saved without them (post
   ids with tag ids, then only the names used). Builds join them by post id.
