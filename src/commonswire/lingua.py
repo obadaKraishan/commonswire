@@ -412,9 +412,12 @@ class ListingPlan:
 
 
 def saved_posts(folder: Path) -> Iterator[dict]:
-    """The posts of a saved backfill run, page by page."""
-    for path in sorted(folder.glob("posts-p*.json")):
-        yield from _posts_in(path)
+    """The posts of a saved backfill run, page by page (an answer kept with a leading notice
+    included)."""
+    from commonswire.backfill import page_files, posts_of
+
+    for path in page_files(folder):
+        yield from (p for p in posts_of(path.read_bytes()) or [] if isinstance(p, dict))
 
 
 def plan_for(root: Path, source_id: str, run: str) -> tuple[ListingPlan, dict[str, int]]:

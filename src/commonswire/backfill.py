@@ -78,14 +78,43 @@ def _on_disk(path: Path, size: int) -> bool:
 
 
 def _page_number(path: Path) -> int | None:
-    m = re.match(r"^posts-p(\d+)\.json$", path.name)
+    m = re.match(r"^posts-p(\d+)\.(json|notjson)$", path.name)
     return int(m.group(1)) if m else None
+
+
+#: An answer whose JSON follows a leading HTML notice from the site (a plugin's error box):
+#: kept unchanged as ``posts-pNNNNN.notjson``, and its posts read from the array after it.
+NOT_JSON = ".notjson"
+
+
+def posts_of(body: bytes) -> list | None:
+    """The list of posts in a saved answer: its JSON, or for an answer that starts with an
+    HTML notice, the JSON array that follows it; None when there is none."""
+    try:
+        data = json.loads(body)
+    except ValueError:
+        text = body.decode("utf-8", errors="replace")
+        start = text.find("[{")
+        if not text.lstrip().startswith("<") or start < 0:
+            return None
+        try:
+            data = json.loads(text[start:])
+        except ValueError:
+            return None
+    return data if isinstance(data, list) else None
+
+
+def page_files(folder: Path) -> list[Path]:
+    """A run's saved post pages, in page order (``.json``, or ``.notjson`` for an answer with a
+    leading notice)."""
+    found = [p for p in folder.glob("posts-p*") if _page_number(p) is not None]
+    return sorted(found, key=lambda p: (_page_number(p), p.suffix))
 
 
 def missing_pages(folder: Path, total_pages: int | None) -> list[int]:
     """The page numbers from 1 to the last (``total_pages``, or the highest saved) that have
     no file."""
-    have = {n for p in folder.glob("posts-p*.json") if (n := _page_number(p)) is not None}
+    have = {n for p in page_files(folder) if (n := _page_number(p)) is not None}
     last = total_pages if total_pages is not None else max(have, default=0)
     return [n for n in range(1, last + 1) if n not in have]
 
@@ -98,19 +127,13 @@ def check_backfill(folder: Path) -> dict[str, object]:
     if (folder / "progress.json").exists():
         progress = json.loads((folder / "progress.json").read_text())
     total_pages = progress.get("total_pages")
-    pages = sorted(
-        (n, p) for p in folder.glob("posts-p*.json") if (n := _page_number(p)) is not None
-    )
+    pages = sorted((n, p) for p in page_files(folder) if (n := _page_number(p)) is not None)
     missing = missing_pages(folder, total_pages) if folder.exists() else []
     bad: list[int] = []
     posts = 0
     for n, path in pages:
-        try:
-            data = json.loads(path.read_bytes())
-        except ValueError:
-            bad.append(n)
-            continue
-        if not isinstance(data, list) or not data:
+        data = posts_of(path.read_bytes())
+        if not data:
             bad.append(n)
             continue
         posts += len(data)
@@ -135,6 +158,8 @@ class Progress:
     pages_saved: int = 0
     category_pages: int = 0
     tag_pages: int = 0
+    #: Pages whose answer began with an HTML notice before its JSON (kept as .notjson).
+    notice_pages: int = 0
     bytes_this_run: int = 0
     requests_this_run: int = 0
     finished: bool = False
@@ -218,7 +243,7 @@ def backfill_wordpress(
             if progress.total_pages is not None and page > progress.total_pages:
                 break
             path = folder / PAGE_NAME.format(page)
-            if path.exists():
+            if path.exists() or path.with_suffix(NOT_JSON).exists():
                 page += 1
                 continue
             if max_pages is not None and done_this_run >= max_pages:
@@ -238,13 +263,17 @@ def backfill_wordpress(
             try:
                 posts = resp.json()
             except ValueError:
-                # Kept once, so the answer can be looked at; the run stops at this page.
-                save_once(path.with_suffix(".notjson"), resp.body)
-                progress.stopped = (
-                    f"page {page} answered 200 with {len(resp.body):,} bytes that are not JSON "
-                    f"(kept as {path.with_suffix('.notjson').name})"
-                )
-                break
+                posts = posts_of(resp.body)
+                # Kept once, unchanged; with a leading notice, its posts are read after it.
+                save_once(path.with_suffix(NOT_JSON), resp.body)
+                if posts is None:
+                    progress.stopped = (
+                        f"page {page} answered 200 with {len(resp.body):,} bytes that are not "
+                        f"JSON (kept as {path.with_suffix(NOT_JSON).name})"
+                    )
+                    break
+                progress.notice_pages += 1
+                path = path.with_suffix(NOT_JSON)
             if not isinstance(posts, list) or not posts:
                 break
             save_once(path, resp.body)
@@ -269,7 +298,7 @@ def backfill_wordpress(
         progress.stopped = f"error: {exc}"
     except OSError as exc:
         progress.stopped = f"could not write to {folder}: {exc}"
-    progress.pages_saved = len(list(folder.glob("posts-p*.json")))
+    progress.pages_saved = len(page_files(folder))
     missing = missing_pages(folder, progress.total_pages)
     progress.missing_pages = missing[:50]
     if missing and not progress.stopped:
@@ -338,7 +367,7 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
     if tag_names:
         fetcher.tag_names = {**fetcher.tag_names, **tag_names}
     load_tags_run(fetcher, folder.parent)
-    pages = sorted(folder.glob("posts-p*.json"))
+    pages = page_files(folder)
     result.raw_files = (
         len(pages)
         + len(list(folder.glob("categories-p*.json")))
@@ -354,7 +383,7 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
             fetched = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).replace(
                 microsecond=0
             )
-            for post in json.loads(path.read_bytes()):
+            for post in posts_of(path.read_bytes()) or []:
                 result.seen += 1
                 try:
                     item = fetcher.item_from_post(post)

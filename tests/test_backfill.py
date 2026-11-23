@@ -487,7 +487,7 @@ def test_backfill_tags_of_only_some_posts_by_id(tmp_path):
     assert load_post_tags(folder) == {3: (8,), 5: ()}
 
 
-def test_a_page_that_is_not_json_is_kept_once_and_stops_the_run(tmp_path):
+def _notice_site(page2_body):
     t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
     t.add(
         f"{GV}/wp-json/wp/v2/categories?per_page=100&page=1&_fields=id%2Cname",
@@ -497,12 +497,40 @@ def test_a_page_that_is_not_json_is_kept_once_and_stops_the_run(tmp_path):
     base = (
         f"{GV}/wp-json/wp/v2/posts?per_page=100&page={{}}&orderby=date&order=asc&_fields={fields}"
     )
-    head = {"X-WP-Total": "2", "X-WP-TotalPages": "2"}
+    head = {"X-WP-Total": "3", "X-WP-TotalPages": "3"}
     t.add(base.format(1), (200, json.dumps([backfill_post(1)]), head))
-    t.add(base.format(2), (200, "<b>Warning</b>: invented notice [{}]", head))
+    t.add(base.format(2), (200, page2_body, head))
+    t.add(base.format(3), (200, json.dumps([backfill_post(3)]), head))
+    return t
+
+
+def test_a_page_that_is_not_json_is_kept_once_and_stops_the_run(tmp_path):
+    t = _notice_site("<b>Warning</b>: an invented notice, and no posts at all")
     fetcher, client, _ = make(tmp_path, t)
     folder = tmp_path / "bf"
     p = backfill_wordpress(fetcher, client, folder, run="r1")
     assert not p.finished and "not JSON" in p.stopped and "page 2" in p.stopped
     assert (folder / "posts-p00002.notjson").exists()
     assert not (folder / "posts-p00002.json").exists()
+
+
+def test_a_notice_before_the_json_is_kept_unchanged_and_its_posts_read(tmp_path):
+    from commonswire.backfill import page_files, posts_of
+
+    body = "<div class='error'><p>Invented plugin notice</p></div>" + json.dumps([backfill_post(2)])
+    t = _notice_site(body)
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert p.finished and p.notice_pages == 1 and p.pages_saved == 3
+    kept = folder / "posts-p00002.notjson"
+    assert kept.read_text() == body  # the answer as given
+    assert [x.name for x in page_files(folder)][1] == "posts-p00002.notjson"
+    assert check_backfill(folder)["complete"] and check_backfill(folder)["posts"] == 3
+    before = len(t.calls)
+    assert backfill_wordpress(fetcher, client, folder, run="r1").requests_this_run == 0
+    assert len(t.calls) == before  # a kept notice page is never asked for again
+    fetcher.byline_map = {7: ("A. Writer",)}
+    result = build_rows(fetcher, folder, tmp_path / "rows.jsonl")
+    assert result.seen == 3
+    assert posts_of(b"[1") is None and posts_of(b"<p>no array</p>") is None
