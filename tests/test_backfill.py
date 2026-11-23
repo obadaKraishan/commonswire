@@ -485,3 +485,24 @@ def test_backfill_tags_of_only_some_posts_by_id(tmp_path):
     p = backfill_tags(fetcher, client, folder, run="r", only_ids=[5, 3, 3])
     assert p.finished and p.pages_saved == 1 and p.total_posts == 2
     assert load_post_tags(folder) == {3: (8,), 5: ()}
+
+
+def test_a_page_that_is_not_json_is_kept_once_and_stops_the_run(tmp_path):
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    t.add(
+        f"{GV}/wp-json/wp/v2/categories?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 1, "name": "World"}])),
+    )
+    fields = GlobalVoicesFetcher.backfill_fields.replace(",", "%2C")
+    base = (
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page={{}}&orderby=date&order=asc&_fields={fields}"
+    )
+    head = {"X-WP-Total": "2", "X-WP-TotalPages": "2"}
+    t.add(base.format(1), (200, json.dumps([backfill_post(1)]), head))
+    t.add(base.format(2), (200, "<b>Warning</b>: invented notice [{}]", head))
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert not p.finished and "not JSON" in p.stopped and "page 2" in p.stopped
+    assert (folder / "posts-p00002.notjson").exists()
+    assert not (folder / "posts-p00002.json").exists()

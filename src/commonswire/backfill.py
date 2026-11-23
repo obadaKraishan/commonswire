@@ -235,7 +235,16 @@ def backfill_wordpress(
                 pages = _header(resp.headers, "X-WP-TotalPages")
                 progress.total_posts = int(total) if total.isdigit() else None
                 progress.total_pages = int(pages) if pages.isdigit() else None
-            posts = resp.json()
+            try:
+                posts = resp.json()
+            except ValueError:
+                # Kept once, so the answer can be looked at; the run stops at this page.
+                save_once(path.with_suffix(".notjson"), resp.body)
+                progress.stopped = (
+                    f"page {page} answered 200 with {len(resp.body):,} bytes that are not JSON "
+                    f"(kept as {path.with_suffix('.notjson').name})"
+                )
+                break
             if not isinstance(posts, list) or not posts:
                 break
             save_once(path, resp.body)
