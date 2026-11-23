@@ -450,12 +450,25 @@ def cmd_backfill_tags(args: argparse.Namespace) -> int:
     fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
     client.byte_budget = int(args.max_mb * 1024 * 1024)
     folder = root / "data" / "raw" / "backfill" / args.source_id / f"{args.run}-tags"
+    only_ids = None
+    if args.missing_from:
+        import json
+
+        run = root / "data" / "raw" / "backfill" / args.source_id / args.missing_from
+        only_ids = [
+            int(p["id"])
+            for path in sorted(run.glob("posts-p*.json"))
+            for p in json.loads(path.read_bytes())
+            if isinstance(p, dict) and "tags" not in p and isinstance(p.get("id"), int)
+        ]
+        print(f"{args.source_id}: {len(only_ids)} posts of run {args.missing_from} have no tags")
     progress = backfill_tags(
         fetcher,
         client,
         folder,
         run=args.run,
         max_requests=args.max_requests,
+        only_ids=only_ids,
         say=lambda m: print(m, flush=True),
     )
     print(
@@ -1502,6 +1515,11 @@ def build_parser() -> argparse.ArgumentParser:
     bt.add_argument("--run", default=_today(), help="the run's name (default: today)")
     bt.add_argument("--max-mb", type=float, default=100, help="stop after this many megabytes")
     bt.add_argument("--max-requests", type=int, help="stop after this many requests")
+    bt.add_argument(
+        "--missing-from",
+        metavar="RUN",
+        help="ask only for the posts of the backfill run RUN that were saved without tags",
+    )
     bt.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     bt.set_defaults(func=cmd_backfill_tags)
 

@@ -391,13 +391,15 @@ def backfill_tags(
     *,
     run: str,
     max_requests: int | None = None,
+    only_ids: list[int] | None = None,
     say: Callable[[str], None] = lambda _m: None,
 ) -> Progress:
     """The tags of an archive saved without them (series 0.3 on): every page of the site's
     posts with their ids and tag ids only, oldest first, then the names of the tags those
     posts use, 100 ids a request (never more requests than paging every tag). Saved once
     under ``folder`` (``posttags-pNNNNN.json``, ``tagnames-pNNNN.json``); a rerun skips
-    what is saved."""
+    what is saved. With ``only_ids``, only those posts are asked for, 100 ids a request
+    (``posttags-ids-pNNNN.json``): the few pages of a run that were saved without tags."""
     note = f"tags:{fetcher.source_id}"
     progress = Progress(source_id=fetcher.source_id, run=run)
     old = folder / "progress.json"
@@ -410,8 +412,12 @@ def backfill_tags(
         return max_requests is None or progress.requests_this_run < max_requests
 
     try:
+        if only_ids is not None:
+            ids_sorted = sorted(set(only_ids))
+            progress.total_pages = -(-len(ids_sorted) // 100)
+            progress.total_posts = len(ids_sorted)
         page = 1
-        while progress.total_pages is None or page <= progress.total_pages:
+        while only_ids is None and (progress.total_pages is None or page <= progress.total_pages):
             path = folder / POSTTAGS_NAME.format(page)
             if path.exists():
                 page += 1
@@ -438,6 +444,23 @@ def backfill_tags(
             if page % 100 == 0:
                 say(f"{fetcher.source_id}: tags page {page} of {progress.total_pages or '?'}")
             page += 1
+        if only_ids is not None:
+            for n, begin in enumerate(range(0, len(ids_sorted), 100), start=1):
+                path = folder / f"posttags-ids-p{n:04d}.json"
+                if path.exists():
+                    continue
+                if not budget_left():
+                    progress.stopped = f"stopped after {max_requests} requests, as asked"
+                    break
+                chunk = ",".join(str(i) for i in ids_sorted[begin : begin + 100])
+                url = f"{fetcher.api_base}/wp-json/wp/v2/posts?" + urlencode(
+                    {"include": chunk, "per_page": "100", "_fields": "id,tags"}
+                )
+                resp = _get(client, url, note, progress)
+                if resp.status != 200:
+                    progress.stopped = f"posts by id {n} answered HTTP {resp.status}"
+                    break
+                save_once(path, resp.body)
         if not progress.stopped:
             used = sorted({t for ids in load_post_tags(folder).values() for t in ids})
             for n, start in enumerate(range(0, len(used), 100), start=1):
@@ -465,10 +488,17 @@ def backfill_tags(
         progress.stopped = f"error: {exc}"
     except OSError as exc:
         progress.stopped = f"could not write to {folder}: {exc}"
-    progress.pages_saved = len(list(folder.glob("posttags-p*.json")))
-    total_pages = progress.total_pages
-    have = {int(p.name[10:15]) for p in folder.glob("posttags-p*.json")}
-    missing = [n for n in range(1, (total_pages or 0) + 1) if n not in have]
+    if only_ids is not None:
+        progress.pages_saved = len(list(folder.glob("posttags-ids-p*.json")))
+        missing = [
+            n
+            for n in range(1, (progress.total_pages or 0) + 1)
+            if not (folder / f"posttags-ids-p{n:04d}.json").exists()
+        ]
+    else:
+        progress.pages_saved = len(list(folder.glob("posttags-p*.json")))
+        have = {int(p.name[10:15]) for p in folder.glob("posttags-p*.json")}
+        missing = [n for n in range(1, (progress.total_pages or 0) + 1) if n not in have]
     progress.missing_pages = missing[:50]
     if missing and not progress.stopped:
         progress.stopped = f"{len(missing)} tag pages missing"
@@ -480,7 +510,7 @@ def backfill_tags(
 def load_post_tags(folder: Path) -> dict[int, tuple[int, ...]]:
     """Post id -> tag ids, from a tags backfill run (or a backfill asked with tags)."""
     out: dict[int, tuple[int, ...]] = {}
-    for path in sorted(folder.glob("posttags-p*.json")):
+    for path in sorted(folder.glob("posttags-*.json")):
         for post in json.loads(path.read_bytes()):
             if isinstance(post, dict) and isinstance(post.get("id"), int):
                 tags = post.get("tags")

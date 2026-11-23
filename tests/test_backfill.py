@@ -466,3 +466,22 @@ def test_backfill_tags_stops_at_its_request_limit(tmp_path):
     fetcher, client, _ = make(tmp_path, t)
     p = backfill_tags(fetcher, client, tmp_path / "x-tags", run="x", max_requests=1)
     assert not p.finished and p.stopped == "stopped after 1 requests, as asked"
+
+
+def test_backfill_tags_of_only_some_posts_by_id(tmp_path):
+    from commonswire.backfill import backfill_tags, load_post_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?include=3%2C5&per_page=100&_fields=id%2Ctags",
+        (200, json.dumps([{"id": 3, "tags": [8]}, {"id": 5, "tags": []}])),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?include=8&per_page=100&_fields=id%2Cname",
+        (200, json.dumps([{"id": 8, "name": "Eight"}])),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "r-tags"
+    p = backfill_tags(fetcher, client, folder, run="r", only_ids=[5, 3, 3])
+    assert p.finished and p.pages_saved == 1 and p.total_posts == 2
+    assert load_post_tags(folder) == {3: (8,), 5: ()}
