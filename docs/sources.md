@@ -33,7 +33,7 @@ How the rule is read (rulings of 2026-11-13):
 
 ## Summary
 
-151 sources checked: 61 include, 73 pending, 17 exclude.
+151 sources checked: 69 include, 65 pending, 17 exclude.
 
 | Source | Kind | License | Bulk | Robots | Terms | Tracking | Status |
 |---|---|---|---|---|---|---|---|
@@ -97,7 +97,15 @@ How the rule is read (rulings of 2026-11-13):
 | Salaam Times | state-agency | Public domain | silent | allows | silent | no | include (`license_allows`) |
 | SciDev.Net | news | CC BY 2.0 | allows | allows | silent | no | include (`license_allows`) |
 | The Public Record | news | CC BY-SA 4.0 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (ar) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (el) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
 | Wikinews (English) | news | CC BY 2.5 | silent | allows | allows | no | include (`license_allows`) |
+| Wikinews (fr) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (ko) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (ro) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (ru) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (sv) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
+| Wikinews (zh) | news | CC BY 2.5 | silent | allows | silent | no | include (`license_allows`) |
 | Agenzia Fides | church-agency | CC BY 4.0 | silent | allows | silent | no | pending (`third_party_unclear`) |
 | Agência Brasil | state-agency | NOASSERTION | silent | allows | silent | no | pending (`no_license`) |
 | Al-Jumhuriya | news | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
@@ -138,38 +146,30 @@ How the rule is read (rulings of 2026-11-13):
 | The Marshall Project | news | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
 | US Department of State press releases | official | NOASSERTION | silent | blocked | silent | no | pending (`refused_requests`) |
 | Votebeat | news | CC BY-NC-ND 4.0 | silent | allows | silent | no | pending (`nc_or_nd`) |
-| Wikinews (ar) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (bs) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (ca) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (cs) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (de) | news | CC BY 2.5 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (el) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (de) | news | CC BY 2.5 | silent | allows | silent | no | pending (`third_party_unclear`) |
 | Wikinews (eo) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (es) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (fa) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
+| Wikinews (fa) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`conflicting_statements`) |
 | Wikinews (fi) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (fr) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (guw) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (he) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (hu) | news | CC BY 3.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (it) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (ja) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (ko) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (li) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (nl) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (no) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (pl) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (pt) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (ro) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (ru) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (shn) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (sq) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (sr) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (sv) | news | CC BY-SA 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (ta) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (tr) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | Wikinews (uk) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
-| Wikinews (zh) | news | CC BY 4.0 | silent | allows | silent | no | pending (`partial_license`) |
 | ZimFact | fact-check | NOASSERTION | silent | none | silent | no | pending (`site_unavailable`) |
 | CalMatters | news | NOASSERTION | silent | allows | forbids | no | exclude (`terms_forbid_automation`) |
 | Common Dreams | news | CC BY-NC-ND 3.0 | forbids | allows | silent | no | exclude (`bulk_clause`) |
@@ -860,6 +860,28 @@ News, CA, en. Home: <https://thepublicrecord.ca/>. Checked on 2026-11-16.
 - **Status: include.** Reason code `license_allows`. Site-wide CC BY-SA 4.0 on a dedicated licensing page that says no permission is needed.
 - **Notes:** the clearest case in this group: a dedicated licensing page that waives any need to ask; the privacy policy uses IP addresses 'to identify automated traffic and abuse' (no ban); Hamilton, Ontario local news No terms of use page exists on the site, so no terms forbid automated collection (point 3 passes, as for a silent terms page). Re-read on 2026-11-16: the quoted words are unchanged.
 
+### Wikinews (ar) (`wikinews_ar`)
+
+News, INTL, ar. Home: <https://ar.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://ar.wikinews.org/wiki/ويكي_الأخبار:حقوق_النسخ>); "جميع النصوص المنشورة قبل 21 أغسطس 2024 تخضع لرخصة رخصة المشاع الإبداعي الملزمة بنسبة العمل لمؤلفه 2.5."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('لا تنشر في ويكي الأخبار مواد محمية بحقوق التأليف والنشر إلا إذا كانت تخضع لرخصة متوافقة مع ويكي الأخبار.', gloss: do not publish copyrighted material unless it is under a compatible license) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): CC BY 2.5 before 2024-08-21; CC BY-SA 4.0 from 2024-08-21; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 10,452,306 bytes compressed. Copyright page read: yes.
+
+### Wikinews (el) (`wikinews_el`)
+
+News, INTL, el. Home: <https://el.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://el.wikinews.org/wiki/Βικινέα:Πνευματικά_δικαιώματα>); "Από τις 25 Σεπτεμβρίου όλα τα περιεχόμενα που δημοσιεύονται στα Βικινέα αδειοδοτούνται με τους όρους της Αναφορά προέλευσης 2.5 Γενικό (CC BY 2.5)."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('Μην επιφορτώνετε υλικό προστατευμένο από πνευματικά δικαιώματα στα Βικινέα, εκτός και αν έχει εκδοθεί με μια άδεια συμβατή με αυτά.', gloss: do not upload copyrighted material unless it is under a compatible license) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): public domain before 2005-09-25; CC BY 2.5 from 2005-09-25 to the page's last edit, 2018-12-28; later articles not placed (held); each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,551,286 bytes compressed. Copyright page read: yes.
+
 ### Wikinews (English) (`wikinews_en`)
 
 News, INTL, en. Home: <https://en.wikinews.org/>. Checked on 2026-11-13.
@@ -871,6 +893,72 @@ News, INTL, en. Home: <https://en.wikinews.org/>. Checked on 2026-11-13.
 - **Third-party material:** Text is written by volunteer editors; the copyright policy bars copyrighted and other-Wikimedia text, and the footer license applies 'unless otherwise noted', so pages with a different notice are left out
 - **Status: include.** Reason code `license_allows`. CC BY 2.5 for 2005-09-25..2024-12-16, CC BY 4.0 after, public domain before; set each article's license by its date.
 - **Notes:** CLOSED: the Wikimedia Foundation closed all Wikinews editions; read-only since 2026-05-04 (main page: 'Wikinews has been made read-only'), so a fixed archive with no new articles; the footer says CC BY 4.0 'unless otherwise noted'; the WMF Terms of Use bar automated uses that are abusive, break usage policies 'or have not been approved by the Wikimedia community', and bind API users to the User-Agent and Robot policies; collect through the API or dumps under those policies Each article's license follows its date (commonswire.licensing): public domain before 2005-09-25, CC BY 2.5 to 2024-12-16, CC BY 4.0 after. Paths (2026-11-13): en.wikinews.org/robots.txt disallows /w/ (the MediaWiki API) and allows /wiki/ article pages for general user agents; CommonsWire reads only the dump from https://dumps.wikimedia.org/enwikinews/, which that host's robots.txt allows.
+
+### Wikinews (fr) (`wikinews_fr`)
+
+News, INTL, fr. Home: <https://fr.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://fr.wikinews.org/wiki/Wikinews:Droit_d'auteur>); "Le contenu publié entre le 24 septembre 2005 et le 2 janvier 2025 est sous licence Creative Commons Attribution 2.5, sauf mention contraire."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('Vous ne pouvez pas copier des textes protégés sans autorisation expresse.', gloss: you may not copy protected texts without express permission) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): public domain before 2005-09-24; CC BY 2.5 from 2005-09-24; CC BY-SA 4.0 from 2025-01-02; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 25,346,880 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ko) (`wikinews_ko`)
+
+News, INTL, ko. Home: <https://ko.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://ko.wikinews.org/wiki/위키뉴스:저작권>); "2005년 9월 25일을 기점으로, 이 이후에 위키뉴스에서 발행된 모든 내용은 크리에이티브 커먼즈 저작자표시 2.5 라이선스로 배포됩니다."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('위키뉴스의 라이선스와 호환되는 경우를 제외하고 위키뉴스에 저작권에 의해 보호받는 저작물을 올려서는 안됩니다.', gloss: do not post copyrighted works unless they are compatible with Wikinews' license) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): public domain before 2005-09-25; CC BY 2.5 from 2005-09-25 to the page's last edit, 2015-08-05; later articles not placed (held); each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,346,418 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ro) (`wikinews_ro`)
+
+News, INTL, ro. Home: <https://ro.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://ro.wikinews.org/wiki/Wikiștiri:Drepturi_de_autor>); "Materialul publicat înainte de 2 ianuarie 2025, dar după 25 septembrie 2005, este licențiat în conformitate cu termenii licenței Creative Commons Attribution 2.5 License."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('Nu trimiteți materiale protejate prin drepturi de autor către Wikiștiri, decât dacă sunt publicate sub o licență compatibilă cu Wikiștiri.', gloss: do not submit copyrighted material unless it is under a compatible license) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): GNU FDL before 2005-09-26 (held); CC BY 2.5 from 2005-09-26; CC BY 4.0 from 2025-01-03; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,880,019 bytes compressed. Copyright page read: yes.
+
+### Wikinews (ru) (`wikinews_ru`)
+
+News, INTL, ru. Home: <https://ru.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://ru.wikinews.org/wiki/Викиновости:Авторское_право>); "(публикации до 26.02.2025 распространяются по лицензии CC-BY версии 2.5, если не указано иное)"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('Внимание! Не добавляйте в Викиновости материалы, защищённые авторским правом по несовместимым лицензиям.', gloss: do not add copyrighted material under incompatible licenses) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): CC BY 2.5 before 2025-02-26; CC BY 4.0 from 2025-02-26; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,129,517,443 bytes compressed. Copyright page read: yes.
+
+### Wikinews (sv) (`wikinews_sv`)
+
+News, INTL, sv. Home: <https://sv.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://sv.wikinews.org/wiki/Wikinews:Copyright>); "Bidrag som publicerats före den 1 juli 2005 kan ha publicerats under en annan licens (och bidrag före 29 januari 2025 har publicerats under den äldre versionen Creative Commons Attribution 2.5)."
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('OBS! Det är inte tillåtet att återpublicera upphovsrättsskyddad text på Wikinews!', gloss: republishing copyrighted text on Wikinews is not allowed) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): another license may apply before 2005-07-01 (held); CC BY 2.5 from 2005-07-01; CC BY-SA 4.0 from 2025-01-29; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,299,927 bytes compressed. Copyright page read: yes.
+
+### Wikinews (zh) (`wikinews_zh`)
+
+News, INTL, zh. Home: <https://zh.wikinews.org/>. Checked on 2026-11-17.
+
+- **License:** CC BY 2.5 (<https://zh.wikinews.org/wiki/Wikinews:版权信息>); "2025年1月30日之前加入维基新闻的内容也以CC BY 2.5授权。"
+- **Bulk or automatic reuse:** silent
+- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
+- **Third-party material:** Text is written by volunteer editors; the copyright page bars copyrighted text ('请不要向维基新闻提交受版权保护的材料，除非有关材料得到自由授权，侵权材料将会被快速删除。', gloss: do not submit copyrighted material unless it is freely licensed) and the footer license applies 'unless otherwise noted', so pages with a different notice are left out, as for the English edition
+- **Status: include.** Reason code `license_allows`. Its copyright page dates its licenses (answer 3c, 2026-11-23): CC BY 2.5 before 2025-01-30; CC BY 4.0 from 2025-01-30; each article takes the license of its creation date (its first revision), and an article the table does not place is held and counted.
+- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 33,815,460 bytes compressed. Copyright page read: yes.
 
 ## Pending: a question to settle first
 
@@ -1333,17 +1421,6 @@ News, US, en. Home: <https://www.votebeat.org/>. Checked on 2026-11-13.
 - **Status: pending.** Reason code `nc_or_nd`. Votebeat licenses its stories CC BY-NC-ND 4.0 'unless otherwise noted' and is silent on bulk or automatic republishing (no 'individually' clause, no pixel requirement); may an NC-ND source silent on bulk enter the corpus?
 - **Notes:** Published by Civic News Company; its Terms of Service (civicnews.org/tos, read as a Chalkbeat page) defer to the republishing policy, are silent on automated access and say the Services are intended for US users only. Per-story republish pages were not read (they hold article text). Not pursued for version 1 (maintainer's decision, 2026-11-13).
 
-### Wikinews (ar) (`wikinews_ar`)
-
-News, INTL, ar. Home: <https://ar.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.ar>); "المحتوى متاح وفق CC BY-SA 4.0 ما لم يرد خلاف ذلك."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 10,452,306 bytes compressed. Copyright page read: yes.
-
 ### Wikinews (bs) (`wikinews_bs`)
 
 News, INTL, bs. Home: <https://bs.wikinews.org/>. Checked on 2026-11-17.
@@ -1363,7 +1440,7 @@ News, INTL, ca. Home: <https://ca.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names CC BY 2.5 for all content and no dates, while today's footer names CC BY 4.0; may the page's license place the articles up to its last edit? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 4,563,174 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (cs) (`wikinews_cs`)
@@ -1374,7 +1451,7 @@ News, INTL, cs. Home: <https://cs.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page is a redirect to the English policy (en:Wikinews:Copyright); does the English edition's table apply to it? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 5,195,102 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (de) (`wikinews_de`)
@@ -1385,19 +1462,8 @@ News, INTL, de. Home: <https://de.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `third_party_unclear`. Its copyright page dates its licenses (public domain before 25 September 2005, CC BY 2.5 since) but says nothing about text copied from elsewhere; is the footer's 'sofern nicht anders angegeben' enough for point 4, as for the English edition? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 19,079,364 bytes compressed. Copyright page read: yes.
-
-### Wikinews (el) (`wikinews_el`)
-
-News, INTL, el. Home: <https://el.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Το περιεχόμενο είναι διαθέσιμο υπό Creative Commons Attribution 4.0 εκτός αν αναφέρεται διαφορετικά."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,551,286 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (eo) (`wikinews_eo`)
 
@@ -1407,7 +1473,7 @@ News, INTL, eo. Home: <https://eo.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page is marked a proposal without community consensus; it names CC BY 2.5 and no dates, while today's footer names CC BY 4.0. Does a proposal settle the license? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,996,421 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (es) (`wikinews_es`)
@@ -1418,7 +1484,7 @@ News, INTL, es. Home: <https://es.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names CC BY 2.5 and no dates, while today's footer names CC BY 4.0; may the page's license place the articles up to its last edit? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 16,753,692 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (fa) (`wikinews_fa`)
@@ -1429,7 +1495,7 @@ News, INTL, fa. Home: <https://fa.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `conflicting_statements`. Its copyright page puts all original text under the GNU FDL (1.2 or later) while its footer names CC BY-SA 4.0; which applies to which dates? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,627,858 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (fi) (`wikinews_fi`)
@@ -1440,19 +1506,8 @@ News, INTL, fi. Home: <https://fi.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page puts all article text under CC BY 4.0 with no dates, in wording adapted from a GNU FDL text; which license applies to the older articles? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,163,297 bytes compressed. Copyright page read: yes.
-
-### Wikinews (fr) (`wikinews_fr`)
-
-News, INTL, fr. Home: <https://fr.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.fr>); "Le contenu est disponible sous licence CC BY-SA 4.0 sauf mention contraire."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 25,346,880 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (guw) (`wikinews_guw`)
 
@@ -1473,7 +1528,7 @@ News, INTL, he. Home: <https://he.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page says contributions are CC BY 4.0, with no dates; which license applies to the older articles? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,088,852 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (hu) (`wikinews_hu`)
@@ -1495,7 +1550,7 @@ News, INTL, it. Home: <https://it.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page puts text from 25 September 2005 under 'Creative Commons Attribuzione (CC BY)' with no version, and links the CC BY 4.0 text; which version applies to the articles of 2005 to 2024? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 15,211,477 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (ja) (`wikinews_ja`)
@@ -1506,19 +1561,8 @@ News, INTL, ja. Home: <https://ja.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page only points to the Wikimedia Foundation's Terms of Use and names no license; which license applies to which dates? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 10,082,447 bytes compressed. Copyright page read: yes.
-
-### Wikinews (ko) (`wikinews_ko`)
-
-News, INTL, ko. Home: <https://ko.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "별도로 명시하지 않은 경우, 내용은 Creative Commons Attribution 4.0에 따라 사용할 수 있습니다."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,346,418 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (li) (`wikinews_li`)
 
@@ -1539,7 +1583,7 @@ News, INTL, nl. Home: <https://nl.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names CC BY 2.5 for all material and no dates, while today's footer names CC BY 4.0; may the page's license place the articles up to its last edit (it also allows copying texts marked free to reuse)? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 7,118,433 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (no) (`wikinews_no`)
@@ -1550,7 +1594,7 @@ News, INTL, no. Home: <https://no.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names CC BY 2.5 for all text and no dates, while today's footer names CC BY 4.0; may the page's license place the articles up to its last edit? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 871,166 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (pl) (`wikinews_pl`)
@@ -1561,7 +1605,7 @@ News, INTL, pl. Home: <https://pl.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names no license and points to Wikinews:Warunki użycia (not read); which license applies to which dates? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 21,981,516 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (pt) (`wikinews_pt`)
@@ -1572,30 +1616,8 @@ News, INTL, pt. Home: <https://pt.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names only CC BY 4.0 and no dates; which license applies to the articles before the switch? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 33,765,093 bytes compressed. Copyright page read: yes.
-
-### Wikinews (ro) (`wikinews_ro`)
-
-News, INTL, ro. Home: <https://ro.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Conținutul este disponibil sub Creative Commons Attribution 4.0, exceptând cazurile în care se specifică altfel."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,880,019 bytes compressed. Copyright page read: yes.
-
-### Wikinews (ru) (`wikinews_ru`)
-
-News, INTL, ru. Home: <https://ru.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "Если не указано иное, содержание доступно по лицензии Creative Commons Attribution 4.0."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,129,517,443 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (shn) (`wikinews_shn`)
 
@@ -1630,17 +1652,6 @@ News, INTL, sr. Home: <https://sr.wikinews.org/>. Checked on 2026-11-17.
 - **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 26,228,074 bytes compressed. Copyright page read: not found.
 
-### Wikinews (sv) (`wikinews_sv`)
-
-News, INTL, sv. Home: <https://sv.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY-SA 4.0 (<https://creativecommons.org/licenses/by-sa/4.0/deed.sv>); "Innehållet är tillgängligt under CC BY-SA 4.0 om ingenting annat anges."
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 2,299,927 bytes compressed. Copyright page read: yes.
-
 ### Wikinews (ta) (`wikinews_ta`)
 
 News, INTL, ta. Home: <https://ta.wikinews.org/>. Checked on 2026-11-17.
@@ -1649,7 +1660,7 @@ News, INTL, ta. Home: <https://ta.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page is a stub that names only CC BY 2.5, while today's footer names CC BY 4.0; may it place the articles up to its last edit? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 3,452,817 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (tr) (`wikinews_tr`)
@@ -1660,7 +1671,7 @@ News, INTL, tr. Home: <https://tr.wikinews.org/>. Checked on 2026-11-17.
 - **Bulk or automatic reuse:** silent
 - **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
 - **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
+- **Status: pending.** Reason code `partial_license`. Its copyright page names CC BY 2.5 and no dates, while today's footer names CC BY 4.0; may the page's license place the articles up to its last edit? (answer 3c, 2026-11-23: no table from this page)
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 1,838,514 bytes compressed. Copyright page read: yes.
 
 ### Wikinews (uk) (`wikinews_uk`)
@@ -1673,17 +1684,6 @@ News, INTL, uk. Home: <https://uk.wikinews.org/>. Checked on 2026-11-17.
 - **Third-party material:** not stated
 - **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
 - **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 3,383,767 bytes compressed. Copyright page read: not found.
-
-### Wikinews (zh) (`wikinews_zh`)
-
-News, INTL, zh. Home: <https://zh.wikinews.org/>. Checked on 2026-11-17.
-
-- **License:** CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>); "除非另有声明,本网站内容采用Creative Commons Attribution 4.0授权。"
-- **Bulk or automatic reuse:** silent
-- **Automated collection:** robots.txt allows; terms silent (no terms of use page found)
-- **Third-party material:** not stated
-- **Status: pending.** Reason code `partial_license`. Its footer names today's license (quoted); this edition's copyright page (read where it was found) dates its licenses, and older articles carry other licenses (or none: public domain). Which license applies to each date in this edition?
-- **Notes:** An edition of Wikinews, closed: 'The Wikimedia Foundation's Board of Trustees has decided to close all Wikinews projects. From 4 May, Wikinews sites will become read-only' (the English site notice, read 2026-11-17). Its articles come from its dump: latest pages-articles 33,815,460 bytes compressed. Copyright page read: yes.
 
 ### ZimFact (`zimfact`)
 
