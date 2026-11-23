@@ -10,6 +10,9 @@ from datetime import date, datetime
 
 from commonswire.sources import PUBLIC_DOMAIN
 
+#: A period whose license the source's own page does not settle: its articles are held.
+UNPLACED = ""
+
 #: source_id -> list of (first day, license), oldest first. An article takes the license of the
 #: last entry whose first day is on or before its publication date (UTC).
 #:
@@ -24,11 +27,67 @@ LICENSE_SCHEDULES: dict[str, list[tuple[date, str]]] = {
         (date(2005, 9, 25), "CC-BY-2.5"),
         (date(2024, 12, 17), "CC-BY-4.0"),
     ],
+    # The Wikinews language editions (the maintainer's answer 3c, 2026-11-23), each read on its
+    # own copyright page (saved 2026-11-17; the quotes are in the registry and
+    # docs/rights-audit.md). An article takes the license of its creation date (its first
+    # revision). A period the page does not settle is UNPLACED: its articles are held and
+    # counted. On a boundary day that the wording leaves to both sides, the license that asks
+    # more of the reuser is taken, as for the English edition.
+    #
+    # French: "Le contenu publié avant le 24 septembre 2005 est dans le domaine public." /
+    # "... entre le 24 septembre 2005 et le 2 janvier 2025 est sous licence Creative Commons
+    # Attribution 2.5" / "Depuis le 2 janvier 2025, ... (CC BY-SA 4.0)."
+    "wikinews_fr": [
+        (date.min, PUBLIC_DOMAIN),
+        (date(2005, 9, 24), "CC-BY-2.5"),
+        (date(2025, 1, 2), "CC-BY-SA-4.0"),
+    ],
+    # Arabic: texts "اعتبارًا من 21 أغسطس 2024" (as of 21 August 2024) CC BY-SA 4.0; texts
+    # published "قبل 21 أغسطس 2024" (before) CC BY 2.5.
+    "wikinews_ar": [(date.min, "CC-BY-2.5"), (date(2024, 8, 21), "CC-BY-SA-4.0")],
+    # Russian: CC BY 4.0, "(публикации до 26.02.2025 распространяются по лицензии CC-BY
+    # версии 2.5 ...)" (publications before 26.02.2025: CC BY 2.5).
+    "wikinews_ru": [(date.min, "CC-BY-2.5"), (date(2025, 2, 26), "CC-BY-4.0")],
+    # Chinese: all text CC BY 4.0; "2025年1月30日之前加入维基新闻的内容也以CC BY 2.5授权"
+    # (content added before 30 January 2025: CC BY 2.5).
+    "wikinews_zh": [(date.min, "CC-BY-2.5"), (date(2025, 1, 30), "CC-BY-4.0")],
+    # Romanian: before 25 September 2005 the GNU FDL (not released here); after it and before
+    # 2 January 2025 CC BY 2.5; after 2 January 2025 CC BY 4.0. The day 2005-09-25 is on
+    # neither side and goes to the FDL (held); 2025-01-02 goes to CC BY 2.5.
+    "wikinews_ro": [
+        (date.min, UNPLACED),
+        (date(2005, 9, 26), "CC-BY-2.5"),
+        (date(2025, 1, 3), "CC-BY-4.0"),
+    ],
+    # Swedish: contributions before 1 July 2005 "kan ha publicerats under en annan licens"
+    # (may have been under another license: held); before 29 January 2025 CC BY 2.5; CC BY-SA
+    # 4.0 since.
+    "wikinews_sv": [
+        (date.min, UNPLACED),
+        (date(2005, 7, 1), "CC-BY-2.5"),
+        (date(2025, 1, 29), "CC-BY-SA-4.0"),
+    ],
+    # Korean: before 25 September 2005 public domain; from it CC BY 2.5. The page was last
+    # edited on 5 August 2015 and dates no later change, while today's footer names CC BY 4.0,
+    # so later articles are not placed.
+    "wikinews_ko": [
+        (date.min, PUBLIC_DOMAIN),
+        (date(2005, 9, 25), "CC-BY-2.5"),
+        (date(2015, 8, 6), UNPLACED),
+    ],
+    # Greek: before 25 September 2005 public domain; from it CC BY 2.5. Last edited on 28
+    # December 2018; later articles are not placed (today's footer names CC BY 4.0).
+    "wikinews_el": [
+        (date.min, PUBLIC_DOMAIN),
+        (date(2005, 9, 25), "CC-BY-2.5"),
+        (date(2018, 12, 29), UNPLACED),
+    ],
 }
 
 
 def license_on(source_id: str, published_at: datetime, default: str) -> str:
-    """The license of a source's article published at ``published_at``."""
+    """The license of a source's article published at ``published_at``; :data:`UNPLACED`
+    ("") when its schedule does not settle that date."""
     schedule = LICENSE_SCHEDULES.get(source_id)
     if not schedule:
         return default

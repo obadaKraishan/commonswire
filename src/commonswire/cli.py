@@ -1004,6 +1004,7 @@ def cmd_versions(args: argparse.Namespace) -> int:
     write_versions(interim / "versions", {**gv, **bd})
     counts = dict(sorted((gv_counts + bd_counts).items()))
     path = root / "data" / "evidence" / "versions.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(counts, indent=2) + "\n", encoding="utf-8")
     for key, n in counts.items():
         print(f"{key}: {n:,}")

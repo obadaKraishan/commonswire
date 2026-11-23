@@ -326,3 +326,88 @@ def test_cli_backfill_check_sends_nothing_and_names_gaps(tmp_path, capsys):
     assert main(args) == 1
     out = capsys.readouterr().out
     assert "2 of 3 pages" in out and "missing pages: 2;" in out and "NOT complete" in out
+
+
+def test_backfill_with_tags_asks_for_tag_ids_and_saves_tag_names(tmp_path):
+    from commonswire.backfill import build_rows
+
+    post = backfill_post(1)
+    post["tags"] = [5, 6]
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "User-agent: *\nCrawl-delay: 10\n"))
+    t.add(
+        f"{GV}/wp-json/wp/v2/categories?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 1, "name": "World"}])),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 5, "name": "Invented tag"}, {"id": 6, "name": "Another"}])),
+    )
+    fields = (GlobalVoicesFetcher.backfill_fields + ",tags").replace(",", "%2C")
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page=1&orderby=date&order=asc&_fields={fields}",
+        (200, json.dumps([post]), {"X-WP-Total": "1", "X-WP-TotalPages": "1"}),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1", with_tags=True)
+    assert p.finished and p.tag_pages == 1 and (folder / "tags-p0001.json").exists()
+    fetcher.byline_map = {7: ("A. Writer",)}
+    build_rows(fetcher, folder, tmp_path / "rows.jsonl")
+    row = json.loads((tmp_path / "rows.jsonl").read_text().splitlines()[0])
+    assert row["publisher_tags"] == ["Invented tag", "Another"]
+    # series 0.1 and 0.2 ask for the same fields as before
+    assert "tags" not in fetcher.backfill_url(1) and "tags" in fetcher.backfill_url(
+        1, with_tags=True
+    )
+    assert fetcher.tags_only_url(2).endswith("_fields=id%2Ctags")
+
+
+def test_the_bosnian_edition_drops_bosnian_republication_notes(tmp_path):
+    from commonswire.fetchers.wordpress import BalkanDiskursBosnianFetcher
+
+    src = parse_row(
+        row(
+            source_id="balkandiskurs_bs",
+            name="Balkan Diskurs (Bosnian)",
+            homepage="https://balkandiskurs.com/",
+            languages="bs",
+            edition_of="balkandiskurs",
+        )
+    )
+    f, _, _ = make(tmp_path, FakeTransport(), cls=BalkanDiskursBosnianFetcher, source=src)
+    assert f.language == "bs" and f.api_base == "https://balkandiskurs.com"
+    own = f.item_from_post(wp_post(1, body="<p>Izmišljen tekst o izmišljenom mostu.</p>"))
+    assert f.third_party_reason(own) is None
+    note = "<p>Izmišljen tekst.</p><p>Tekst je preuzet sa izmišljenog portala.</p>"
+    assert f.third_party_reason(f.item_from_post(wp_post(2, body=note))) == "republication_note"
+    first = "<p>Ovaj članak je originalno objavljen na drugom portalu.</p><p>Tekst.</p>"
+    assert f.third_party_reason(f.item_from_post(wp_post(3, body=first))) == "republication_note"
+
+
+def test_a_lingua_fetcher_takes_its_language_and_versions(tmp_path):
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS
+
+    src = parse_row(
+        row(
+            source_id="globalvoices_zht",
+            name="Global Voices (zht)",
+            homepage="https://zht.globalvoices.org/",
+            languages="zh-Hant",
+            edition_of="globalvoices",
+        )
+    )
+    cls = LINGUA_FETCHERS["globalvoices_zht"]
+    f, _, _ = make(tmp_path, FakeTransport(), cls=cls, source=src)
+    post = wp_post(1)
+    post["link"] = "https://zht.globalvoices.org/2026/11/02/12345/"
+    f.versions = {
+        canonical_url(post["link"]): {
+            "other_versions": [f"{GV}/2026/11/01/invented-story-1/"],
+            "original_url": f"{GV}/2026/11/01/invented-story-1/",
+        }
+    }
+    item = f.item_from_post(post)
+    assert item.language == "zh-Hant"
+    a = f.build(item, item.published_at)
+    assert a.other_versions == (f"{GV}/2026/11/01/invented-story-1/",)
+    assert a.original_url == f"{GV}/2026/11/01/invented-story-1/"

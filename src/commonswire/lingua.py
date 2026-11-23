@@ -212,13 +212,27 @@ def english_index(posts: Iterable[Mapping]) -> EnglishIndex:
     return EnglishIndex(entries())
 
 
+_OLD_DOMAIN = re.compile(r"^((?:[a-z]+\.)?)globalvoicesonline\.org$")
+
+
+def current_address(url: str) -> str:
+    """A Global Voices address on its current domain: older pages link the old one
+    (``globalvoicesonline.org``, ``fr.globalvoicesonline.org``), which redirects."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    m = _OLD_DOMAIN.match(host)
+    if not m:
+        return url
+    return parts._replace(netloc=f"{m.group(1)}globalvoices.org").geturl()
+
+
 def page_versions(html: str) -> dict[str, str]:
     """The other-language versions an article page lists itself (language code -> canonical
     URL), for the weekly route and for checking the match."""
     out: dict[str, str] = {}
     for lang, url in _TRANSLATION.findall(html):
         try:
-            out.setdefault(lang, canonical_url(url))
+            out.setdefault(lang, canonical_url(current_address(url)))
         except ValueError:
             continue
     return out

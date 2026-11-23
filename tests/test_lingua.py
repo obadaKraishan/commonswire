@@ -390,3 +390,17 @@ def test_a_lingua_edition_needs_the_english_site_in_its_series(tmp_path, monkeyp
     monkeypatch.setitem(rel.SERIES, (9, 8), ("globalvoices_fr",))
     with pytest.raises(ReleaseError, match="released only with their English versions"):
         collect(tmp_path, "9.8.0", gv_registry(tmp_path), rows={"globalvoices_fr": []})
+
+
+def test_current_address_moves_the_old_domain():
+    from commonswire.lingua import current_address
+
+    assert current_address("https://globalvoicesonline.org/2008/01/01/x/") == f"{GV}/2008/01/01/x/"
+    assert (
+        current_address("http://fr.globalvoicesonline.org/2008/01/01/1/")
+        == "http://fr.globalvoices.org/2008/01/01/1/"
+    )
+    assert current_address(EN_A) == EN_A
+    html = """<span class='translation-language post-translation-en'><a
+      href="https://globalvoicesonline.org/2008/01/01/x/">x</a></span>"""
+    assert page_versions(html) == {"en": f"{GV}/2008/01/01/x"}
