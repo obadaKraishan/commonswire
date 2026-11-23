@@ -7,6 +7,39 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **The language editions (series 0.3).**
+  - Balkan Diskurs' Bosnian edition (`balkandiskurs_bs`): read like the English edition, with
+    Bosnian republication notes left out as well.
+  - 47 Global Voices language sites under **the Lingua rule** (reason code
+    `released_with_english`): a language-site row is released only when its English version
+    is a released row of the corpus, because the English pages are where republished partner
+    pieces are detected. `release` holds every other such row and counts it, by edition.
+  - The link to the English version comes from the body the API gives
+    (`commonswire lingua-link`, no requests). A translation keeps its source's links to other
+    sites, its links to English articles and its image file names, so these are matched
+    against the saved English bodies. On a study of the pages' own links it was never wrong
+    and found 82% (`docs/method.md`).
+  - Writers and translators come from each site's own listing, its labels learned from the
+    listing; `listing-bylines --plan` reads only the listing pages that may show a story the
+    rule could release.
+- **`other_versions`** (series 0.3): the addresses of an article's versions in other
+  languages, as the publisher links them (Global Voices through the English post, Balkan
+  Diskurs from its `hreflang` tags; `commonswire versions`). `original_url` is set only where
+  exactly one version in the group credits no translator.
+- **Wikinews' editions by date:** license-by-date tables for eight editions, read on their
+  own copyright pages (`commonswire.licensing`). An article takes the license of its creation
+  date; a date the table does not place is held. Sixteen editions stay pending, each with the
+  question its page leaves.
+- **Tags:** `backfill --tags` asks new archives for each post's tags and saves the site's tag
+  names; `commonswire backfill-tags` reads the tags of an archive saved without them (post
+  ids with tag ids, then only the names used). Builds join them by post id.
+- **The weekly route of series 0.3** asks for tags and keeps each row's versions. It links a
+  new language-site post to its English version by fingerprint against the run's English
+  posts, or else from the post's own page (at most 40 pages a site a week). Versions are
+  added to their groups after the run. The Wikinews editions are carried as closed. The
+  language sites get no count check. Series 0.1 and 0.2 ask for the same fields and write
+  the same files as before.
+- The registry's new reason code `released_with_english`, which needs `edition_of`.
 - **The variables that need no model, as columns from series 0.3** (earlier series keep
   their columns, so a 0.2.x build is unchanged): `publisher_section`,
   `publisher_categories` and `publisher_tags` (the publisher's own labels, as written);
