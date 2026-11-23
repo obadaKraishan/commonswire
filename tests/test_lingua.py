@@ -404,3 +404,138 @@ def test_current_address_moves_the_old_domain():
     html = """<span class='translation-language post-translation-en'><a
       href="https://globalvoicesonline.org/2008/01/01/x/">x</a></span>"""
     assert page_versions(html) == {"en": f"{GV}/2008/01/01/x"}
+
+
+# ---- the weekly route ----
+
+from commonswire.lingua import (  # noqa: E402
+    WeeklyLinks,
+    add_new_versions,
+    hreflang_new_versions,
+    link_new_posts,
+)
+
+
+class _Resp:
+    def __init__(self, status, text=""):
+        self.status, self.text = status, text
+
+
+class _Client:
+    def __init__(self, pages):
+        self.pages, self.calls = pages, []
+
+    def get(self, url, *, accept, note, log_as):
+        self.calls.append((url, log_as))
+        return _Resp(*self.pages.get(url, (404, "")))
+
+
+class _Fetcher:
+    source_id = "globalvoices_fr"
+
+    def __init__(self):
+        self.versions = {}
+
+
+def test_new_lingua_posts_are_linked_by_fingerprint_or_their_own_page():
+    fr_a = "https://fr.globalvoices.org/2026/11/20/a/"
+    fr_b = "https://fr.globalvoices.org/2026/11/21/b/"
+    fr_c = "https://fr.globalvoices.org/2026/11/22/c/"
+    fr_old = "https://fr.globalvoices.org/2026/11/01/old/"
+    ctx = WeeklyLinks(
+        english_posts=[post(EN_A, body(*LINKS_A))],
+        english_rows={canonical_url(EN_A): EN_A, canonical_url(EN_B): EN_B},
+    )
+    page_b = """<span class='translation-language post-translation-en'><a
+      href="https://globalvoicesonline.org/2020/02/03/another-invented-story/">x</a></span>"""
+    client = _Client({fr_b: (200, page_b), fr_c: (200, "<p>no list</p>")})
+    f = _Fetcher()
+    posts = [
+        post(fr_a, body(*LINKS_A[:5])),
+        post(fr_b, body(LINKS_B[0])),
+        post(fr_c, ""),
+        post(fr_old, body(*LINKS_A)),
+    ]
+    counts = link_new_posts(f, client, posts, {fr_old: "cw_x"}, ctx)
+    assert counts == {
+        "by_fingerprint": 1,
+        "by_page": 1,
+        "new_posts": 3,
+        "no_english_version": 1,
+        "page_names_no_english_row": 1,
+        "pages_read": 2,
+    }
+    assert f.versions[canonical_url(fr_a)]["other_versions"] == [EN_A]
+    # an old address under another date names the same English row
+    assert f.versions[canonical_url(fr_b)]["other_versions"] == [EN_B]
+    assert canonical_url(fr_c) not in f.versions
+    assert all(log_as.startswith("cw_") for _, log_as in client.calls)
+    # the page cap
+    f2 = _Fetcher()
+    capped = link_new_posts(f2, _Client({}), posts[1:3], {}, ctx, max_pages=1)
+    assert capped["pages_read"] == 1 and capped["no_english_version"] == 2
+
+
+def _row(url, sid, rid, versions=(), translators=(), original=""):
+    return {
+        "id": rid,
+        "source_id": sid,
+        "url": url,
+        "other_versions": list(versions),
+        "translators": list(translators),
+        "original_url": original,
+    }
+
+
+def test_a_new_lingua_row_joins_its_english_group():
+    fr = "https://fr.globalvoices.org/2026/11/20/a/"
+    es = "https://es.globalvoices.org/2026/11/19/a/"
+    merged = {
+        "globalvoices": {"e": _row(EN_A, "globalvoices", "e", [es])},
+        "globalvoices_es": {"s": _row(es, "globalvoices_es", "s", [EN_A], ["T"], EN_A)},
+        "globalvoices_fr": {"f": _row(fr, "globalvoices_fr", "f", [EN_A], ["U"])},
+    }
+    assert add_new_versions(merged, ["f"]) == 3
+    assert merged["globalvoices"]["e"]["other_versions"] == sorted([es, fr])
+    assert merged["globalvoices_es"]["s"]["other_versions"] == sorted([EN_A, fr])
+    assert merged["globalvoices_fr"]["f"]["other_versions"] == sorted([EN_A, es])
+    # every member is a row: the one crediting no translator (English) is the original
+    assert merged["globalvoices_fr"]["f"]["original_url"] == EN_A
+    assert merged["globalvoices"]["e"]["original_url"] == ""
+    assert add_new_versions(merged, ["f"]) == 0  # nothing more to add
+
+
+def test_a_group_with_a_member_that_is_not_a_row_keeps_its_original():
+    fr = "https://fr.globalvoices.org/2026/11/20/a/"
+    held = "https://de.globalvoices.org/2026/11/18/a/"
+    merged = {
+        "globalvoices": {"e": _row(EN_A, "globalvoices", "e", [held], original="")},
+        "globalvoices_fr": {"f": _row(fr, "globalvoices_fr", "f", [EN_A], ["U"])},
+    }
+    add_new_versions(merged, ["f"])
+    assert merged["globalvoices_fr"]["f"]["other_versions"] == sorted([EN_A, held])
+    assert merged["globalvoices_fr"]["f"]["original_url"] == ""  # no original known
+    merged["globalvoices"]["e"]["original_url"] = held  # the English is a translation
+    merged["globalvoices_fr"]["f"]["other_versions"] = [EN_A]
+    add_new_versions(merged, ["f"])
+    assert merged["globalvoices_fr"]["f"]["original_url"] == held
+
+
+def test_a_row_with_no_english_version_is_left_alone():
+    fr = "https://fr.globalvoices.org/2026/11/20/a/"
+    merged = {"globalvoices_fr": {"f": _row(fr, "globalvoices_fr", "f")}}
+    assert add_new_versions(merged, ["f"]) == 0
+
+
+def test_hreflang_pairs_reach_both_rows():
+    bs = "https://balkandiskurs.com/prica/"
+    en = "https://balkandiskurs.com/en/story/"
+    html = f"""<head><link rel="alternate" hreflang="bs" href="{bs}">
+      <link rel="alternate" hreflang="en" href="{en}"></head>"""
+    merged = {
+        "balkandiskurs": {"a": _row(en, "balkandiskurs", "a")},
+        "balkandiskurs_bs": {"b": _row(bs, "balkandiskurs_bs", "b")},
+    }
+    assert hreflang_new_versions(merged, [html], ["balkandiskurs", "balkandiskurs_bs"]) == 2
+    assert merged["balkandiskurs"]["a"]["other_versions"] == [bs]
+    assert merged["balkandiskurs_bs"]["b"]["other_versions"] == [en]
