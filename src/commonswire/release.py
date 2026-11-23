@@ -373,13 +373,9 @@ def collect(
             checks.taken_down[d["source_id"]] += 1
             checks.taken_down_ids.append(rid)
             continue
-        if not d.get("releasable", True):
-            hold(rid, d, d.get("hold_reason") or "held")
-            continue
-        if d.get("third_party"):
-            checks.third_party.append(rid)
-            continue
         if d["source_id"] in ruled:
+            # The rule comes first: a row it holds is counted under it, whatever else the
+            # row lacks (its listing page may not have been read, by the plan).
             if english_released is None:
                 english_released = {
                     r["id"]
@@ -394,6 +390,12 @@ def collect(
             if article_id(english) not in english_released:
                 hold(rid, d, ENGLISH_NOT_RELEASED)
                 continue
+        if not d.get("releasable", True):
+            hold(rid, d, d.get("hold_reason") or "held")
+            continue
+        if d.get("third_party"):
+            checks.third_party.append(rid)
+            continue
         try:
             Article.model_validate(d)
         except ValueError as exc:

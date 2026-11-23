@@ -582,3 +582,18 @@ def test_the_card_explains_rows_held_by_the_lingua_rule(tmp_path, monkeypatch):
     assert "2 rows of Global Voices' language sites are held back by the Lingua rule" in text
     assert "1 more rows are held back because the source asks for the author's name" in text
     assert "a BCP 47 tag" in text
+
+
+def test_the_rule_is_counted_before_a_missing_byline(tmp_path, monkeypatch):
+    monkeypatch.setitem(rel.SERIES, (9, 8), ("globalvoices", "globalvoices_fr"))
+    fr = [f"https://fr.globalvoices.org/2020/01/0{i}/sans-auteur-{i}/" for i in (1, 2)]
+    rows = {
+        "globalvoices": [gv_row("globalvoices", EN_A, 1, versions=[fr[1]])],
+        "globalvoices_fr": [
+            gv_row("globalvoices_fr", fr[0], 4, lang="fr", releasable=False),
+            gv_row("globalvoices_fr", fr[1], 5, versions=[EN_A], lang="fr", releasable=False),
+        ],
+    }
+    r = collect(tmp_path, "9.8.0", gv_registry(tmp_path), rows=rows)
+    assert r.checks.held_reasons[NO_ENGLISH] == 1  # no English version: the rule's count
+    assert r.checks.held_reasons["no byline"] == 1  # its English is released: its own reason
