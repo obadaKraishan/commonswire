@@ -539,3 +539,46 @@ def test_hreflang_pairs_reach_both_rows():
     assert hreflang_new_versions(merged, [html], ["balkandiskurs", "balkandiskurs_bs"]) == 2
     assert merged["balkandiskurs"]["a"]["other_versions"] == [bs]
     assert merged["balkandiskurs_bs"]["b"]["other_versions"] == [en]
+
+
+def test_the_card_names_the_license_versions_and_languages_the_rows_carry():
+    from collections import Counter
+
+    from commonswire.release_text import CONFIG_TEXT, config_text, language_tags
+
+    rows = [{"license": x} for x in ("CC-BY-4.0", "CC-BY-2.0", "CC-BY-2.5", "CC-BY-3.0")]
+    assert config_text("by", rows) == "Creative Commons Attribution (CC BY 2.0, 2.5, 3.0 and 4.0)"
+    # the published series' text is what the rows give
+    old = [{"license": x} for x in ("CC-BY-2.5", "CC-BY-3.0", "CC-BY-4.0")]
+    assert config_text("by", old) == CONFIG_TEXT["by"]
+    assert config_text("by-sa", [{"license": "CC-BY-SA-4.0"}]) == CONFIG_TEXT["by-sa"]
+    assert config_text("pd", []) == CONFIG_TEXT["pd"]
+    assert config_text("by", []) == CONFIG_TEXT["by"]
+    langs = Counter({"fr": 3, "en": 9, "zh-Hant": 1, "zh-Hans": 2, "bs": 4})
+    assert language_tags(langs) == ["en", "bs", "fr", "zh"]
+    assert language_tags(Counter({"en": 5})) == ["en"]
+
+
+def test_the_card_explains_rows_held_by_the_lingua_rule(tmp_path, monkeypatch):
+    from commonswire.release_text import card
+
+    monkeypatch.setitem(rel.SERIES, (9, 8), ("globalvoices", "globalvoices_fr"))
+    fr = [f"https://fr.globalvoices.org/2020/01/0{i}/histoire-{i}/" for i in (1, 2, 3)]
+    rows = {
+        "globalvoices": [
+            gv_row("globalvoices", EN_A, 1, versions=[fr[0]]),
+            gv_row("globalvoices", EN_B, 2, versions=[fr[1]], releasable=False),
+        ],
+        "globalvoices_fr": [
+            gv_row("globalvoices_fr", fr[0], 4, versions=[EN_A], lang="fr"),
+            gv_row("globalvoices_fr", fr[1], 5, versions=[EN_B], lang="fr"),
+            gv_row("globalvoices_fr", fr[2], 6, lang="fr"),
+        ],
+    }
+    reg = gv_registry(tmp_path)
+    r = collect(tmp_path, "9.8.0", reg, rows=rows)
+    text = card(r, reg, 0)
+    assert "language:\n- en\n- fr\n" in text
+    assert "2 rows of Global Voices' language sites are held back by the Lingua rule" in text
+    assert "1 more rows are held back because the source asks for the author's name" in text
+    assert "a BCP 47 tag" in text
