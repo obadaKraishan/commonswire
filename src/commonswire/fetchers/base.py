@@ -244,6 +244,7 @@ class Fetcher(ABC):
             "publisher_categories": tuple(item.hints.get("categories") or ()),  # type: ignore[call-overload]
             "publisher_tags": tuple(item.hints.get("tags") or ()),  # type: ignore[call-overload]
             "original_url": str(item.hints.get("original_url") or ""),
+            "other_versions": tuple(item.hints.get("other_versions") or ()),  # type: ignore[call-overload]
         }
         if hosts is not None:
             n, ext, uniq = link_stats(hosts, own)

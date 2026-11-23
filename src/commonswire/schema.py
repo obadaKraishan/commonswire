@@ -167,6 +167,9 @@ class Article(BaseModel):
     n_links_external: int | None = Field(default=None, ge=0)
     link_hosts: tuple[str, ...] = ()
     original_url: str = ""
+    #: The addresses of the article's other-language versions, as the publisher links them
+    #: (series 0.3 on; empty when none is known).
+    other_versions: tuple[str, ...] = ()
 
     @field_validator("published_at", "updated_at", "retrieved_at")
     @classmethod
@@ -228,6 +231,10 @@ class Article(BaseModel):
             raise ValueError("link_hosts needs the link counts")
         if self.original_url and not self.original_url.startswith(("http://", "https://")):
             raise ValueError("original_url must be a web address, or empty")
+        if any(not v.startswith(("http://", "https://")) for v in self.other_versions):
+            raise ValueError("other_versions must list web addresses")
+        if self.url in self.other_versions:
+            raise ValueError("other_versions lists the article's own address")
         if not self.releasable and not self.hold_reason.strip():
             raise ValueError("a row that is not releasable needs its hold_reason")
         if self.releasable and self.hold_reason:

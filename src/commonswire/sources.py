@@ -75,6 +75,9 @@ LEGACY_FIELDS = [f for f in SOURCE_FIELDS if f not in ("reason_code", "edition_o
 REASON_CODES: dict[str, str] = {
     "license_allows": "a license or public-domain statement allows unchanged redistribution, "
     "and nothing on the publisher's pages conflicts",
+    "released_with_english": "a license allows unchanged redistribution, and third-party "
+    "material is told on the English pages: a row is released only when its English version "
+    "is a released row of the corpus (the Lingua rule, the maintainer's of 2026-11-23)",
     "nc_or_nd": "a NonCommercial or NoDerivatives license, silent on bulk use",
     "bulk_clause": "a clause against systematic, wholesale, bulk or automatic republishing",
     "tracker_required": "republishing requires a tracking pixel or counter",
@@ -96,6 +99,7 @@ REASON_CODES: dict[str, str] = {
 #: The status each reason code goes with.
 CODE_STATUS: dict[str, str] = {
     "license_allows": "include",
+    "released_with_english": "include",
     "bulk_clause": "exclude",
     "tracker_required": "exclude",
     "terms_forbid_automation": "exclude",
@@ -476,6 +480,10 @@ def reason_code_problems(src: Source) -> list[str]:
         ),
         "no_license": (src.license_family == "none", "license NOASSERTION (no license named)"),
         "refused_requests": (src.robots == "blocked", "robots blocked"),
+        "released_with_english": (
+            bool(src.edition_of),
+            "edition_of: the rule ties an edition to its publisher's English version",
+        ),
     }
     ok, what = needs.get(code, (True, ""))
     if not ok:

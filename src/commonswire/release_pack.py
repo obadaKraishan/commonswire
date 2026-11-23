@@ -150,7 +150,8 @@ ROW_COLUMNS = (
     ("n_links", "integer", "Links in the body that lead to a web page (empty if not known)"),
     ("n_links_external", "integer", "Of those, links to other sites than the source's own"),
     ("link_hosts", "string", "The hosts the body links to, each once, without www. (a list)"),
-    ("original_url", "url", "For a translation, the article it translates; else empty"),
+    ("original_url", "url", "For a translation, the version it was made from; else empty"),
+    ("other_versions", "string", "The article's versions in other languages (a list of URLs)"),
 )
 INDEX_COLUMNS = (
     ("id", "id", "The article's id, as in the Parquet files"),

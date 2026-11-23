@@ -142,8 +142,13 @@ VARIABLE_COLUMNS = (
     "n_links_external",
     "link_hosts",
     "original_url",
+    "other_versions",
 )
 VARIABLES_FROM = (0, 3)
+#: The variables released as lists.
+LIST_VARIABLES = frozenset(
+    {"publisher_categories", "publisher_tags", "link_hosts", "other_versions"}
+)
 
 
 def columns(version: str) -> tuple[str, ...]:
@@ -330,7 +335,38 @@ def collect(
     checks.duplicate_ids = sorted(exact.dropped)
     flags, n_pairs = _flags(by_id, exact.kept_ids, threshold)
     grouped: dict[str, list[dict]] = {c: [] for c in CONFIGURATIONS}
-    for rid in exact.kept_ids:
+
+    def hold(rid: str, d: dict, why: str) -> None:
+        reason = why.split(":", 1)[0]
+        checks.held[d["source_id"]] += 1
+        checks.held_reasons[reason] += 1
+        checks.held_ids[rid] = {
+            "source_id": d["source_id"],
+            "published_on": d["published_at"][:10],
+            "reason": reason,
+        }
+
+    # The Lingua rule (``commonswire.lingua``): an edition marked with its reason code is
+    # released only where its English version is released, so its rows come last.
+    from commonswire.lingua import (
+        ENGLISH_NOT_RELEASED,
+        ENGLISH_SOURCE,
+        NO_ENGLISH,
+        RULE_CODE,
+        english_version,
+    )
+    from commonswire.schema import article_id
+
+    ruled = {s for s in sources if registry[s].reason_code == RULE_CODE}
+    if ruled and ENGLISH_SOURCE not in sources:
+        raise ReleaseError(
+            f"{', '.join(sorted(ruled))} are released only with their English versions, but "
+            f"series {version} has no {ENGLISH_SOURCE}"
+        )
+    kept = [r for r in exact.kept_ids if data[r]["source_id"] not in ruled]
+    kept += [r for r in exact.kept_ids if data[r]["source_id"] in ruled]
+    english_released: set[str] | None = None
+    for rid in kept:
         d = data[rid]
         src = registry[d["source_id"]]
         if rid in takedowns:
@@ -338,18 +374,26 @@ def collect(
             checks.taken_down_ids.append(rid)
             continue
         if not d.get("releasable", True):
-            reason = (d.get("hold_reason") or "held").split(":", 1)[0]
-            checks.held[d["source_id"]] += 1
-            checks.held_reasons[reason] += 1
-            checks.held_ids[rid] = {
-                "source_id": d["source_id"],
-                "published_on": d["published_at"][:10],
-                "reason": reason,
-            }
+            hold(rid, d, d.get("hold_reason") or "held")
             continue
         if d.get("third_party"):
             checks.third_party.append(rid)
             continue
+        if d["source_id"] in ruled:
+            if english_released is None:
+                english_released = {
+                    r["id"]
+                    for rows in grouped.values()
+                    for r in rows
+                    if r["source_id"] == ENGLISH_SOURCE
+                }
+            english = english_version(d.get("other_versions") or ())
+            if not english:
+                hold(rid, d, NO_ENGLISH)
+                continue
+            if article_id(english) not in english_released:
+                hold(rid, d, ENGLISH_NOT_RELEASED)
+                continue
         try:
             Article.model_validate(d)
         except ValueError as exc:
@@ -392,7 +436,7 @@ def collect(
             language = row_language(d["source_id"], d.get("publisher_categories") or (), language)
             for col in VARIABLE_COLUMNS:
                 value = d.get(col)
-                if col in ("publisher_categories", "publisher_tags", "link_hosts"):
+                if col in LIST_VARIABLES:
                     value = list(value or [])
                 elif col in ("publisher_section", "original_url"):
                     value = value or ""
@@ -435,6 +479,7 @@ def _schema(cols: tuple[str, ...] = COLUMNS):  # type: ignore[no-untyped-def]
         "publisher_categories": pa.list_(text),
         "publisher_tags": pa.list_(text),
         "link_hosts": pa.list_(text),
+        "other_versions": pa.list_(text),
         "n_links": pa.int64(),
         "n_links_external": pa.int64(),
         "published_at": ts,

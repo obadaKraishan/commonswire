@@ -33,6 +33,7 @@ from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, Po
 
 PAGE_NAME = "posts-p{:05d}.json"
 CATEGORY_NAME = "categories-p{:03d}.json"
+TAG_NAME = "tags-p{:04d}.json"
 
 
 def _header(headers: object, name: str) -> str:
@@ -132,6 +133,7 @@ class Progress:
     total_pages: int | None = None
     pages_saved: int = 0
     category_pages: int = 0
+    tag_pages: int = 0
     bytes_this_run: int = 0
     requests_this_run: int = 0
     finished: bool = False
@@ -148,6 +150,32 @@ class Progress:
         os.replace(tmp, folder / "progress.json")
 
 
+def _save_terms(
+    client: PoliteClient,
+    url_of: Callable[[int], str],
+    folder: Path,
+    name: str,
+    note: str,
+    progress: Progress,
+) -> int:
+    """Save a site's term names (categories or tags), 100 a page, once; return the pages."""
+    page = 1
+    while True:
+        path = folder / name.format(page)
+        if not path.exists():
+            resp = _get(client, url_of(page), note, progress)
+            if resp.status != 200:
+                return page - 1
+            data = resp.json()
+            if not isinstance(data, list) or not data:
+                return page - 1
+            save_once(path, resp.body)
+        data = json.loads(path.read_bytes())
+        if len(data) < 100:
+            return page
+        page += 1
+
+
 def _get(client: PoliteClient, url: str, note: str, progress: Progress) -> object:
     resp = client.get(url, accept="application/json", note=note)
     progress.requests_this_run += 1
@@ -162,9 +190,12 @@ def backfill_wordpress(
     *,
     run: str,
     max_pages: int | None = None,
+    with_tags: bool = False,
     say: Callable[[str], None] = lambda _m: None,
 ) -> Progress:
-    """Save every page of a WordPress site's posts (and its category names) under ``folder``."""
+    """Save every page of a WordPress site's posts (and its category names) under ``folder``.
+    With ``with_tags`` (series 0.3 on), each post's tag ids are asked for too, and the site's
+    tag names are saved like its category names."""
     note = f"backfill:{fetcher.source_id}"
     progress = Progress(source_id=fetcher.source_id, run=run)
     old = folder / "progress.json"
@@ -173,22 +204,13 @@ def backfill_wordpress(
         progress.total_posts = saved.get("total_posts")
         progress.total_pages = saved.get("total_pages")
     try:
-        page = 1
-        while True:
-            path = folder / CATEGORY_NAME.format(page)
-            if not path.exists():
-                resp = _get(client, fetcher.categories_url(page), note, progress)
-                if resp.status != 200:
-                    break
-                data = resp.json()
-                if not isinstance(data, list) or not data:
-                    break
-                save_once(path, resp.body)
-            progress.category_pages = page
-            page += 1
-            data = json.loads(path.read_bytes())
-            if len(data) < 100:
-                break
+        progress.category_pages = _save_terms(
+            client, fetcher.categories_url, folder, CATEGORY_NAME, note, progress
+        )
+        if with_tags:
+            progress.tag_pages = _save_terms(
+                client, fetcher.tags_url, folder, TAG_NAME, note, progress
+            )
         page = 1
         done_this_run = 0
         while True:
@@ -201,7 +223,7 @@ def backfill_wordpress(
             if max_pages is not None and done_this_run >= max_pages:
                 progress.stopped = f"stopped after {max_pages} pages, as asked"
                 break
-            resp = _get(client, fetcher.backfill_url(page), note, progress)
+            resp = _get(client, fetcher.backfill_url(page, with_tags=with_tags), note, progress)
             if resp.status == 400 and page > 1:
                 break  # past the last page
             if resp.status != 200:
@@ -250,9 +272,9 @@ def backfill_wordpress(
     return progress
 
 
-def load_category_names(folder: Path) -> dict[int, str]:
+def load_category_names(folder: Path, pattern: str = "categories-p*.json") -> dict[int, str]:
     names: dict[int, str] = {}
-    for path in sorted(folder.glob("categories-p*.json")):
+    for path in sorted(folder.glob(pattern)):
         for row in json.loads(path.read_bytes()):
             if isinstance(row, dict) and "id" in row:
                 names[int(row["id"])] = str(row.get("name", ""))
@@ -302,8 +324,15 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
     """Rows from the saved answers of a backfill (no requests), written to ``out``."""
     result = BuildResult(source_id=fetcher.source_id)
     fetcher.category_names = load_category_names(folder)
+    tag_names = load_category_names(folder, "tags-p*.json")
+    if tag_names:
+        fetcher.tag_names = {**fetcher.tag_names, **tag_names}
     pages = sorted(folder.glob("posts-p*.json"))
-    result.raw_files = len(pages) + len(list(folder.glob("categories-p*.json")))
+    result.raw_files = (
+        len(pages)
+        + len(list(folder.glob("categories-p*.json")))
+        + len(list(folder.glob("tags-p*.json")))
+    )
     result.raw_bytes = sum(p.stat().st_size for p in folder.glob("*.json"))
     retrieved = datetime.fromtimestamp(pages[0].stat().st_mtime, timezone.utc) if pages else None
     seen_urls: set[str] = set()

@@ -334,6 +334,9 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
         for u, v in load_page_bylines(path).items()
         if v.get("why_none")
     }
+    from commonswire.versions import load_versions
+
+    fetcher.versions = load_versions(root / "data" / "interim" / "versions", fetcher.source_id)
 
 
 def cmd_backfill_pages(args: argparse.Namespace) -> int:
@@ -423,6 +426,7 @@ def cmd_backfill(args: argparse.Namespace) -> int:
         folder,
         run=args.run,
         max_pages=args.max_pages,
+        with_tags=args.tags,
         say=lambda m: print(m, flush=True),
     )
     print(
@@ -889,17 +893,32 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
     import json
 
     from commonswire.http import make_client
-    from commonswire.listingbylines import LISTING_MARKUP, collect_listing_bylines
+    from commonswire.listingbylines import LISTING_MARKUP, collect_listing_bylines, has_listing
     from commonswire.sources import load_sources
 
     root = Path(args.root)
     sid = args.source_id
-    if sid not in LISTING_MARKUP:
+    if not has_listing(sid):
         print(
-            f"no listing markup is known for {sid}; there is for: {', '.join(LISTING_MARKUP)}",
+            f"no listing markup is known for {sid}; there is for: {', '.join(LISTING_MARKUP)} "
+            "and the Global Voices language sites",
             file=sys.stderr,
         )
         return 2
+    plan = None
+    if args.plan:
+        from commonswire.lingua import plan_for
+
+        try:
+            plan, planned = plan_for(root, sid, args.plan)
+        except FileNotFoundError as exc:
+            print(f"{sid}: {exc}", file=sys.stderr)
+            return 2
+        print(
+            f"{sid}: the plan reads the pages of {planned['releasable']} of {planned['posts']} "
+            "posts the rule could release (and pages 1 and 2)",
+            flush=True,
+        )
     if not (root / "data" / "raw").exists():
         print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
         return 2
@@ -913,6 +932,7 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
         root / "data" / "interim" / "bylines" / f"{sid}.listing.json",
         source_name=load_sources(Path(args.sources))[sid].name,
         max_pages=args.max_pages,
+        plan=plan,
         say=lambda m: print(m, flush=True),
     )
     info = st.summary()
@@ -922,13 +942,73 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
     path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
         f"{sid}: {st.last_page} listing pages ({st.pages_fetched} fetched, "
-        f"{st.pages_already_saved} already saved, {st.bytes_fetched:,} bytes); {st.stories} "
+        f"{st.pages_already_saved} already saved, {st.pages_skipped} skipped by the plan, "
+        f"{st.bytes_fetched:,} bytes); {st.stories} "
         f"stories, {st.with_writer} with a writer's name, {st.without_writer} without"
         + (f"; ended: {st.end}" if st.end else "")
         + (f"; stopped: {st.stopped}" if st.stopped else "")
     )
     print(f"next: commonswire build {sid} --run RUN, to put the names into the rows")
     return 1 if st.stopped else 0
+
+
+def cmd_lingua_link(args: argparse.Namespace) -> int:
+    """Each language-site post's English version, by its body's fingerprint (no requests)."""
+    import json
+
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS
+    from commonswire.lingua import (
+        english_index,
+        english_posts,
+        link_posts,
+        saved_posts,
+        write_links,
+    )
+
+    root = Path(args.root)
+    unknown = [s for s in args.source_ids if s not in LINGUA_FETCHERS]
+    if unknown:
+        print(f"not a Global Voices language site: {', '.join(unknown)}", file=sys.stderr)
+        return 2
+    index = english_index(english_posts(root))
+    print(f"English posts indexed: {len(index):,}", flush=True)
+    for sid in args.source_ids:
+        folder = root / "data" / "raw" / "backfill" / sid / args.run
+        if not folder.is_dir():
+            print(f"{sid}: no saved run at {folder}", file=sys.stderr)
+            return 2
+        links, st = link_posts(sid, saved_posts(folder), index)
+        write_links(root / "data" / "interim" / "lingua" / f"{sid}.links.json", links)
+        info = {**st.summary(), "run": args.run}
+        path = root / "data" / "evidence" / "lingua" / f"{sid}.links.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(
+            f"{sid}: {st.posts} posts, {st.matched} matched to an English post, "
+            f"{st.no_match} not matched, {st.no_parts} with too few links and images to match",
+            flush=True,
+        )
+    return 0
+
+
+def cmd_versions(args: argparse.Namespace) -> int:
+    """Every row's other-language versions (Global Voices and Balkan Diskurs), no requests."""
+    import json
+
+    from commonswire.versions import global_voices_versions, hreflang_versions, write_versions
+
+    root = Path(args.root)
+    interim = root / "data" / "interim"
+    gv, gv_counts = global_voices_versions(interim / "lingua", interim / "bylines")
+    bd, bd_counts = hreflang_versions(root / "data" / "raw" / "pages")
+    write_versions(interim / "versions", {**gv, **bd})
+    counts = dict(sorted((gv_counts + bd_counts).items()))
+    path = root / "data" / "evidence" / "versions.json"
+    path.write_text(json.dumps(counts, indent=2) + "\n", encoding="utf-8")
+    for key, n in counts.items():
+        print(f"{key}: {n:,}")
+    print("next: commonswire build SOURCE --run RUN for each source, to put them into the rows")
+    return 0
 
 
 def _third_party_dropped(root: Path, sources: Sequence[str]) -> int:
@@ -1378,6 +1458,11 @@ def build_parser() -> argparse.ArgumentParser:
     bf.add_argument(
         "--check", action="store_true", help="check a saved run for missing pages (no requests)"
     )
+    bf.add_argument(
+        "--tags",
+        action="store_true",
+        help="ask for each post's tags and save the site's tag names (series 0.3 on)",
+    )
     bf.set_defaults(func=cmd_backfill)
 
     bp = sub.add_parser(
@@ -1441,7 +1526,26 @@ def build_parser() -> argparse.ArgumentParser:
     lb.add_argument("--max-pages", type=int, default=6000, help="read at most this many pages")
     lb.add_argument("--max-mb", type=int, default=1200, help="stop after this many megabytes")
     lb.add_argument("--replay", action="store_true", help="read saved pages only, no requests")
+    lb.add_argument(
+        "--plan",
+        metavar="RUN",
+        help="a Global Voices language site: read only the pages that may show a story the "
+        "Lingua rule could release (from the backfill run RUN and its links)",
+    )
     lb.set_defaults(func=cmd_listing_bylines)
+
+    ll = sub.add_parser(
+        "lingua-link",
+        help="each Global Voices language-site post's English version, from the saved bodies",
+    )
+    ll.add_argument("source_ids", nargs="+", metavar="SOURCE")
+    ll.add_argument("--run", required=True, help="the language sites' backfill run")
+    ll.set_defaults(func=cmd_lingua_link)
+
+    vs = sub.add_parser(
+        "versions", help="every row's other-language versions, from saved answers (no requests)"
+    )
+    vs.set_defaults(func=cmd_versions)
     by = sub.add_parser("bylines", help="author names from a WordPress users endpoint")
     by.add_argument("source_id")
     by.add_argument("--run", default=_today())

@@ -28,15 +28,19 @@ import json
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from commonswire.backfill import save_once
 from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
 from commonswire.pagebylines import is_person, is_source_itself
 from commonswire.schema import canonical_url
+
+if TYPE_CHECKING:
+    from commonswire.lingua import ListingPlan
 
 PAGE_NAME = "p{:05d}.html"
 _SPACE = re.compile(r"\s+")
@@ -60,6 +64,55 @@ class ListingMarkup:
     label: str
     writer_labels: tuple[str, ...] = ("written by",)
     translator_labels: tuple[str, ...] = ("translated by",)
+
+
+def learn_labels(stories: list[Story], markup: ListingMarkup) -> ListingMarkup:
+    """A listing whose labels are not known (a Global Voices language site prints them in its
+    own language) takes them from its stories: the label most stories with two credit blocks
+    put first is the writers', the one they put second the translators'. Unchanged when the
+    labels are known or the stories show no such pair."""
+    if markup.writer_labels:
+        return markup
+    first: Counter[str] = Counter()
+    second: Counter[str] = Counter()
+    for story in stories:
+        labels = list(story.credits)
+        if len(labels) >= 2:
+            first[labels[0]] += 1
+            second[labels[1]] += 1
+    if not first:
+        return markup
+    writer, translator = first.most_common(1)[0][0], second.most_common(1)[0][0]
+    if writer == translator:
+        return markup
+    return replace(markup, writer_labels=(writer,), translator_labels=(translator,))
+
+
+def listing_markup(source_id: str) -> ListingMarkup:
+    """The listing markup of a source: :data:`LISTING_MARKUP`, or for a Global Voices language
+    site (``globalvoices_<site>``) the English site's markup at its own address, with its labels
+    learned from its first listing page (:func:`learn_labels`)."""
+    if source_id in LISTING_MARKUP:
+        return LISTING_MARKUP[source_id]
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS
+
+    if source_id in LINGUA_FETCHERS:
+        site = LINGUA_FETCHERS[source_id].site
+        return replace(
+            LISTING_MARKUP["globalvoices"],
+            url=f"https://{site}.globalvoices.org/page/{{page}}/",
+            writer_labels=(),
+            translator_labels=(),
+        )
+    raise KeyError(source_id)
+
+
+def has_listing(source_id: str) -> bool:
+    try:
+        listing_markup(source_id)
+    except KeyError:
+        return False
+    return True
 
 
 LISTING_MARKUP: dict[str, ListingMarkup] = {
@@ -171,6 +224,8 @@ class ListingStats:
     writers_per_story: Counter[str] = field(default_factory=Counter)
     http_status: Counter[str] = field(default_factory=Counter)
     bytes_fetched: int = 0
+    pages_skipped: int = 0
+    labels_known: bool = True
     end: str = ""
     stopped: str = ""
 
@@ -178,6 +233,8 @@ class ListingStats:
         return {
             "source_id": self.source_id,
             "pages_fetched": self.pages_fetched,
+            "pages_skipped": self.pages_skipped,
+            "labels_known": self.labels_known,
             "pages_already_saved": self.pages_already_saved,
             "last_page": self.last_page,
             "stories_seen": self.stories_seen,
@@ -205,15 +262,26 @@ def collect_listing_bylines(
     *,
     source_name: str = "",
     max_pages: int = 6000,
+    plan: ListingPlan | None = None,
     say: Callable[[str], None] = lambda _m: None,
 ) -> ListingStats:
     """Walk the listing from page 1, fetching each page once (none with ``client`` None), and
-    write the names of every story's writers to ``map_path``."""
-    markup = LISTING_MARKUP[source_id]
+    write the names of every story's writers to ``map_path``. With a ``plan``
+    (:class:`commonswire.lingua.ListingPlan`), a page that is not saved is fetched only when
+    it may show a story the Lingua rule could release."""
+    markup = listing_markup(source_id)
     st = ListingStats(source_id=source_id)
     found: dict[str, dict] = {}
     uncredited: set[str] = set()  # stories kept from a sighting with no credit block
     for page in range(1, max_pages + 1):
+        if plan is not None and not (folder / PAGE_NAME.format(page)).exists():
+            if plan.done():
+                st.end = f"page {page} would start past the last post (the plan)"
+                break
+            if not plan.wanted(page):
+                st.pages_skipped += 1
+                plan.skipped()
+                continue
         path = folder / PAGE_NAME.format(page)
         if path.exists():
             st.pages_already_saved += 1
@@ -250,6 +318,10 @@ def collect_listing_bylines(
                 break
             save_once(path, resp.body)
         stories = read_listing(path.read_bytes().decode("utf-8", errors="replace"), markup)
+        markup = learn_labels(stories, markup)
+        st.labels_known = bool(markup.writer_labels)
+        if plan is not None:
+            plan.observe(page, [s.url for s in stories])
         st.last_page = page
         for story in stories:
             st.stories_seen += 1
@@ -287,10 +359,16 @@ def _take_story(
         if key not in uncredited or not story.credits:
             return key  # the first sighting with a credit block stands
         st.credits_from_later_sighting += 1
-    named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
+    if markup.writer_labels:
+        named = [n for label in markup.writer_labels for n in story.credits.get(label, [])]
+        listed = [n for label in markup.translator_labels for n in story.credits.get(label, [])]
+    else:  # labels not learned yet: the first credit block is the writers', the second the
+        # translators' (the order every story with two blocks shows)
+        blocks = list(story.credits.values())
+        named = list(blocks[0]) if blocks else []
+        listed = list(blocks[1]) if len(blocks) > 1 else []
     writers = [n for n in named if is_person(n, source_name)]
     own = is_source_itself(named, source_name)
-    listed = [n for label in markup.translator_labels for n in story.credits.get(label, [])]
     translators = [n for n in listed if is_person(n, source_name)]
     if writers:
         why = ""
@@ -341,7 +419,7 @@ def listing_credits(
     ``why_none``) and counts only."""
     from datetime import date, timedelta
 
-    markup = LISTING_MARKUP[source_id]
+    markup = listing_markup(source_id)
     st = ListingStats(source_id=source_id)
     found: dict[str, dict] = {}
     uncredited: set[str] = set()
@@ -376,6 +454,8 @@ def listing_credits(
         if not stories:
             st.end = f"page {page} lists no story"
             break
+        markup = learn_labels(stories, markup)
+        st.labels_known = bool(markup.writer_labels)
         st.last_page = page
         for story in stories:
             st.stories_seen += 1
