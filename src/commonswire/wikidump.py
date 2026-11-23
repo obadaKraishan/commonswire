@@ -359,7 +359,7 @@ def md5_of(path: Path) -> str:
 
 def expected_md5(md5sums: str, name: str = DUMP_NAME) -> str | None:
     """The md5 the dump's own md5sums file gives for ``name`` (the ``latest`` alias resolved)."""
-    suffix = name.replace("enwikinews-latest-", "")
+    suffix = name.split("-latest-", 1)[-1]
     for line in md5sums.splitlines():
         parts = line.split()
         if len(parts) == 2 and parts[1].endswith(suffix):

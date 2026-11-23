@@ -110,3 +110,96 @@ def test_read_edition_keeps_published_articles_dated_by_their_creation():
             "not_an_article_namespace": 1,
         }
     )
+
+
+def test_cli_census_and_rows_of_an_edition(tmp_path, monkeypatch, capsys):
+    import bz2
+    import gzip
+    import json
+
+    from commonswire import wikieditions
+    from commonswire.cli import main
+    from test_sources import row, write_csv
+
+    root = tmp_path
+    reg = write_csv(
+        tmp_path,
+        [
+            row(
+                source_id="wikinews_en",
+                name="Wikinews",
+                homepage="https://en.wikinews.org/",
+                license="CC-BY-2.5",
+                credit_line="{title}, {source} ({url}), {license}",
+                access="dump",
+            ),
+            row(
+                source_id="wikinews_ko",
+                name="Wikinews (ko)",
+                homepage="https://ko.wikinews.org/",
+                languages="ko",
+                edition_of="wikinews_en",
+                license="CC-BY-2.5",
+                credit_line="{title}, {source} ({url}), {license}",
+                access="dump",
+            ),
+        ],
+    )
+    folder = root / "data" / "raw" / "backfill" / "wikinews_ko" / "R"
+    folder.mkdir(parents=True)
+    names = wikieditions.file_names("wikinews_ko")
+    arts = dump(
+        page(1, "옛 기사", "{{발행}} 가나다 라마바 사아자."),
+        page(2, "기사", "{{발행}} 차카타 파하 가나."),
+        page(3, "새 기사", "{{발행}} 다라마 바사 아자."),
+        page(4, "초안", "가나다."),
+    ).getvalue()
+    (folder / names["articles"]).write_bytes(bz2.compress(arts))
+    stubs = stub(
+        (1, ["2004-05-01T00:00:00Z"]), (2, ["2010-05-01T00:00:00Z"]), (3, ["2020-05-01T00:00:00Z"])
+    ).getvalue()
+    (folder / names["stubs"]).write_bytes(gzip.compress(stubs))
+    base = [
+        "--root",
+        str(root),
+        "wikinews-edition",
+        "wikinews_ko",
+        "--run",
+        "R",
+        "--sources",
+        str(reg),
+    ]
+    assert main([*base, "--census"]) == 0
+    census = json.loads((root / "data/evidence/wikinews/wikinews_ko.census.json").read_text())
+    assert census["article_pages"] == 4 and census["templates"]["발행"] == 3
+    assert main(base) == 2  # no markers yet
+    monkeypatch.setitem(
+        wikieditions.EDITION_MARKERS,
+        "wikinews_ko",
+        EditionMarkers(published=re.compile(r"\{\{\s*발행")),
+    )
+    assert main(base) == 0
+    rows = [
+        json.loads(x)
+        for x in (root / "data/interim/rows/wikinews_ko.jsonl").read_text().splitlines()
+    ]
+    by_title = {r["title"]: r for r in rows}
+    assert by_title["옛 기사"]["license"] == "public-domain"
+    assert by_title["기사"]["license"] == "CC-BY-2.5" and by_title["기사"]["releasable"]
+    assert not by_title["새 기사"]["releasable"]
+    assert by_title["새 기사"]["hold_reason"].startswith("license date not placed")
+    assert all(r["language"] == "ko" for r in rows)
+    info = json.loads((root / "data/evidence/backfill/wikinews_ko.build.json").read_text())
+    assert info["held_license_not_placed"] == 1 and info["skipped"] == {"not_marked_published": 1}
+    assert "not_a_wikinews" not in capsys.readouterr().err
+    other = [
+        "--root",
+        str(root),
+        "wikinews-edition",
+        "wikinews_en",
+        "--run",
+        "R",
+        "--sources",
+        str(reg),
+    ]
+    assert main(other) == 2

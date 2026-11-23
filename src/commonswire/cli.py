@@ -574,6 +574,165 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0 if check.ok else 1
 
 
+def cmd_wikinews_edition(args: argparse.Namespace) -> int:
+    """A Wikinews language edition from its dumps: download (once), census, or rows."""
+    import json
+    from collections import Counter
+    from datetime import datetime, timezone
+
+    from commonswire.backfill import save_once
+    from commonswire.http import make_client
+    from commonswire.licensing import LICENSE_SCHEDULES, UNPLACED, license_on
+    from commonswire.schema import make_article
+    from commonswire.sources import load_sources, render_credit
+    from commonswire.validate import validate_file
+    from commonswire.wikidump import expected_md5, md5_of, open_dump
+    from commonswire.wikieditions import (
+        EDITION_MARKERS,
+        file_names,
+        file_url,
+        first_revisions,
+        open_stubs,
+        read_edition,
+        template_census,
+    )
+
+    root = Path(args.root)
+    sid = args.source_id
+    registry = load_sources(Path(args.sources))
+    if sid not in registry or registry[sid].edition_of != "wikinews_en":
+        print(f"{sid} is not a Wikinews edition in the registry", file=sys.stderr)
+        return 2
+    if sid not in LICENSE_SCHEDULES:
+        print(f"{sid} has no license-by-date table", file=sys.stderr)
+        return 2
+    names = file_names(sid)
+    folder = root / "data" / "raw" / "backfill" / sid / args.run
+    paths = {k: folder / v for k, v in names.items()}
+    note = f"backfill:{sid}"
+    if args.download:
+        if not (root / "data" / "raw").exists():
+            print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+            return 2
+        client = make_client(root, byte_budget=int(args.max_mb * 1024 * 1024))
+        for key in ("md5sums", "articles", "stubs"):
+            if paths[key].exists():
+                continue
+            resp = client.get(
+                file_url(sid, names[key]),
+                accept="*/*",
+                max_bytes=int(args.max_mb * 1024 * 1024),
+                note=note,
+            )
+            if resp.status != 200 or resp.truncated:
+                print(f"{names[key]} answered HTTP {resp.status} (truncated: {resp.truncated})")
+                return 1
+            save_once(paths[key], resp.body)
+    missing = [k for k in ("articles", "stubs") if not paths[k].exists()]
+    if missing:
+        print(f"{sid}: no saved {', '.join(missing)}; run with --download first", file=sys.stderr)
+        return 2
+    sums = paths["md5sums"].read_text() if paths["md5sums"].exists() else ""
+    checked = {}
+    for key in ("articles", "stubs"):
+        want = expected_md5(sums, names[key]) if sums else None
+        got = md5_of(paths[key])
+        if want and want != got:
+            print(f"{names[key]}: md5 {got} differs from the published {want}", file=sys.stderr)
+            return 1
+        checked[key] = {"md5": got, "checked": bool(want), "bytes": paths[key].stat().st_size}
+    evidence = root / "data" / "evidence" / "wikinews"
+    evidence.mkdir(parents=True, exist_ok=True)
+    if args.census:
+        with open_dump(paths["articles"]) as stream:
+            pages, counts = template_census(stream)
+        info = {"source_id": sid, "article_pages": pages, "templates": dict(counts.most_common(80))}
+        (evidence / f"{sid}.census.json").write_text(
+            json.dumps(info, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"{sid}: {pages} article pages; the 80 commonest templates are in the census file")
+        return 0
+    if sid not in EDITION_MARKERS:
+        print(f"{sid}: no markers set (read its census first)", file=sys.stderr)
+        return 2
+    src = registry[sid]
+    with open_stubs(paths["stubs"]) as stream:
+        created = first_revisions(stream)
+    retrieved = datetime.fromtimestamp(paths["articles"].stat().st_mtime, timezone.utc).replace(
+        microsecond=0
+    )
+    skipped: Counter[str] = Counter()
+    licenses: Counter[str] = Counter()
+    out = root / "data" / "interim" / "rows" / f"{sid}.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    (root / "data" / "evidence" / "backfill").mkdir(parents=True, exist_ok=True)
+    kept = held = 0
+    seen: set[str] = set()
+    with open_dump(paths["articles"]) as stream, out.open("w", encoding="utf-8") as fh:
+        for art in read_edition(sid, stream, created, skipped):
+            if art.url in seen:
+                skipped["duplicate_url"] += 1
+                continue
+            seen.add(art.url)
+            lic = license_on(sid, art.published_at, src.license)
+            hold = ""
+            if lic == UNPLACED:
+                hold = "license date not placed: its edition's copyright page does not settle it"
+                lic = src.license
+            credit = render_credit(
+                src.credit_line,
+                title=art.title,
+                authors=(),
+                source=src.name,
+                url=art.url,
+                license=lic,
+            )
+            try:
+                row = make_article(
+                    source_id=sid,
+                    url=art.url,
+                    title=art.title,
+                    text=art.text,
+                    published_at=art.published_at,
+                    updated_at=art.last_edit,
+                    retrieved_at=max(retrieved, art.published_at),
+                    language=src.languages[0],
+                    license=lic,
+                    credit_line=credit,
+                    releasable=not hold,
+                    hold_reason=hold,
+                    **wiki_variables(art.wikitext, f"{sid.split('_', 1)[1]}.wikinews.org"),
+                )
+            except ValueError:
+                skipped["invalid"] += 1
+                continue
+            fh.write(row.model_dump_json() + "\n")
+            kept += 1
+            held += int(bool(hold))
+            licenses["held" if hold else lic] += 1
+    check = validate_file(out, registry)
+    info = {
+        "source_id": sid,
+        "run": args.run,
+        "files": checked,
+        "kept": kept,
+        "held_license_not_placed": held,
+        "by_license": dict(sorted(licenses.items())),
+        "skipped": dict(sorted(skipped.items())),
+        "validate_errors": len(check.errors),
+    }
+    (root / "data" / "evidence" / "backfill" / f"{sid}.build.json").write_text(
+        json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        f"{sid}: kept {kept} ({held} held: date not placed); {dict(licenses)}; skipped "
+        f"{dict(skipped)}; validate: {len(check.errors)} errors"
+    )
+    for msg in check.errors[:5]:
+        print(f"  error: {msg}")
+    return 0 if check.ok else 1
+
+
 def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     import json
     from collections import Counter
@@ -1341,11 +1500,12 @@ def cmd_update(args: argparse.Namespace) -> int:
     return {"ready": 0, "unchanged": 4}.get(result.status, 3)
 
 
-def wiki_variables(wikitext: str) -> dict[str, object]:
-    """Wikinews' variables that need no model, from a page's wikitext."""
+def wiki_variables(wikitext: str, host: str = "en.wikinews.org") -> dict[str, object]:
+    """Wikinews' variables that need no model, from a page's wikitext (``host``: the
+    edition's own)."""
     from commonswire.variables import link_stats, wiki_categories, wiki_link_hosts
 
-    n, ext, hosts = link_stats(wiki_link_hosts(wikitext, "en.wikinews.org"), "en.wikinews.org")
+    n, ext, hosts = link_stats(wiki_link_hosts(wikitext, host), host)
     return {
         "publisher_categories": tuple(wiki_categories(wikitext)),
         "n_links": n,
@@ -1541,6 +1701,16 @@ def build_parser() -> argparse.ArgumentParser:
     bd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     bd.set_defaults(func=cmd_build)
 
+    we = sub.add_parser(
+        "wikinews-edition", help="a Wikinews language edition from its dumps (series 0.3 on)"
+    )
+    we.add_argument("source_id")
+    we.add_argument("--run", default=_today())
+    we.add_argument("--download", action="store_true", help="save the dumps once")
+    we.add_argument("--census", action="store_true", help="count its article templates only")
+    we.add_argument("--max-mb", type=float, default=300, help="the download's byte budget")
+    we.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    we.set_defaults(func=cmd_wikinews_edition)
     wd = sub.add_parser("wikinews-dump", help="read the Wikinews dump into rows")
     wd.add_argument("--run", default=_today())
     wd.add_argument("--download", action="store_true", help="download the dump once first")
