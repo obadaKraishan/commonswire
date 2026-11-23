@@ -592,6 +592,7 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
         file_names,
         file_url,
         first_revisions,
+        notice_differs,
         open_stubs,
         read_edition,
         template_census,
@@ -679,6 +680,11 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
             if lic == UNPLACED:
                 hold = "license date not placed: its edition's copyright page does not settle it"
                 lic = src.license
+            elif notice_differs(art.wikitext, lic):
+                hold = (
+                    "own notice differs: the page carries a license or copyright notice of its "
+                    "own that differs from its edition's license for its date"
+                )
             credit = render_credit(
                 src.credit_line,
                 title=art.title,
@@ -709,14 +715,14 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
             fh.write(row.model_dump_json() + "\n")
             kept += 1
             held += int(bool(hold))
-            licenses["held" if hold else lic] += 1
+            licenses[("held:" + hold.split(":", 1)[0]) if hold else lic] += 1
     check = validate_file(out, registry)
     info = {
         "source_id": sid,
         "run": args.run,
         "files": checked,
         "kept": kept,
-        "held_license_not_placed": held,
+        "held": held,
         "by_license": dict(sorted(licenses.items())),
         "skipped": dict(sorted(skipped.items())),
         "validate_errors": len(check.errors),

@@ -190,7 +190,8 @@ def test_cli_census_and_rows_of_an_edition(tmp_path, monkeypatch, capsys):
     assert by_title["새 기사"]["hold_reason"].startswith("license date not placed")
     assert all(r["language"] == "ko" for r in rows)
     info = json.loads((root / "data/evidence/backfill/wikinews_ko.build.json").read_text())
-    assert info["held_license_not_placed"] == 1 and info["skipped"] == {"not_marked_published": 1}
+    assert info["held"] == 1 and info["skipped"] == {"not_marked_published": 1}
+    assert info["by_license"]["held:license date not placed"] == 1
     assert "not_a_wikinews" not in capsys.readouterr().err
     other = [
         "--root",
@@ -203,3 +204,113 @@ def test_cli_census_and_rows_of_an_edition(tmp_path, monkeypatch, capsys):
         str(reg),
     ]
     assert main(other) == 2
+
+
+# ---- notices of a page's own ----
+
+from commonswire.wikieditions import notice_differs, page_notices  # noqa: E402
+
+
+def test_page_notices_name_the_licenses_of_templates_and_statements():
+    assert page_notices("Mots inventés. {{w|Paris}}") == []
+    assert page_notices("{{CC-BY-SA-4.0}} Mots.") == ["CC-BY-SA-4.0"]
+    assert page_notices("{{cc-by-2.5|x}} Mots.") == ["CC-BY-2.5"]
+    assert page_notices("{{GFDL}} Mots.") == ["unknown"]
+    assert page_notices("{{PD-self}} Mots.") == ["public-domain"]
+    assert page_notices("{{Domaine public}}") == ["public-domain"]
+    assert page_notices("Ce texte est sous licence Creative Commons BY-SA 3.0.") == ["CC-BY-SA-3.0"]
+    assert page_notices("Publié sous CC BY-NC-ND 4.0.") == ["CC-BY-NC-ND-4.0"]
+    assert page_notices("© 2010 Une agence inventée. Tous droits réservés.") == ["rights-reserved"]
+
+
+def test_an_images_notice_is_not_the_pages_own():
+    text = (
+        "Mots inventés. [[Fichier:Photo inventée.jpg|vignette|© Un photographe, CC BY-SA 4.0]]"
+        "<gallery>Image:Autre.png|© Quelqu'un</gallery> Fin."
+    )
+    assert page_notices(text) == []
+
+
+def test_a_page_is_held_only_when_its_own_notice_differs_from_the_table():
+    assert not notice_differs("Mots.", "CC-BY-2.5")
+    assert not notice_differs("{{CC-BY-2.5}} Mots.", "CC-BY-2.5")
+    assert notice_differs("{{CC-BY-SA-4.0}} Mots.", "CC-BY-2.5")
+    assert notice_differs("{{Copyright}} Mots.", "CC-BY-2.5")
+    assert notice_differs("© Agence inventée.", "public-domain")
+    assert not notice_differs("{{PD}} Mots.", "public-domain")
+    # one agreeing and one differing notice: held
+    assert notice_differs("{{CC-BY-2.5}} Extrait sous CC BY-SA 3.0.", "CC-BY-2.5")
+
+
+def test_the_edition_command_holds_and_counts_pages_with_their_own_differing_notice(
+    tmp_path, monkeypatch
+):
+    import bz2
+    import gzip
+    import json
+
+    from commonswire import wikieditions
+    from commonswire.cli import main
+    from test_sources import row, write_csv
+
+    reg = write_csv(
+        tmp_path,
+        [
+            row(
+                source_id="wikinews_en",
+                name="Wikinews",
+                homepage="https://en.wikinews.org/",
+                license="CC-BY-2.5",
+                credit_line="{title}, {source} ({url}), {license}",
+            ),
+            row(
+                source_id="wikinews_fr",
+                name="Wikinews (fr)",
+                homepage="https://fr.wikinews.org/",
+                languages="fr",
+                edition_of="wikinews_en",
+                license="CC-BY-2.5",
+                credit_line="{title}, {source} ({url}), {license}",
+                access="dump",
+            ),
+        ],
+    )
+    folder = tmp_path / "data" / "raw" / "backfill" / "wikinews_fr" / "R"
+    folder.mkdir(parents=True)
+    names = wikieditions.file_names("wikinews_fr")
+    arts = dump(
+        page(1, "Sans avis", "{{Publié}} Des mots inventés, un."),
+        page(2, "Avis égal", "{{Publié}}{{CC-BY-2.5}} Des mots inventés, deux."),
+        page(3, "Avis autre", "{{Publié}} Des mots inventés, trois. Texte sous CC BY-SA 3.0."),
+        page(4, "Droits", "{{Publié}} Des mots inventés, quatre. © Une agence inventée."),
+    ).getvalue()
+    (folder / names["articles"]).write_bytes(bz2.compress(arts))
+    stubs = stub(*[(i, ["2010-05-01T00:00:00Z"]) for i in (1, 2, 3, 4)]).getvalue()
+    (folder / names["stubs"]).write_bytes(gzip.compress(stubs))
+    monkeypatch.setitem(
+        wikieditions.EDITION_MARKERS,
+        "wikinews_fr",
+        EditionMarkers(published=re.compile(r"\{\{\s*publié", re.I)),
+    )
+    base = [
+        "--root",
+        str(tmp_path),
+        "wikinews-edition",
+        "wikinews_fr",
+        "--run",
+        "R",
+        "--sources",
+        str(reg),
+    ]
+    assert main(base) == 0
+    rows = {
+        r["title"]: r
+        for r in map(
+            json.loads, (tmp_path / "data/interim/rows/wikinews_fr.jsonl").read_text().splitlines()
+        )
+    }
+    assert rows["Sans avis"]["releasable"] and rows["Avis égal"]["releasable"]
+    assert not rows["Avis autre"]["releasable"] and not rows["Droits"]["releasable"]
+    assert rows["Droits"]["hold_reason"].startswith("own notice differs")
+    info = json.loads((tmp_path / "data/evidence/backfill/wikinews_fr.build.json").read_text())
+    assert info["by_license"] == {"CC-BY-2.5": 2, "held:own notice differs": 2}

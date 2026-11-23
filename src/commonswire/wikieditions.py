@@ -196,3 +196,79 @@ def read_edition(
 
 def open_stubs(path: Path) -> BinaryIO:
     return gzip.open(path, "rb")  # type: ignore[return-value]
+
+
+# ---- notices of a page's own (the maintainer's rule of 2026-11-23) ----
+
+#: A file or image link, and a gallery: the image's own notice, not the page's.
+_FILE_LINK = re.compile(
+    r"\[\[[^\[\]|:\n]{1,24}:[^\[\]|\n]+\.(?:jpe?g|png|gif|svg|tiff?|webp|ogg|ogv|webm|pdf)"
+    r"\s*(?:\|(?:[^\[\]]|\[\[[^\[\]]*\]\])*)?\]\]",
+    re.I,
+)
+_GALLERY = re.compile(r"<gallery\b.*?</gallery\s*>", re.I | re.S)
+#: Templates that state a license or a copyright.
+_LICENSE_TEMPLATE = re.compile(
+    r"^(cc[- ]?by(?:[- ]?(?:sa|nc|nd))*(?:[- ]?\d(?:\.\d)?)?|cc[- ]?zero|cc0|gfdl|gnu[- ]?fdl|"
+    r"copyright(?:ed)?|copyvio|pd|pd-[\w-]+|public[- ]domain|domaine[- ]public|"
+    r"dominio[- ]p[uú]blico|gemeinfrei|pubblico[- ]dominio|dom[ií]nio[- ]p[uú]blico|"
+    r"all rights reserved|license|licence|licencia|lizenz|licenza|licença|licentie|"
+    r"лицензия|版权|著作権|저작권)",
+    re.I,
+)
+_CC_VERSIONED = re.compile(
+    r"(?:\bCC|Creative\s+Commons)[\s-]*(?:Attribution\s*|BY)"
+    r"((?:[\s-]*(?:SA|ShareAlike|NC|NonCommercial|ND|NoDerivs|NoDerivatives))*)"
+    r"[\s-]*(\d\.\d)",
+    re.I,
+)
+_RESERVED = re.compile(
+    r"©|\(c\)\s*\d{4}|\bcopyright\b|all rights reserved|tous droits réservés|"
+    r"todos los derechos reservados|alle rechte vorbehalten|tutti i diritti riservati|"
+    r"все права защищены|版权所有|著作權所有|저작권 소유|toate drepturile rezervate|"
+    r"alla rättigheter förbehållna|جميع الحقوق محفوظة|πνευματικά δικαιώματα κατοχυρωμένα",
+    re.I,
+)
+_PD_TEMPLATE = re.compile(
+    r"^(pd|pd-[\w-]+|public[- ]domain|domaine[- ]public|dominio[- ]p[uú]blico|gemeinfrei|"
+    r"pubblico[- ]dominio|dom[ií]nio[- ]p[uú]blico)$",
+    re.I,
+)
+
+
+def _cc_spdx(terms: str, version: str) -> str:
+    t = terms.upper()
+    parts = ["BY"]
+    for short, long_ in (("NC", "NONCOMMERCIAL"), ("ND", "NODERIV"), ("SA", "SHAREALIKE")):
+        if re.search(rf"\b{short}\b|{long_}", t):
+            parts.append(short)
+    return f"CC-{'-'.join(parts)}-{version}"
+
+
+def page_notices(wikitext: str) -> list[str]:
+    """The licenses a page's own notices name (an SPDX id, ``public-domain``, or
+    ``rights-reserved`` for a copyright notice, or ``unknown`` for a license template that
+    names none). Image captions and galleries are left out: they are the image's notice."""
+    text = _GALLERY.sub(" ", _FILE_LINK.sub(" ", wikitext))
+    found: list[str] = []
+    for raw in _TEMPLATE.findall(text):
+        name = raw.strip()
+        if not _LICENSE_TEMPLATE.match(name):
+            continue
+        if _PD_TEMPLATE.match(name):
+            found.append("public-domain")
+            continue
+        m = _CC_VERSIONED.search(name.replace("_", " "))
+        found.append(_cc_spdx(m.group(1), m.group(2)) if m else "unknown")
+    plain = _TEMPLATE.sub(" ", text)
+    for m in _CC_VERSIONED.finditer(plain):
+        found.append(_cc_spdx(m.group(1), m.group(2)))
+    if _RESERVED.search(plain):
+        found.append("rights-reserved")
+    return found
+
+
+def notice_differs(wikitext: str, table_license: str) -> bool:
+    """True when the page carries a notice of its own that differs from the license its
+    edition's table gives for its date (the page is then held and counted)."""
+    return any(n != table_license for n in page_notices(wikitext))
