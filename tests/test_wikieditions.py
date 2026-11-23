@@ -221,6 +221,9 @@ def test_page_notices_name_the_licenses_of_templates_and_statements():
     assert page_notices("Ce texte est sous licence Creative Commons BY-SA 3.0.") == ["CC-BY-SA-3.0"]
     assert page_notices("Publié sous CC BY-NC-ND 4.0.") == ["CC-BY-NC-ND-4.0"]
     assert page_notices("© 2010 Une agence inventée. Tous droits réservés.") == ["rights-reserved"]
+    assert page_notices("Copyright 2010 An invented agency.") == ["rights-reserved"]
+    # a story about copyright is not a notice
+    assert page_notices("The invented court ruled on a copyright case.") == []
 
 
 def test_an_images_notice_is_not_the_pages_own():

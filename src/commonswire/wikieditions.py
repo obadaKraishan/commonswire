@@ -223,7 +223,7 @@ _CC_VERSIONED = re.compile(
     re.I,
 )
 _RESERVED = re.compile(
-    r"©|\(c\)\s*\d{4}|\bcopyright\b|all rights reserved|tous droits réservés|"
+    r"©|\(c\)\s*\d{4}|\bcopyright\s*(?:©|\(c\)|\d{4})|all rights reserved|tous droits réservés|"
     r"todos los derechos reservados|alle rechte vorbehalten|tutti i diritti riservati|"
     r"все права защищены|版权所有|著作權所有|저작권 소유|toate drepturile rezervate|"
     r"alla rättigheter förbehållna|جميع الحقوق محفوظة|πνευματικά δικαιώματα κατοχυρωμένα",
