@@ -43,6 +43,9 @@ if TYPE_CHECKING:
     from commonswire.lingua import ListingPlan
 
 PAGE_NAME = "p{:05d}.html"
+#: A whole walk's longer waits before asking again for a page whose answer was still a
+#: server error after the client's own retries (seconds).
+LONG_PAUSES = (300.0, 900.0)
 _SPACE = re.compile(r"\s+")
 _VOID = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
@@ -225,6 +228,7 @@ class ListingStats:
     http_status: Counter[str] = field(default_factory=Counter)
     bytes_fetched: int = 0
     pages_skipped: int = 0
+    long_waits: int = 0
     labels_known: bool = True
     end: str = ""
     stopped: str = ""
@@ -234,6 +238,7 @@ class ListingStats:
             "source_id": self.source_id,
             "pages_fetched": self.pages_fetched,
             "pages_skipped": self.pages_skipped,
+            "long_waits": self.long_waits,
             "labels_known": self.labels_known,
             "pages_already_saved": self.pages_already_saved,
             "last_page": self.last_page,
@@ -264,6 +269,7 @@ def collect_listing_bylines(
     max_pages: int = 6000,
     plan: ListingPlan | None = None,
     say: Callable[[str], None] = lambda _m: None,
+    sleep: Callable[[float], None] | None = None,
 ) -> ListingStats:
     """Walk the listing from page 1, fetching each page once (none with ``client`` None), and
     write the names of every story's writers to ``map_path``. With a ``plan``
@@ -290,11 +296,20 @@ def collect_listing_bylines(
                 st.end = f"page {page} is not saved (replay)"
                 break
             try:
-                resp = client.get(
-                    markup.url.format(page=page),
-                    accept="text/html",
-                    note=f"listing-byline:{source_id}",
-                )
+                for pause in (0.0, *LONG_PAUSES):
+                    if pause:
+                        # The client's own retries ended in a server error: wait longer, then
+                        # ask again (a backoff, never another route).
+                        st.long_waits += 1
+                        (sleep or client.sleep)(pause)
+                    resp = client.get(
+                        markup.url.format(page=page),
+                        accept="text/html",
+                        note=f"listing-byline:{source_id}",
+                    )
+                    if resp.status < 500:
+                        break
+                    st.http_status[str(resp.status)] += 1
             except (Blocked, Disallowed, BudgetExceeded) as exc:
                 st.stopped = f"{type(exc).__name__}: {exc}"
                 break
@@ -303,7 +318,8 @@ def collect_listing_bylines(
                 break
             st.pages_fetched += 1
             st.bytes_fetched += len(resp.body)
-            st.http_status[str(resp.status)] += 1
+            if resp.status < 500:
+                st.http_status[str(resp.status)] += 1
             if resp.status == 404:
                 st.end = f"page {page} answered 404: past the last page"
                 break
