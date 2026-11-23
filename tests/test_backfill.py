@@ -411,3 +411,58 @@ def test_a_lingua_fetcher_takes_its_language_and_versions(tmp_path):
     a = f.build(item, item.published_at)
     assert a.other_versions == (f"{GV}/2026/11/01/invented-story-1/",)
     assert a.original_url == f"{GV}/2026/11/01/invented-story-1/"
+
+
+def test_backfill_tags_saves_tag_ids_then_only_the_names_used(tmp_path):
+    from commonswire.backfill import backfill_tags, build_rows, load_post_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "User-agent: *\nCrawl-delay: 10\n"))
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page=1&orderby=date&order=asc&_fields=id%2Ctags",
+        (
+            200,
+            json.dumps([{"id": 1, "tags": [9, 4]}, {"id": 2, "tags": []}]),
+            {"X-WP-Total": "2", "X-WP-TotalPages": "1"},
+        ),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?include=4%2C9&per_page=100&_fields=id%2Cname",
+        (200, json.dumps([{"id": 4, "name": "Four"}, {"id": 9, "name": "Nine"}])),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf" / "globalvoices" / "r1-tags"
+    p = backfill_tags(fetcher, client, folder, run="r1")
+    assert p.finished and p.pages_saved == 1 and p.tag_pages == 1
+    assert load_post_tags(folder) == {1: (9, 4), 2: ()}
+    before = len(t.calls)
+    assert backfill_tags(fetcher, client, folder, run="r1").requests_this_run == 0
+    assert len(t.calls) == before
+    # the build joins them by post id
+    run = tmp_path / "bf" / "globalvoices" / "r1"
+    run.mkdir(parents=True)
+    post = backfill_post(1)
+    post["id"] = 1
+    (run / "posts-p00001.json").write_text(json.dumps([post]))
+    fetcher.byline_map = {7: ("A. Writer",)}
+    build_rows(fetcher, run, tmp_path / "rows.jsonl")
+    row = json.loads((tmp_path / "rows.jsonl").read_text().splitlines()[0])
+    assert row["publisher_tags"] == ["Nine", "Four"]
+
+
+def test_backfill_tags_stops_at_its_request_limit(tmp_path):
+    from commonswire.backfill import backfill_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    for page in (1, 2):
+        t.add(
+            f"{GV}/wp-json/wp/v2/posts?per_page=100&page={page}&orderby=date&order=asc"
+            "&_fields=id%2Ctags",
+            (
+                200,
+                json.dumps([{"id": page, "tags": [page]}]),
+                {"X-WP-Total": "2", "X-WP-TotalPages": "2"},
+            ),
+        )
+    fetcher, client, _ = make(tmp_path, t)
+    p = backfill_tags(fetcher, client, tmp_path / "x-tags", run="x", max_requests=1)
+    assert not p.finished and p.stopped == "stopped after 1 requests, as asked"

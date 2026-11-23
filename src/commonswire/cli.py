@@ -438,6 +438,35 @@ def cmd_backfill(args: argparse.Namespace) -> int:
     return 0 if progress.finished or progress.stopped.startswith("stopped after") else 1
 
 
+def cmd_backfill_tags(args: argparse.Namespace) -> int:
+    """The tags of an archive saved without them: post ids with tag ids, then the names of
+    the tags used (resumable, every answer saved once)."""
+    from commonswire.backfill import backfill_tags
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
+    client.byte_budget = int(args.max_mb * 1024 * 1024)
+    folder = root / "data" / "raw" / "backfill" / args.source_id / f"{args.run}-tags"
+    progress = backfill_tags(
+        fetcher,
+        client,
+        folder,
+        run=args.run,
+        max_requests=args.max_requests,
+        say=lambda m: print(m, flush=True),
+    )
+    print(
+        f"{args.source_id}: {progress.pages_saved} of {progress.total_pages or '?'} tag pages "
+        f"({progress.total_posts or '?'} posts), {progress.tag_pages} pages of tag names; "
+        f"{progress.requests_this_run} requests and {progress.bytes_this_run:,} bytes this run; "
+        + ("finished" if progress.finished else f"not finished: {progress.stopped}")
+    )
+    return 0 if progress.finished else 1
+
+
 def _build_pages(args: argparse.Namespace) -> int:
     import json
 
@@ -1465,6 +1494,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="ask for each post's tags and save the site's tag names (series 0.3 on)",
     )
     bf.set_defaults(func=cmd_backfill)
+
+    bt = sub.add_parser(
+        "backfill-tags", help="the tags of an archive saved without them (series 0.3 on)"
+    )
+    bt.add_argument("source_id")
+    bt.add_argument("--run", default=_today(), help="the run's name (default: today)")
+    bt.add_argument("--max-mb", type=float, default=100, help="stop after this many megabytes")
+    bt.add_argument("--max-requests", type=int, help="stop after this many requests")
+    bt.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bt.set_defaults(func=cmd_backfill_tags)
 
     bp = sub.add_parser(
         "backfill-pages",

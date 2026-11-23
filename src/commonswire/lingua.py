@@ -34,7 +34,7 @@ import json
 import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -445,3 +445,158 @@ def plan_for(root: Path, source_id: str, run: str) -> tuple[ListingPlan, dict[st
     releasable = {u for u in order if u in links and canonical_url(links[u]["en"]) in released}
     plan = ListingPlan(order, releasable)
     return plan, {"posts": len(order), "releasable": len(releasable)}
+
+
+# ---- the weekly route (series 0.3 on) ----
+
+#: Lingua article pages read at most a source a week, for new posts whose body matches none
+#: of the run's English posts.
+MAX_WEEKLY_PAGES = 40
+
+
+@dataclass
+class WeeklyLinks:
+    """What a weekly run knows for linking new Lingua posts: the English posts it fetched
+    (their bodies) and the English rows after the English site's update (their addresses)."""
+
+    english_posts: list[dict] = field(default_factory=list)
+    english_rows: dict[str, str] = field(default_factory=dict)  # canonical URL -> address
+    _index: EnglishIndex | None = None
+    _by_slug: dict[str, list[str]] | None = None
+
+    def index(self) -> EnglishIndex:
+        if self._index is None:
+            self._index = english_index(self.english_posts)
+        return self._index
+
+    def resolve(self, url: str) -> str:
+        """The English row an English address names (another date path allowed), or ""."""
+        key = canonical_url(current_address(url))
+        if key in self.english_rows:
+            return self.english_rows[key]
+        if self._by_slug is None:
+            self._by_slug = defaultdict(list)
+            for k in self.english_rows:
+                self._by_slug[k.rstrip("/").rsplit("/", 1)[-1]].append(k)
+        for k in self._by_slug.get(key.rstrip("/").rsplit("/", 1)[-1], ()):
+            if same_post(k, key):
+                return self.english_rows[k]
+        return ""
+
+
+def link_new_posts(
+    fetcher: object,
+    client: object,
+    posts: Iterable[Mapping],
+    known: Mapping[str, str],
+    ctx: WeeklyLinks,
+    *,
+    max_pages: int = MAX_WEEKLY_PAGES,
+) -> dict[str, int]:
+    """Each new Lingua post's English version, put into the fetcher's versions map: by its
+    body's fingerprint against the run's English posts, or else from its own page's list (one
+    request, logged by the article's id). Returns counts only."""
+    from commonswire.schema import article_id
+
+    counts: Counter[str] = Counter()
+    for post in posts:
+        link = str(post.get("link") or "")
+        if not link or link in known:
+            continue
+        try:
+            key = canonical_url(link)
+        except ValueError:
+            continue
+        counts["new_posts"] += 1
+        english = ""
+        parts = fingerprint((post.get("content") or {}).get("rendered", ""))
+        if len(parts) >= MIN_SHARED:
+            m = ctx.index().match(parts)
+            if m is not None:
+                english = m.url
+                counts["by_fingerprint"] += 1
+        if not english and counts["pages_read"] < max_pages:
+            resp = client.get(  # type: ignore[attr-defined]
+                link,
+                accept="text/html",
+                note=f"update:{fetcher.source_id}",  # type: ignore[attr-defined]
+                log_as=article_id(link),
+            )
+            counts["pages_read"] += 1
+            if resp.status == 200:
+                named = page_versions(resp.text).get("en", "")
+                english = ctx.resolve(named) if named else ""
+                counts["by_page" if english else "page_names_no_english_row"] += 1
+        if english:
+            fetcher.versions[key] = {"other_versions": [english], "original_url": ""}  # type: ignore[attr-defined]
+        else:
+            counts["no_english_version"] += 1
+    return dict(sorted(counts.items()))
+
+
+def add_new_versions(
+    rows_by_source: Mapping[str, Mapping[str, dict]], new_ids: Iterable[str]
+) -> int:
+    """After a weekly run: each new Lingua row joins its English post's group, so every row of
+    the group lists the others (versions are added, never removed). ``original_url`` is set
+    again only when every member of the group is a row whose translators are known; else the
+    rows keep theirs, and a new row takes the group's original if it credits a translator.
+    Returns the rows changed."""
+    by_url: dict[str, dict] = {}
+    for sid, rows in rows_by_source.items():
+        if sid == ENGLISH_SOURCE or sid.startswith(f"{ENGLISH_SOURCE}_"):
+            for d in rows.values():
+                by_url[canonical_url(d["url"])] = d
+    touched = 0
+    wanted = set(new_ids)
+    for d in list(by_url.values()):
+        if d["id"] not in wanted or d["source_id"] == ENGLISH_SOURCE:
+            continue
+        english = english_version(d.get("other_versions") or ())
+        if not english:
+            continue
+        erow = by_url.get(canonical_url(english))
+        members = {english, d["url"]}
+        if erow is not None:
+            members |= set(erow.get("other_versions") or ())
+        members = sorted(members)
+        rows = [by_url.get(canonical_url(u)) for u in members]
+        for u, r in zip(members, rows, strict=True):
+            if r is None:
+                continue
+            others = [v for v in members if v != u]
+            if list(r.get("other_versions") or ()) != others:
+                r["other_versions"] = others
+                touched += 1
+        if all(r is not None for r in rows):
+            pairs = zip(members, rows, strict=True)
+            untranslated = [u for u, r in pairs if not r.get("translators")]
+            original = untranslated[0] if len(untranslated) == 1 else ""
+            for u, r in zip(members, rows, strict=True):
+                r["original_url"] = original if original != u else ""
+        else:
+            originals = {r.get("original_url") for r in rows if r is not None} - {""}
+            if len(originals) == 1 and d.get("translators"):
+                d["original_url"] = originals.pop()
+    return touched
+
+
+def hreflang_new_versions(
+    rows_by_source: Mapping[str, Mapping[str, dict]], pages: Iterable[str], sources: Iterable[str]
+) -> int:
+    """After a weekly run: rows of the hreflang sources whose saved pages name another
+    version get it (both rows, when both are there). Returns the rows changed."""
+    from commonswire.versions import hreflang_groups
+
+    groups = hreflang_groups(pages)
+    touched = 0
+    for sid in sources:
+        for d in rows_by_source.get(sid, {}).values():
+            others = groups.get(canonical_url(d["url"]))
+            if not others:
+                continue
+            merged = sorted(set(d.get("other_versions") or ()) | set(others))
+            if merged != list(d.get("other_versions") or ()):
+                d["other_versions"] = merged
+                touched += 1
+    return touched

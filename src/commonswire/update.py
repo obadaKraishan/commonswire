@@ -67,7 +67,7 @@ from commonswire.daily import DailyResult, _removed, _take
 from commonswire.fetchers import WORDPRESS
 from commonswire.fetchers.base import ReplayStore
 from commonswire.fetchers.pages import PAGE_FETCHERS
-from commonswire.fetchers.wordpress import WordPressFetcher
+from commonswire.fetchers.wordpress import GlobalVoicesLinguaFetcher, WordPressFetcher
 from commonswire.http import (
     AnswerCache,
     Blocked,
@@ -79,11 +79,19 @@ from commonswire.http import (
     UsageLog,
     make_client,
 )
+from commonswire.lingua import (
+    ENGLISH_SOURCE,
+    WeeklyLinks,
+    add_new_versions,
+    hreflang_new_versions,
+    link_new_posts,
+)
 from commonswire.release import (
     CONFIGURATIONS,
     VARIABLE_COLUMNS,
     ReleaseError,
     collect,
+    columns,
     series_sources,
     sha256,
     verify,
@@ -91,6 +99,7 @@ from commonswire.release import (
 )
 from commonswire.schema import canonical_url
 from commonswire.sources import Source, load_sources
+from commonswire.versions import HREFLANG_SOURCES
 
 WINDOW_DAYS = 30
 #: Listing pages of 100 posts read per listing at most; a fuller listing is a site change.
@@ -219,6 +228,8 @@ class SourceUpdate:
     count: CountCheck | None = None
     #: A page source's route (what it read: sitemaps or listing pages, pages after the mark).
     route: dict[str, object] = field(default_factory=dict)
+    #: A Global Voices language site's links to its English versions (series 0.3 on).
+    lingua: dict[str, int] = field(default_factory=dict)
 
     @property
     def skipped(self) -> bool:
@@ -237,6 +248,7 @@ class SourceUpdate:
             "third_party_dropped_new": self.third_party_new,
             "bylines_from_pages": self.page_bylines,
             "listing_credits": self.listing,
+            **({"lingua_links": self.lingua} if self.lingua else {}),
             "dropped": dict(sorted(self.dropped.items())),
             "requests": self.requests,
             "bytes": self.bytes,
@@ -402,12 +414,20 @@ def update_wordpress(
     held: dict[str, dict] | None = None,
     prev_counts: dict[str, dict] | None = None,
     allowance: Allowance | None = None,
+    with_tags: bool = False,
+    lingua_links: WeeklyLinks | None = None,
 ) -> tuple[dict[str, dict], SourceUpdate]:
     """One source's update over the window, then its count check. Returns the source's rows
     after the update (the previous rows unchanged if the source refused, failed, or ran over
     its budget or the count check's ceiling) and what happened, as counts and ids. ``held`` is
     the previous version's held rows (id -> source, day, reason), ``prev_counts`` its post
-    counts per year for this source (None: none recorded yet, so a baseline run)."""
+    counts per year for this source (None: none recorded yet, so a baseline run).
+
+    Series 0.3 on (``with_tags``): the posts' tags are asked for, and the rows'
+    other-language versions are kept from the previous version. With ``lingua_links``, a
+    Global Voices language site's new posts are linked to their English versions; the English
+    site, which comes first in the series, leaves its posts and rows there. A language site
+    gets no count check."""
     from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     sid = fetcher.source_id
@@ -416,8 +436,9 @@ def update_wordpress(
     pager = _Pages(fetcher, client, note)
     since_s = since.strftime("%Y-%m-%dT%H:%M:%S")
     since_iso = _iso(since) or ""
-    fields = fetcher.backfill_fields
+    fields = fetcher.fields(with_tags=with_tags)
     rows = dict(prev)
+    lingua_site = isinstance(fetcher, GlobalVoicesLinguaFetcher)
     try:
         fetcher.category_names = {
             int(c["id"]): str(c.get("name", ""))
@@ -431,6 +452,8 @@ def update_wordpress(
                 if isinstance(u, dict) and u.get("name")
             }
         _seed_bylines(fetcher, prev)
+        if with_tags:
+            _seed_versions(fetcher, prev)
         recent = list(
             pager.posts(
                 "posts", {"after": since_s, "orderby": "date", "order": "asc", "_fields": fields}
@@ -458,7 +481,13 @@ def update_wordpress(
             posts.append(post)
         res.listed = len(posts)
         known = {d["url"]: rid for rid, d in prev.items()}
+        if with_tags:
+            _tag_names(fetcher, client, posts, note)
         _listing_credits(fetcher, client, posts, known, res, held=held, prev_as_of=prev_as_of)
+        if lingua_links is not None and lingua_site:
+            res.lingua = link_new_posts(fetcher, client, posts, known, lingua_links)
+        if lingua_links is not None and sid == ENGLISH_SOURCE:
+            lingua_links.english_posts.extend(posts)
         reader = None
         if sid in SITE_MARKUP and fetcher.requires_byline:
             reader = PageBylineReader(
@@ -507,6 +536,12 @@ def update_wordpress(
             if resp.status in (404, 410):
                 rows[rid] = _removed(d)
                 res.seen_ids.add(rid)
+        if lingua_links is not None and sid == ENGLISH_SOURCE:
+            lingua_links.english_rows = {canonical_url(d["url"]): d["url"] for d in rows.values()}
+        if lingua_site:
+            # A language site gets no count check (it would take one request per year of
+            # every site each week): its older removals are not looked for.
+            return _finish_source(rows, prev, res, client)
         res.count = check_counts(
             fetcher.api_base,
             client,
@@ -540,6 +575,13 @@ def update_wordpress(
         return dict(prev), _skipped(res, client, status, exc)
     except FetchError as exc:
         return dict(prev), _skipped(res, client, "failed", exc)
+    return _finish_source(rows, prev, res, client)
+
+
+def _finish_source(
+    rows: dict[str, dict], prev: dict[str, dict], res: SourceUpdate, client: PoliteClient
+) -> tuple[dict[str, dict], SourceUpdate]:
+    """The new, changed and removed ids of a source's update, and its requests."""
     for rid, d in rows.items():
         old = prev.get(rid)
         if old is None:
@@ -559,6 +601,45 @@ def update_wordpress(
     )
     res.requests, res.bytes = _usage(client)
     return rows, res
+
+
+def _seed_versions(fetcher: WordPressFetcher, prev: dict[str, dict]) -> None:
+    """The other-language versions of rows already released (series 0.3 on), so a changed
+    row keeps them."""
+    for d in prev.values():
+        if d.get("other_versions") or d.get("original_url"):
+            try:
+                key = canonical_url(d["url"])
+            except ValueError:
+                continue
+            fetcher.versions.setdefault(
+                key,
+                {
+                    "other_versions": list(d.get("other_versions") or ()),
+                    "original_url": d.get("original_url") or "",
+                },
+            )
+
+
+def _tag_names(
+    fetcher: WordPressFetcher, client: PoliteClient, posts: list[dict], note: str
+) -> None:
+    """The names of the tags the run's posts use (series 0.3 on), 100 ids a request."""
+    used = sorted(
+        {t for p in posts for t in (p.get("tags") or []) if isinstance(t, int)}
+        - set(fetcher.tag_names)
+    )
+    for start in range(0, len(used), 100):
+        ids = ",".join(str(t) for t in used[start : start + 100])
+        url = f"{fetcher.api_base}/wp-json/wp/v2/tags?" + urlencode(
+            {"include": ids, "per_page": "100", "_fields": "id,name"}
+        )
+        resp = client.get(url, accept="application/json", note=note)
+        if resp.status != 200 or resp.truncated:
+            raise FetchError(f"{url} answered HTTP {resp.status}")
+        for t in resp.json() or []:
+            if isinstance(t, dict) and isinstance(t.get("id"), int):
+                fetcher.tag_names[t["id"]] = str(t.get("name", ""))
 
 
 def _usage(client: PoliteClient) -> tuple[int, int]:
@@ -642,6 +723,8 @@ class UpdateResult:
     count_baseline: bool = False
     count_limit: int = MAX_COUNT_REQUESTS
     count_used: int = 0
+    #: Rows whose other-language versions this run added (series 0.3 on).
+    versions_added: int = 0
 
     @property
     def ready_to_deliver(self) -> bool:
@@ -868,10 +951,14 @@ def run_update(
     res.count_baseline, res.count_limit = prev_counts is None, max_count_requests
     merged: dict[str, dict[str, dict]] = {}
     page_state: dict[str, dict] = {}
+    # Series 0.3 on: tags, kept versions, and the language sites' links to the English site.
+    with_variables = "n_links" in columns(version)
+    links = WeeklyLinks() if with_variables else None
     for sid in sources:
-        if sid in CLOSED:
+        if sid in CLOSED or sid.startswith("wikinews_"):
             merged[sid] = prev_rows.get(sid, {})
-            res.sources[sid] = SourceUpdate(source_id=sid, status="closed", note=CLOSED[sid])
+            note = CLOSED.get(sid, "closed since 2026-05-04; its archive comes from its dump")
+            res.sources[sid] = SourceUpdate(source_id=sid, status="closed", note=note)
             say(res.sources[sid].line())
             continue
         if sid in PAGE_FETCHERS:
@@ -916,6 +1003,8 @@ def run_update(
             held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
             prev_counts=None if prev_counts is None else prev_counts.get(sid),
             allowance=allowance,
+            with_tags=with_variables,
+            lingua_links=links,
         )
         budget_left -= client.bytes_used
         log.recent.extend(src_log.recent)
@@ -923,6 +1012,17 @@ def run_update(
         res.sources[sid] = upd
         say(upd.line())
         say(upd.count_line())
+    if with_variables:
+        new_ids = [i for u in res.sources.values() for i in u.new_ids]
+        res.versions_added = add_new_versions(merged, new_ids)
+        pages = [
+            p.read_bytes().decode("utf-8", errors="replace")
+            for sid in HREFLANG_SOURCES
+            for p in sorted((answers / "pages" / sid).glob("*.html"))
+        ]
+        res.versions_added += hreflang_new_versions(
+            merged, pages, [s for s in HREFLANG_SOURCES if s in sources]
+        )
     res.requests = requests_by_host_and_day(log.recent)
     res.count_used = allowance.used
     # The counts the next update compares: this run's, or for a skipped source the previous
@@ -1005,6 +1105,7 @@ def run_update(
             "drops": sum(len(c.drops) for c in counted),
             "rows_removed": sum(c.rows_removed for c in counted),
         },
+        **({"versions_added": res.versions_added} if with_variables else {}),
     }
     extra = {
         "third_party_dropped": third,

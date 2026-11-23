@@ -27,6 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlencode
 
 from commonswire.fetchers.wordpress import WordPressFetcher
 from commonswire.http import Blocked, BudgetExceeded, Disallowed, FetchError, PoliteClient
@@ -327,6 +328,7 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
     tag_names = load_category_names(folder, "tags-p*.json")
     if tag_names:
         fetcher.tag_names = {**fetcher.tag_names, **tag_names}
+    load_tags_run(fetcher, folder.parent)
     pages = sorted(folder.glob("posts-p*.json"))
     result.raw_files = (
         len(pages)
@@ -376,3 +378,123 @@ def build_rows(fetcher: WordPressFetcher, folder: Path, out: Path) -> BuildResul
                 result.last = max(result.last or day, day)
     os.replace(tmp, out)
     return result
+
+
+POSTTAGS_NAME = "posttags-p{:05d}.json"
+TAGNAMES_NAME = "tagnames-p{:04d}.json"
+
+
+def backfill_tags(
+    fetcher: WordPressFetcher,
+    client: PoliteClient,
+    folder: Path,
+    *,
+    run: str,
+    max_requests: int | None = None,
+    say: Callable[[str], None] = lambda _m: None,
+) -> Progress:
+    """The tags of an archive saved without them (series 0.3 on): every page of the site's
+    posts with their ids and tag ids only, oldest first, then the names of the tags those
+    posts use, 100 ids a request (never more requests than paging every tag). Saved once
+    under ``folder`` (``posttags-pNNNNN.json``, ``tagnames-pNNNN.json``); a rerun skips
+    what is saved."""
+    note = f"tags:{fetcher.source_id}"
+    progress = Progress(source_id=fetcher.source_id, run=run)
+    old = folder / "progress.json"
+    if old.exists():
+        saved = json.loads(old.read_text())
+        progress.total_posts = saved.get("total_posts")
+        progress.total_pages = saved.get("total_pages")
+
+    def budget_left() -> bool:
+        return max_requests is None or progress.requests_this_run < max_requests
+
+    try:
+        page = 1
+        while progress.total_pages is None or page <= progress.total_pages:
+            path = folder / POSTTAGS_NAME.format(page)
+            if path.exists():
+                page += 1
+                continue
+            if not budget_left():
+                progress.stopped = f"stopped after {max_requests} requests, as asked"
+                break
+            resp = _get(client, fetcher.tags_only_url(page), note, progress)
+            if resp.status == 400 and page > 1:
+                break
+            if resp.status != 200:
+                progress.stopped = f"page {page} answered HTTP {resp.status}"
+                break
+            if progress.total_posts is None:
+                total = _header(resp.headers, "X-WP-Total")
+                pages = _header(resp.headers, "X-WP-TotalPages")
+                progress.total_posts = int(total) if total.isdigit() else None
+                progress.total_pages = int(pages) if pages.isdigit() else None
+            posts = resp.json()
+            if not isinstance(posts, list) or not posts:
+                break
+            save_once(path, resp.body)
+            progress.save(folder)
+            if page % 100 == 0:
+                say(f"{fetcher.source_id}: tags page {page} of {progress.total_pages or '?'}")
+            page += 1
+        if not progress.stopped:
+            used = sorted({t for ids in load_post_tags(folder).values() for t in ids})
+            for n, start in enumerate(range(0, len(used), 100), start=1):
+                path = folder / TAGNAMES_NAME.format(n)
+                if path.exists():
+                    continue
+                if not budget_left():
+                    progress.stopped = f"stopped after {max_requests} requests, as asked"
+                    break
+                ids = ",".join(str(t) for t in used[start : start + 100])
+                url = f"{fetcher.api_base}/wp-json/wp/v2/tags?" + urlencode(
+                    {"include": ids, "per_page": "100", "_fields": "id,name"}
+                )
+                resp = _get(client, url, note, progress)
+                if resp.status != 200:
+                    progress.stopped = f"tag names {n} answered HTTP {resp.status}"
+                    break
+                save_once(path, resp.body)
+            progress.tag_pages = len(list(folder.glob("tagnames-p*.json")))
+    except (Blocked, Disallowed) as exc:
+        progress.stopped = f"refused: {exc}"
+    except BudgetExceeded as exc:
+        progress.stopped = f"budget: {exc}"
+    except FetchError as exc:
+        progress.stopped = f"error: {exc}"
+    except OSError as exc:
+        progress.stopped = f"could not write to {folder}: {exc}"
+    progress.pages_saved = len(list(folder.glob("posttags-p*.json")))
+    total_pages = progress.total_pages
+    have = {int(p.name[10:15]) for p in folder.glob("posttags-p*.json")}
+    missing = [n for n in range(1, (total_pages or 0) + 1) if n not in have]
+    progress.missing_pages = missing[:50]
+    if missing and not progress.stopped:
+        progress.stopped = f"{len(missing)} tag pages missing"
+    progress.finished = not progress.stopped
+    progress.save(folder)
+    return progress
+
+
+def load_post_tags(folder: Path) -> dict[int, tuple[int, ...]]:
+    """Post id -> tag ids, from a tags backfill run (or a backfill asked with tags)."""
+    out: dict[int, tuple[int, ...]] = {}
+    for path in sorted(folder.glob("posttags-p*.json")):
+        for post in json.loads(path.read_bytes()):
+            if isinstance(post, dict) and isinstance(post.get("id"), int):
+                tags = post.get("tags")
+                out[post["id"]] = tuple(t for t in tags if isinstance(t, int)) if tags else ()
+    return out
+
+
+def load_tags_run(fetcher: WordPressFetcher, source_folder: Path) -> int:
+    """Put the latest tags run of a source (``<run>-tags`` beside its backfill runs) into the
+    fetcher: post ids' tags and the tag names. Returns the posts it covers."""
+    runs = sorted(p for p in source_folder.glob("*-tags") if p.is_dir())
+    if not runs:
+        return 0
+    folder = runs[-1]
+    fetcher.post_tags = {**fetcher.post_tags, **load_post_tags(folder)}
+    fetcher.tag_names = {**fetcher.tag_names, **load_category_names(folder, "tagnames-p*.json")}
+    return len(fetcher.post_tags)
