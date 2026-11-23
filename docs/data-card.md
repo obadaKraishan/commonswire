@@ -261,21 +261,36 @@ until then.
 - **New columns, the variables that need no model** (read from each article as its
   publisher gave it):
   - `publisher_section`, `publisher_categories`, `publisher_tags`: the publisher's own
-    labels, as written. The WordPress archives were saved without post tags, so their tags
-    are empty.
+    labels, as written (the WordPress archives' tags were read once, apart from their text).
   - `n_links`, `n_links_external`, `link_hosts`: the body's links that lead to a web page,
     those to other sites, and every host once (lower case, without `www.`). They are null
     where the body is not known.
-  - `original_url`: for a translation, the article it translates, where the page gives it.
+  - `other_versions`: the addresses of the article's versions in other languages, as the
+    publisher links them.
+  - `original_url`: for a translation, the version it was made from, set only where exactly
+    one version of the story credits no translator (the English version is not assumed to be
+    the original).
 - **`language` per row:** Factly's Telugu stories, labelled `en` in 0.1.0 to 0.2.2, are `te`,
-  from Factly's own "Telugu" category.
+  from Factly's own "Telugu" category. They stay Factly rows.
+- **Other languages.** Each language edition is a source of its own, ruled on its own pages:
+  - **Balkan Diskurs in Bosnian**, under its own Bosnian attribution policy (CC BY);
+  - **Global Voices' language sites** (CC BY 3.0, the footer of each site and the publisher's
+    policy for "our sites"), under **the Lingua rule**: a row is released only when its
+    English version is a released row of this dataset, because the English pages are where
+    republished partner pieces are detected. Every other row of these sites is held and
+    counted, by site. The English version is found from the links and images a translation
+    keeps from it;
+  - **Wikinews' language editions** whose copyright page dates its licenses: each article
+    carries the license of its creation date, and an article the page's dates do not place is
+    held.
+
+  Editions whose license statement could not be read with confidence, or whose pages leave a
+  question, stay out; `sources.csv` gives each one's question.
 - **The record of changes, `changes.csv`:** one line per article and version where something
   happened (new, changed, removed at the source, taken down on request), with the date. It
   holds ids only.
 - **SciDev.Net's checks hold for every section:** a page that lacks the site's license line,
   or names another license outside an image's caption, is left out.
-- **Language editions** of the included publishers are ruled in the registry (`edition_of`),
-  and none is collected in 0.3.0.
 - **The rights audit.** `sources.csv` gains a `reason_code` column (one code from a fixed list
   for every publisher's status), and the registry holds 66 publishers: 13 include, 36 pending,
   17 exclude. How each was read, and how this compares with the Common Pile's news sources
