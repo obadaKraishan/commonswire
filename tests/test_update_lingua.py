@@ -50,12 +50,19 @@ def story(link, labels, names):
     )
 
 
+def by_url_check(tmp_path):
+    _, rows = released(tmp_path / "next")
+    fr_rows = [x for x in rows.values() if x["source_id"] == "globalvoices_fr"]
+    return all(x["publisher_categories"] == ["Term 1"] for x in fr_rows)
+
+
 class Site:
     def __init__(self):
         self.recent: dict[str, list[dict]] = {"en": [], "fr": []}
         self.listing: dict[tuple[str, int], str] = {}
         self.pages: dict[str, tuple[int, str]] = {}
         self.calls: list[str] = []
+        self.term_lookups: list[tuple[str, str]] = []
 
     def __call__(self, url, headers, timeout, max_bytes):
         self.calls.append(url)
@@ -71,6 +78,10 @@ class Site:
         if "/wp-json/wp/v2/" in parts.path:
             if q.get("per_page") == "1" and q.get("_fields") == "id":
                 return answer(200, '[{"id": 1}]', {"X-WP-Total": "5"})
+            if "include" in q:  # terms by id
+                ids = [int(x) for x in q["include"].split(",")]
+                self.term_lookups.append((parts.path.rsplit("/", 1)[-1], site))
+                return answer(200, json.dumps([{"id": i, "name": f"Term {i}"} for i in ids]))
             if q.get("page") != "1":
                 return answer(400, "{}")
             if parts.path.endswith("/categories"):
@@ -196,6 +207,10 @@ def test_a_language_site_week_links_new_posts_and_applies_the_rule(tmp_path):
         "pages_read": 2,
     }
     assert fr.count is None  # no count check for a language site
+    # the language site asks only for the categories its posts use, not its whole list
+    assert ("categories", "fr") in site.term_lookups
+    assert not any("fr.globalvoices.org/wp-json/wp/v2/categories?per_page" in u for u in site.calls)
+    assert by_url_check(tmp_path)
     _, rows = released(tmp_path / "next")
     by_url = {x["url"]: x for x in rows.values()}
     assert {fr1["link"], fr2["link"]} <= set(by_url) and fr3["link"] not in by_url

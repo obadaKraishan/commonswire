@@ -440,11 +440,12 @@ def update_wordpress(
     rows = dict(prev)
     lingua_site = isinstance(fetcher, GlobalVoicesLinguaFetcher)
     try:
-        fetcher.category_names = {
-            int(c["id"]): str(c.get("name", ""))
-            for c in pager.posts("categories", {"_fields": "id,name"})
-            if isinstance(c, dict) and "id" in c
-        }
+        if not lingua_site:
+            fetcher.category_names = {
+                int(c["id"]): str(c.get("name", ""))
+                for c in pager.posts("categories", {"_fields": "id,name"})
+                if isinstance(c, dict) and "id" in c
+            }
         if sid in USERS_ENDPOINT:
             fetcher.byline_map = {
                 int(u["id"]): (str(u["name"]),)
@@ -481,6 +482,10 @@ def update_wordpress(
             posts.append(post)
         res.listed = len(posts)
         known = {d["url"]: rid for rid, d in prev.items()}
+        if lingua_site:
+            # A language site's categories: only those its posts use (one request for up
+            # to 100), not its whole list each week.
+            _term_names(fetcher, client, posts, note, "categories")
         if with_tags:
             _tag_names(fetcher, client, posts, note)
         _listing_credits(fetcher, client, posts, known, res, held=held, prev_as_of=prev_as_of)
@@ -625,13 +630,25 @@ def _tag_names(
     fetcher: WordPressFetcher, client: PoliteClient, posts: list[dict], note: str
 ) -> None:
     """The names of the tags the run's posts use (series 0.3 on), 100 ids a request."""
+    _term_names(fetcher, client, posts, note, "tags")
+
+
+def _term_names(
+    fetcher: WordPressFetcher,
+    client: PoliteClient,
+    posts: list[dict],
+    note: str,
+    taxonomy: str,
+) -> None:
+    """The names of the terms (``tags`` or ``categories``) the run's posts use, 100 ids a
+    request, into the fetcher's maps."""
+    names = fetcher.tag_names if taxonomy == "tags" else fetcher.category_names
     used = sorted(
-        {t for p in posts for t in (p.get("tags") or []) if isinstance(t, int)}
-        - set(fetcher.tag_names)
+        {t for p in posts for t in (p.get(taxonomy) or []) if isinstance(t, int)} - set(names)
     )
     for start in range(0, len(used), 100):
         ids = ",".join(str(t) for t in used[start : start + 100])
-        url = f"{fetcher.api_base}/wp-json/wp/v2/tags?" + urlencode(
+        url = f"{fetcher.api_base}/wp-json/wp/v2/{taxonomy}?" + urlencode(
             {"include": ids, "per_page": "100", "_fields": "id,name"}
         )
         resp = client.get(url, accept="application/json", note=note)
@@ -639,7 +656,7 @@ def _tag_names(
             raise FetchError(f"{url} answered HTTP {resp.status}")
         for t in resp.json() or []:
             if isinstance(t, dict) and isinstance(t.get("id"), int):
-                fetcher.tag_names[t["id"]] = str(t.get("name", ""))
+                names[t["id"]] = str(t.get("name", ""))
 
 
 def _usage(client: PoliteClient) -> tuple[int, int]:
