@@ -344,10 +344,10 @@ def _listing_credits(
     A story the previous version already held, and that has not been edited since that
     version, keeps its recorded reason with no new look at the listing: otherwise every week
     would walk back to the oldest held story of the 30 days."""
-    from commonswire.listingbylines import LISTING_MARKUP, listing_credits
+    from commonswire.listingbylines import has_listing, listing_credits
     from commonswire.schema import article_id
 
-    if fetcher.source_id not in LISTING_MARKUP:
+    if not has_listing(fetcher.source_id):
         return
     held = held or {}
     wanted: dict[str, str] = {}
