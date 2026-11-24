@@ -263,3 +263,17 @@ def test_a_page_still_failing_after_the_clients_retries_is_asked_again_after_a_l
     )
     assert not st.stopped and st.stories == 2 and st.long_waits == 1
     assert waits == [LONG_PAUSES[0]]
+
+
+def test_a_listing_that_drops_the_trailing_slash_is_asked_in_its_own_form(tmp_path):
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    t.add(f"{GV}/page/1/", (200, page(story("one", ["Ana Invented"]))))
+    t.add(f"{GV}/page/2/", (301, "", {"Location": f"{GV}/page/2"}))
+    t.add(f"{GV}/page/2", (200, page(story("two", ["Bo Invented"]))))
+    t.add(f"{GV}/page/3", (200, page(story("three", ["Cy Invented"]))))
+    t.add(f"{GV}/page/4", (404, "none"))
+    client, _ = make_test_client(tmp_path, t)
+    st = collect_listing_bylines(client, "globalvoices", tmp_path / "p", tmp_path / "m.json")
+    assert st.stories == 3
+    asked = [u for u, _ in t.calls]
+    assert f"{GV}/page/3/" not in asked and f"{GV}/page/3" in asked

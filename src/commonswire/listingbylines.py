@@ -69,6 +69,17 @@ class ListingMarkup:
     translator_labels: tuple[str, ...] = ("translated by",)
 
 
+def follow_slash(markup: ListingMarkup, page: int, resp: object) -> ListingMarkup:
+    """A site that redirects a listing page only to drop its trailing slash gives its own
+    address for the pages: the walk asks for that form from then on (one request a page, not
+    two). Page 1 is left out (its listing often redirects to the home page)."""
+    asked = markup.url.format(page=page)
+    final = getattr(resp, "url", asked)
+    if page > 1 and getattr(resp, "redirects", ()) and final == asked.rstrip("/"):
+        return replace(markup, url=markup.url.rstrip("/"))
+    return markup
+
+
 def learn_labels(stories: list[Story], markup: ListingMarkup) -> ListingMarkup:
     """A listing whose labels are not known (a Global Voices language site prints them in its
     own language) takes them from its stories: the label most stories with two credit blocks
@@ -320,6 +331,7 @@ def collect_listing_bylines(
             st.bytes_fetched += len(resp.body)
             if resp.status < 500:
                 st.http_status[str(resp.status)] += 1
+            markup = follow_slash(markup, page, resp)
             if resp.status == 404:
                 st.end = f"page {page} answered 404: past the last page"
                 break
