@@ -40,16 +40,51 @@ All notable changes to this project are documented here. The format follows
   new language-site post to its English version by fingerprint against the run's English
   posts, or else from the post's own page (at most 40 pages a site a week). Versions are
   added to their groups after the run. The Wikinews editions are carried as closed. The
-  language sites get no count check. Series 0.1 and 0.2 ask for the same fields and write
-  the same files as before.
+  language sites get a count check of their own (below). Series 0.1 and 0.2 ask for the same
+  fields and write the same files as before.
 - The registry's new reason code `released_with_english`, which needs `edition_of`.
 - **Series 0.3's sources:** the Bosnian Balkan Diskurs edition, 46 Global Voices language sites
   and six Wikinews editions (French, Chinese, Arabic, Greek, Romanian, Korean) beside the nine
   of before. Each Wikinews edition's published articles are told by its own publication
   template, found in its dump's template census; Chinese headline digests, made only of
   templates, have no text of their own.
-- **The card** names the languages, the license versions and the Lingua rule's held rows from
-  the rows (a 0.2.x card is unchanged).
+- **Series 0.3's own card and `LICENSES.md`** (`commonswire.card03`; series 0.1 and 0.2 keep
+  theirs word for word): a table of the languages, the license versions the rows carry, the
+  publishers with their editions and every source's credit line, the Lingua rule with its held
+  rows by site, Wikinews' licenses by date with each page's own notice by kind, the copies left
+  out, what waits for a later version, and the changes since the series before (new sources
+  and editions, the new columns, Factly's Telugu rows, the withdrawn rows). Its "How to cite"
+  opens with the data set's citation, then BibTeX, the Zenodo DOI of the code and the registry,
+  and the newsrooms' credit request; "Contact" says the forms need a free GitHub account and
+  names the dataset's Community tab. Manifests of series 0.3 carry `series_from`.
+- **`commonswire.citation`:** the APA 7 data-set citation, the BibTeX entry and the Zenodo
+  sentence, defined once for the card, the Kaggle page and the citation files. The ORCID iD
+  is in `CITATION.cff` (both author blocks) and `.zenodo.json`, and the Zenodo check compares
+  it.
+- **The registry by series:** `update` builds a version with its series' own registry. Series
+  0.2 keeps a byte copy of the registry its versions were published with
+  (`data/series/0.2/sources.csv`), so its weekly updates go on while `data/sources.csv` holds
+  series 0.3's; the series comes from the published version, so publishing 0.3.0 moves the
+  weekly update to series 0.3. An update never begins a series (`release build-from` does).
+- **Copies of another source's articles (series 0.3):** an Arabic Wikinews row whose
+  near-duplicate (Jaccard 0.6 or more) is a Global Voices Arabic row, held or released, is left
+  out as third-party material and counted (`copies_left_out`, and in `third_party_dropped`);
+  no row names a left-out copy in `near_duplicates`. A weekly run that would drop a released
+  row this way stops for the maintainer.
+- **English Wikinews' own notices (series 0.3):** a page whose own license or copyright notice
+  differs from its date's license is held, as in the editions, with the kind of notice in its
+  reason (another license, public domain, a third party's copyright, other). `release
+  build-from` carries such a hold onto a published row, and `changes.csv` records it with the
+  new kind `withdrawn`.
+- **A count check for the language sites:** one request a site a run for its total over a
+  recorded range, compared with the same range's recorded total; the range moves up once it is
+  21 days old. A fall is placed by year (one request a year) and walked like the English
+  check's, within the run's ceiling of 200 requests. The first series 0.3 run records the
+  totals. `update --max-requests` caps the requests a run sends.
+- **`commonswire tracked-addresses`:** counts the article addresses in the tracked request log
+  and evidence files (or, once, puts the article's id in place of each, saving the files as
+  they were and the map on the data drive). Evidence reads record and log an article page by
+  its id, and name its snapshot after it.
 - **Backfills and listings hold up better:** an API answer whose JSON follows an HTML notice
   from the site is kept unchanged (`.notjson`) and its posts read; a listing page still
   failing with a server error after the client's retries is asked again after 5 and 15
@@ -224,6 +259,16 @@ All notable changes to this project are documented here. The format follows
   rises, rows checked and rows removed.
 
 ### Changed
+- **The request log and the evidence files name article pages by id:** 105 rows of
+  `data/usage_log.csv`, 106 rows of `data/evidence/pages.csv` and 250 rows of
+  `license_links.csv`, from the rights-evidence reads of 2026-11-13 to 2026-11-17, named an
+  article page by its address. Home and main pages, pages the registry cites for a license or
+  terms, and pages that refused keep their address. A test fails on any article address left.
+- **`release check` fails on raw HTML outside code in a card** (an autolink is fine).
+- **The Kaggle folder** takes its file descriptions and its configuration words from the
+  manifest (no fixed list of license versions); series 0.3 gets a description of its own
+  (headings, "How to cite" near the top, under 20,000 characters), five tags, each one of
+  Kaggle's own, and a 560 by 280 cover. `changes.csv` has its column descriptions.
 - `release`: for an edition under the Lingua rule the rule is checked first, so a row it
   holds is counted under it.
 - `validate`: a row of a date its source's license table does not place must be held.

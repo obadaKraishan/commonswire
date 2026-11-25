@@ -72,6 +72,15 @@ been run.
   headings ("Sources", "Πηγές", "출처", ...). Chinese headline digests, made only of templates,
   have no text of their own and are skipped. Editions whose page gives no usable table stay
   `pending`.
+- **English Wikinews' own notices (from 0.3.0).** The same own-notice rule holds English pages
+  too: 63 English Wikinews articles released in 0.1.0 to 0.2.3 are withdrawn from 0.3.0 (by the
+  kind of notice: 24 another license, 1 public domain, 2 a third party's copyright, 36 a license
+  template that names none). `changes.csv` records them as `withdrawn`.
+- **Copies of another source's articles (from 0.3.0).** Arabic Wikinews republished Global
+  Voices' Arabic translations. An Arabic Wikinews row whose near-duplicate (character 5-gram
+  Jaccard 0.6 or more) is a Global Voices Arabic row, released or held by the Lingua rule, is
+  left out as third-party material and counted (1,149 in 0.3.0, beside 1,023 exact copies
+  dropped as duplicates); the Global Voices row follows its own rules.
 - **Balkan Diskurs (Bosnian)** is read like the English edition (API, then each article page for
   its byline); the two editions name each other in their pages' `hreflang` tags.
 
@@ -228,9 +237,10 @@ human-human alpha.
   stays with its metadata and its text is dropped in the next release.
 - **Older removals:** an edit of any age is caught by the source's edited-since listing.
   Removals older than 30 days are found by the count check: each update compares every
-  source's post count per year with the counts of the version before, and in a year whose
-  count fell it lists the year and checks the page of each released row missing from it
-  (`docs/automation.md`, section 5).
+  WordPress source's post count per year with the counts of the version before, and in a year
+  whose count fell it lists the year and checks the page of each released row missing from it
+  (`docs/automation.md`, section 5). A Global Voices language site is checked by its total
+  (one request a run); a fall in the total is placed by year and walked the same way.
 - **Takedowns:** requests through the takedown form are answered within 14 days and applied in
   the next release.
 
