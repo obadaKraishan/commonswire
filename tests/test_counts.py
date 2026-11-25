@@ -81,8 +81,9 @@ def test_a_baseline_run_records_the_counts_and_compares_nothing(tmp_path):
     assert "| factly | 0 of 3 recorded | none | none | 0 | 0 |" in md
     assert any("a baseline run" in n for n in res.notes)
     readme = (tmp_path / "next" / "README.md").read_text()
-    assert "first to record each source's post count per year" in readme
-    assert "compares every source's post count per year" in readme  # Removals and corrections
+    flat = " ".join(readme.split())
+    assert "the first to record each source's post counts" in flat
+    assert "compares every WordPress source's post count per year" in flat  # Removals
     assert "not checked yet" not in readme
 
 
@@ -108,7 +109,9 @@ def test_counts_that_hold_cost_a_request_a_year_and_list_nothing(tmp_path):
     assert "(0 of 200 requests used for drops)" in md
     assert "| factly | 3 | none | none | 0 | 0 |" in md
     readme = (tmp_path / "next" / "README.md").read_text()
-    assert "compared with 9.9.0's (7 years): 0 fell" in readme
+    flat = " ".join(readme.split())
+    assert "compared with 9.9.0's (7 years, and each language site's total" in flat
+    assert "): 0 fell, and 0 older articles were found removed" in flat
 
 
 @pytest.mark.parametrize(

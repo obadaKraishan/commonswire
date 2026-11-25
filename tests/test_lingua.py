@@ -579,8 +579,11 @@ def test_the_card_explains_rows_held_by_the_lingua_rule(tmp_path, monkeypatch):
     r = collect(tmp_path, "9.8.0", reg, rows=rows)
     text = card(r, reg, 0)
     assert "language:\n- en\n- fr\n" in text
-    assert "2 rows of Global Voices' language sites are held back by the Lingua rule" in text
-    assert "1 more rows are held back because the source asks for the author's name" in text
+    assert "### Global Voices' language sites: the Lingua rule" in text
+    flat = " ".join(text.split())
+    assert "2 rows are held by the rule: 1 with no English version found, and 1 whose" in flat
+    assert "| `globalvoices_fr` |" in text and "| 1 | 1 | 1 |" in text  # released, held, held
+    assert "1 row is held back because the source asks for the author's name" in flat
     assert "a BCP 47 tag" in text
 
 

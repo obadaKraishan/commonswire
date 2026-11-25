@@ -1156,6 +1156,7 @@ def run_update(
     held.update(rel.checks.held_ids)
     rel.checks.held = Counter(v["source_id"] for v in held.values())
     rel.checks.held_reasons = Counter(v["reason"] for v in held.values())
+    rel.checks.held_pairs = Counter((v["source_id"], v["reason"]) for v in held.values())
     published = {rid: d["published_at"] for rows in merged.values() for rid, d in rows.items()}
     prev_as_of = str(manifest.get("as_of", ""))
     new_dupes = Counter(
@@ -1222,7 +1223,9 @@ def run_update(
         },
         **({"versions_added": res.versions_added} if with_variables else {}),
     }
+    series_from = manifest.get("series_from")
     extra = {
+        **({"series_from": series_from} if series_from else {}),
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
         "post_counts": post_counts,
@@ -1255,7 +1258,7 @@ def run_update(
         out,
         registry_path,
         registry,
-        card=card(rel, registry, third, update=update_info),
+        card=card(rel, registry, third, update=update_info, series_from=series_from),
         licenses_md=licenses_md(rel, registry),
         extra=extra,
         extra_files=extra_files or None,

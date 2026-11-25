@@ -160,6 +160,7 @@ def build_from_previous(
     held.update(rel.checks.held_ids)
     rel.checks.held = Counter(v["source_id"] for v in held.values())
     rel.checks.held_reasons = Counter(v["reason"] for v in held.values())
+    rel.checks.held_pairs = Counter((v["source_id"], v["reason"]) for v in held.values())
     for key in ("exact_duplicates", "removed", "taken_down"):
         field = {
             "exact_duplicates": "exact_duplicates_dropped",
@@ -172,6 +173,9 @@ def build_from_previous(
     rel.checks.copies = Counter(manifest.get("copies_left_out", {})) + rel.checks.copies
     pages = page_states(root, list(sources), manifest.get("page_state"))
     extra: dict[str, object] = {
+        # The version of the series before that this series was built from (its card says
+        # what changed since; every later version of the series carries it).
+        "series_from": manifest["version"],
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
         "post_counts": {s: c for s, c in (manifest.get("post_counts") or {}).items() if s in old},
@@ -207,7 +211,7 @@ def build_from_previous(
         out,
         registry_path,
         registry,
-        card=card(rel, registry, third),
+        card=card(rel, registry, third, series_from=manifest["version"]),
         licenses_md=licenses_md(rel, registry),
         extra=extra,
         extra_files=extra_files or None,

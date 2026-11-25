@@ -45,7 +45,14 @@ KAGGLE_TITLE = "CommonsWire: openly licensed news text"
 KAGGLE_SUBTITLE = "Full-text news that publishers allow others to share, each with its license"
 KAGGLE_UPDATE_FREQUENCY = "monthly"  # the mirror is updated by hand, about once a month
 KAGGLE_COVER = "dataset-cover-image.png"
-COVER_SIZE = (1120, 560)  # 2:1, at least Kaggle's 560 by 280
+#: Kaggle's own size for a cover (2:1); it crops from the top left, so nothing sits at the edges.
+COVER_SIZE = (560, 280)
+#: Kaggle's tags for the dataset (at most five), each one of Kaggle's own: checked against
+#: Kaggle's listing (read-only) before any metadata update, since Kaggle refuses a whole update
+#: over one keyword that is not one of its tags.
+KAGGLE_TAGS = ["news", "text", "nlp", "multilingual", "social science"]
+#: Kaggle publishes no length limit for a description; this is the project's own cap.
+DESCRIPTION_MAX = 20_000
 CREATOR = {"name": "Kraishan, Obada", "affiliation": "Texas Tech University"}
 KEYWORDS = ["news", "journalism", "corpus", "creative commons", "communication research"]
 ZENODO_FILES = ("sources.csv", "README.md", "LICENSES.md", "manifest.json")
@@ -134,7 +141,7 @@ ROW_COLUMNS = (
     ("published_at", "datetime", "When the source published the article (UTC)"),
     ("updated_at", "datetime", "When the source last updated it, if it says (UTC)"),
     ("retrieved_at", "datetime", "When CommonsWire fetched the article (UTC)"),
-    ("language", "string", "The language tag (en)"),
+    ("language", "string", "The article's language (a BCP 47 tag, such as en, fr or zh-Hant)"),
     ("section", "string", "The source's own section or category, if any"),
     ("url", "url", "The article at its source"),
     ("license", "string", "The article's license (an SPDX id, or public-domain)"),
@@ -161,6 +168,13 @@ INDEX_COLUMNS = (
     ("license", "string", "The article's license"),
     ("content_hash", "string", "SHA-256 of the article's text"),
     ("published_at", "datetime", "When the source published it (UTC)"),
+)
+CHANGE_COLUMNS = (
+    ("id", "id", "The article's id, as in the Parquet files"),
+    ("source_id", "string", "The source, as in sources.csv"),
+    ("version", "string", "The version the change came in"),
+    ("change", "string", "new, changed, removed, taken_down or withdrawn"),
+    ("date", "datetime", "When CommonsWire saw it (UTC)"),
 )
 SOURCE_COLUMNS = (
     ("source_id", "id", "The source's id"),
@@ -231,17 +245,37 @@ def _fields(columns: tuple[tuple[str, str, str], ...]) -> list[dict[str, str]]:
     return [{"name": n, "type": t, "description": d} for n, t, d in columns]
 
 
-def _describe(path: str) -> str:
+def _config_words(manifest: dict, config: str) -> str:
+    """A configuration's licenses as a file description gives them, from the manifest."""
+    from commonswire.sources import license_label
+
+    lic = sorted(
+        k
+        for k in manifest.get("rows_by_license", {})
+        if (config == "pd" and k == "public-domain")
+        or (config == "by-sa" and k.startswith("CC-BY-SA-"))
+        or (config == "by" and k.startswith("CC-BY-") and not k.startswith("CC-BY-SA-"))
+    )
+    labels = [license_label(k) for k in lic]
+    if len(labels) > 1:
+        return ", ".join(labels[:-1]) + " and " + labels[-1]
+    return labels[0] if labels else config
+
+
+def _describe(path: str, manifest: dict | None = None) -> str:
     m = re.match(r"^data/([^/]+)/", path)
     if m:
+        config = m.group(1)
+        words = _config_words(manifest or {}, config)
         return {
-            "by": "Articles under CC BY (2.5, 3.0 and 4.0), one row each, with license and credit",
-            "by-sa": "Articles under CC BY-SA 4.0, one row each, with license and credit line",
-            "pd": "Public-domain articles (Wikinews before 2005-09-25), one row each",
-        }.get(m.group(1), "Articles, one row each")
+            "by": f"Articles under {words}, one row each, with its license and credit line",
+            "by-sa": f"Articles under {words}, one row each, with its license and credit line",
+            "pd": "Public-domain articles, one row each, with a credit line kept as a courtesy",
+        }.get(config, "Articles, one row each")
     return {
         "index.csv": "Every row's id, source, configuration, URL, license and hash, without text",
         "sources.csv": "The source registry: every source checked, its evidence and its status",
+        "changes.csv": "Every article's changes by version (new, changed, removed, withdrawn)",
         "LICENSES.md": "The licenses in this version and what users must do",
         "README.md": "The dataset card",
         "manifest.json": "Row counts and the size and SHA-256 of every file",
@@ -265,21 +299,104 @@ def _schema(path: str, release: Path | None = None) -> tuple[tuple[str, str, str
             have = next(csv.reader(fh))
         by_name = {c[0]: c for c in SOURCE_COLUMNS}
         return tuple(by_name[n] for n in have)
-    return {"index.csv": INDEX_COLUMNS, "sources.csv": SOURCE_COLUMNS}.get(path)
+    return {
+        "index.csv": INDEX_COLUMNS,
+        "sources.csv": SOURCE_COLUMNS,
+        "changes.csv": CHANGE_COLUMNS,
+    }.get(path)
 
 
-def provenance(manifest: dict) -> str:
-    """Kaggle's ``userSpecifiedSources``: where the rows come from and how (Markdown)."""
+def provenance(manifest: dict, registry: dict | None = None) -> str:
+    """Kaggle's ``userSpecifiedSources``: where the rows come from and how (Markdown). With the
+    release's registry, the publishers are named with their number of sources (series 0.3 on
+    has dozens of language editions); else every source id is listed."""
+    if registry:
+        groups: dict[str, int] = {}
+        for s in manifest["sources"]:
+            top = registry[s].edition_of or s if s in registry else s
+            groups[top] = groups.get(top, 0) + 1
+        named = ", ".join(
+            f"{registry[p].name if p in registry else p}"
+            + (f" ({n} sites or editions)" if n > 1 else "")
+            for p, n in groups.items()
+        )
+        listed = f"Publishers in version {manifest['version']}: {named}. "
+    else:
+        listed = (
+            f"Sources in version {manifest['version']}: " + ", ".join(manifest["sources"]) + ". "
+        )
     return (
-        "Each article comes from its publisher's own site, collected with the publisher's API "
-        "(or, for English Wikinews, the Wikimedia dump), one request at a time, at least 2 "
-        "seconds apart, with robots.txt and crawl-delays honored. A source enters only when "
-        "its own pages give a license or public-domain statement that allows sharing the full "
-        "text unchanged; the pages read, the date and the exact words are in `sources.csv`. "
-        "Third-party material is left out, and the text is unchanged apart from whitespace. "
-        f"Sources in version {manifest['version']}: " + ", ".join(manifest["sources"]) + ". "
-        f"Code and method: {REPO}. The same files, with a dataset viewer: {HF_URL}."
+        "Each article comes from its publisher's own site, collected with the publisher's API, "
+        "its article pages or (for Wikinews) the Wikimedia dumps, one request at a time, at "
+        "least 2 seconds apart, with robots.txt and crawl-delays honored. A source enters only "
+        "when its own pages give a license or public-domain statement that allows sharing the "
+        "full text unchanged; the pages read, the date and the exact words are in "
+        "`sources.csv`. Third-party material is left out, and the text is unchanged apart from "
+        "whitespace. "
+        + listed
+        + f"Code and method: {REPO}. The same files, with a dataset viewer: {HF_URL}."
     )
+
+
+def _card_section(body: str, heading: str) -> str:
+    """A second-level section of the card, without its heading (empty when it has none)."""
+    m = re.search(rf"^## {re.escape(heading)}\n(.*?)(?=^## |\Z)", body, re.M | re.S)
+    return m.group(1).strip() if m else ""
+
+
+def kaggle_description(manifest: dict, card: str) -> str:
+    """The Kaggle page's description (series 0.3 on): Markdown with headings, "How to cite"
+    near the top (opening with the data set's citation), and the card's own sections on what
+    it is, the licenses, the limits and contact lifted word for word. The full card is on
+    Hugging Face."""
+    from commonswire import citation
+
+    body = card_body(card)
+    intro = body.split("\n## ", 1)[0].split("\n", 2)[-1].strip()
+    intro = "\n".join(x for x in intro.splitlines() if not x.startswith("- **How to cite:**"))
+    configs = manifest["rows_by_configuration"]
+    files = [
+        f"- `{_flat_name(f['path'])}`: {_describe(f['path'], manifest)}"
+        for f in [*manifest["files"], {"path": "manifest.json"}]
+    ]
+    licenses = _card_section(body, "Configurations and licenses")
+    must = (
+        licenses[licenses.index("**What you must do**") :]
+        if "**What you must do**" in licenses
+        else ""
+    )
+    parts = [
+        f"# CommonsWire {manifest['version']}",
+        intro,
+        "## How to cite",
+        citation.apa(manifest["version"]),
+        f"```bibtex\n{citation.bibtex(manifest['version'])}\n```",
+        citation.software_sentence(),
+        citation.credit_request(),
+        "## What is inside",
+        f"{manifest['rows']:,} rows: `by` {configs['by']:,}, `by-sa` {configs['by-sa']:,}, "
+        f"`pd` {configs['pd']:,} (one table per license class, one row per article). The "
+        "files, as Kaggle names them:",
+        "\n".join(files),
+        "## What it is, and what it is not",
+        _card_section(body, "What it is, and what it is not"),
+        "## Licenses: what you must do",
+        must.removeprefix("**What you must do** "),
+        "## Limitations",
+        _card_section(body, "Limitations"),
+        "## Contact, removals and corrections",
+        _card_section(body, "Contact"),
+        "## Links",
+        f"- The dataset card, with every table and the rights rules of this version: {HF_URL}\n"
+        f"- The code and the source registry: {REPO}\n"
+        f"- The code and the registry on Zenodo: https://doi.org/{citation.ZENODO_ALL_VERSIONS}",
+    ]
+    text = "\n\n".join(p for p in parts if p) + "\n"
+    if len(text) > DESCRIPTION_MAX:
+        raise ValueError(
+            f"the Kaggle description has {len(text):,} characters; the cap is {DESCRIPTION_MAX:,}"
+        )
+    return text
 
 
 def _png(width: int, height: int, pixels: bytes) -> bytes:
@@ -333,21 +450,30 @@ def kaggle_folder(release: Path, folder: Path, *, overwrite: bool = False) -> Pa
     for f in entries:
         name = _flat_name(f["path"])
         shutil.copyfile(release / f["path"], folder / name)
-        resource: dict[str, object] = {"path": name, "description": _describe(f["path"])}
+        resource: dict[str, object] = {
+            "path": name,
+            "description": _describe(f["path"], manifest),
+        }
         columns = _schema(f["path"], release)
         if columns:
             resource["schema"] = {"fields": _fields(columns)}
         resources.append(resource)
+    card = (release / "README.md").read_text(encoding="utf-8")
+    from commonswire.release import _series
+    from commonswire.sources import load_sources
+
+    later = _series(manifest["version"]) >= (0, 3)
+    registry = load_sources(release / "sources.csv") if later else None
     meta = {
         "title": KAGGLE_TITLE,
         "id": KAGGLE_ID,
         "subtitle": KAGGLE_SUBTITLE,
-        "description": card_body((release / "README.md").read_text(encoding="utf-8")),
+        "description": kaggle_description(manifest, card) if later else card_body(card),
         "isPrivate": False,
         "licenses": [{"name": "other"}],
-        "keywords": ["news", "nlp", "text"],
+        "keywords": KAGGLE_TAGS if later else ["news", "nlp", "text"],
         "expectedUpdateFrequency": KAGGLE_UPDATE_FREQUENCY,
-        "userSpecifiedSources": provenance(manifest),
+        "userSpecifiedSources": provenance(manifest, registry),
         "resources": resources,
     }
     (folder / "dataset-metadata.json").write_text(

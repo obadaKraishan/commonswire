@@ -451,7 +451,8 @@ def test_a_week_of_new_changed_removed_and_credited_rows(tmp_path):
     assert res.rows_after == res.rows_before + 4 - 1
     readme = (tmp_path / "next" / "README.md").read_text()
     assert "## This update" in readme and "4 new rows, 4 changed, 1 removed" in readme
-    assert "3 more rows are held back" in readme and "4 were dropped" in readme
+    assert "### Bylines\n3 rows are held back because the source asks" in readme
+    assert "4 were dropped in this version" in " ".join(readme.split())
     # No request to the closed source; the removal checks are logged by id, not address.
     assert not [c for c in w.site.calls if "wikinews" in c]
     with (tmp_path / "work" / "usage_log.csv").open(encoding="utf-8") as fh:

@@ -261,6 +261,9 @@ class Checks:
     duplicate_ids: list[str] = field(default_factory=list)
     removed_ids: list[str] = field(default_factory=list)
     taken_down_ids: list[str] = field(default_factory=list)
+    #: Held rows by (source, reason): the card's tables by site (an update or build-from sets
+    #: it from every held row it carries).
+    held_pairs: Counter[tuple[str, str]] = field(default_factory=Counter)
     #: Series 0.3 on: rows left out as copies of another source's rows (third-party), by
     #: source, and their ids (:data:`REPUBLISHED_COPIES`).
     copies: Counter[str] = field(default_factory=Counter)
@@ -433,6 +436,7 @@ def collect(
         reason = why.split(":", 1)[0]
         checks.held[d["source_id"]] += 1
         checks.held_reasons[reason] += 1
+        checks.held_pairs[(d["source_id"], reason)] += 1
         checks.held_ids[rid] = {
             "source_id": d["source_id"],
             "published_on": d["published_at"][:10],
@@ -733,6 +737,18 @@ def write_release(
     return manifest
 
 
+_FENCE = re.compile(r"^(```|~~~).*?^\1", re.M | re.S)
+_CODE_SPAN = re.compile(r"`[^`\n]*`")
+_HTML = re.compile(r"<!--|</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?/?>")
+
+
+def raw_html(markdown: str) -> list[str]:
+    """The raw HTML tags (and comments) of a Markdown text outside code blocks and code
+    spans; an autolink such as ``<https://example.org>`` is not one."""
+    text = _CODE_SPAN.sub("", _FENCE.sub("", markdown))
+    return [m.group(0)[:40] for m in _HTML.finditer(text)]
+
+
 def verify(
     out: Path, corpus_report: dict | None = None, *, ignore_hidden: bool = False
 ) -> list[str]:
@@ -761,6 +777,10 @@ def verify(
             problems.append(f"{rel_path} is not in the manifest")
     from commonswire.sources import load_sources
 
+    card_path = out / "README.md"
+    if card_path.exists():
+        for tag in raw_html(card_path.read_text(encoding="utf-8")):
+            problems.append(f"README.md: raw HTML outside code ({tag!r}); write it in Markdown")
     registry = load_sources(out / "sources.csv")
     seen: set[str] = set()
     by_source: Counter[str] = Counter()

@@ -10,7 +10,7 @@ import textwrap
 from collections import Counter
 from datetime import timedelta
 
-from commonswire.release import CONFIGURATIONS, Release, columns, source_table
+from commonswire.release import CONFIGURATIONS, Release, _series, columns, source_table
 from commonswire.sources import Source, license_label
 
 REPO = "https://github.com/obadaKraishan/commonswire"
@@ -56,6 +56,8 @@ LINGUA_HELD = {
     "its English version is not a released row (the Lingua rule)": "their English version is "
     "held or left out",
 }
+#: The first series with its own card (many languages and editions: commonswire.card03).
+CARD03_FROM = (0, 3)
 #: Series whose card has a "Changes since" section, and the version it compares with.
 CHANGES_SINCE = {(0, 2): "0.1.0"}
 _NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
@@ -210,12 +212,19 @@ def card(
     registry: dict[str, Source],
     third_party: int,
     update: dict[str, object] | None = None,
+    series_from: str | None = None,
 ) -> str:
     """The dataset card of a release, with the Hugging Face metadata block on top. ``update``
     (from ``commonswire update``) adds a short section on what changed since the version it
     was built from: ``from_version``, ``window_days``, ``as_of``, the counts ``new``,
     ``changed``, ``removed`` and ``taken_down``, and ``count_check`` (``baseline``, ``sources``,
-    ``years_checked``, ``drops``, ``rows_removed``)."""
+    ``years_checked``, ``drops``, ``rows_removed``). Series 0.3 on has its own card
+    (:mod:`commonswire.card03`, with ``series_from``); older series keep this one, word for
+    word."""
+    if _series(release.version) >= CARD03_FROM:
+        from commonswire import card03
+
+        return card03.card(release, registry, third_party, update, series_from)
     f = facts(release, registry, third_party)
     update_section = ""
     if update:
@@ -613,7 +622,12 @@ Version {release.version}, collected up to {f["as_of"]}. Code: {REPO} (Apache-2.
 
 
 def licenses_md(release: Release, registry: dict[str, Source]) -> str:
-    """A short LICENSES.md: the licenses in this version and what users must do."""
+    """A short LICENSES.md: the licenses in this version and what users must do (series 0.3
+    on: :func:`commonswire.card03.licenses_md`)."""
+    if _series(release.version) >= CARD03_FROM:
+        from commonswire import card03
+
+        return card03.licenses_md(release, registry)
     counts = release.counts()
     lines = []
     for c in CONFIGURATIONS:
