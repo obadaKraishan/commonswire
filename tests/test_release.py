@@ -477,6 +477,21 @@ def test_the_series_0_3_card_covers_languages_licenses_rules_and_how_to_cite(tmp
     )
     assert "- **Mirror:** the same files on Kaggle, " + citation.KAGGLE_URL in text
     assert "need a free GitHub account" in flat and "Community tab" in flat
+    removals = " ".join(
+        text[text.index("## Removals and corrections") : text.index("## Limitations")].split()
+    )
+    assert (
+        "asks for it to be removed from every version, the dataset and its Kaggle mirror are "
+        "created again without it, so that no version still holds it." in removals
+    )
+    assert (
+        "- **Earlier versions.** Earlier versions stay in this dataset's history (each minor "
+        "release under its tag, each weekly version as a commit), and the Kaggle mirror keeps "
+        "its earlier versions. They still hold the rows that later versions withdrew or "
+        "removed. `changes.csv` lists those rows: drop them from your copy." in removals
+    )
+    order = [removals.index(x) for x in ("**At the source.**", "**On request.**", "**Earlier")]
+    assert order == sorted(order) and removals.index("**Earlier") < removals.index("**Your copy")
     cite = text[text.index("## How to cite") :]
     order = [
         cite.index(x)
@@ -752,6 +767,14 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     assert cite.startswith("Kraishan, O. (2026). *CommonsWire: A full-text corpus")
     assert len(desc) <= rel_pack.DESCRIPTION_MAX and "config_name" not in desc
     assert "`commonswire-by.parquet`: Articles under CC BY 4.0, one row each" in desc
+    # What a removal does to earlier versions, worded for Kaggle, before the contact lines.
+    contact = desc[desc.index("## Contact, removals and corrections") :]
+    assert contact.index("**Earlier versions** stay in the Hugging Face dataset's history") < (
+        contact.index("**Removal from every version:**")
+    )
+    assert "this Kaggle dataset keeps its earlier versions" in contact
+    assert "created again without it, so that no version still holds it" in contact
+    assert "**Questions and errors:**" in contact
     by = {r["path"]: r for r in meta["resources"]}
     fields = by["commonswire-by.parquet"]["schema"]["fields"]
     assert [f["name"] for f in fields] == list(columns("9.9.0"))

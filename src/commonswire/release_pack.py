@@ -53,6 +53,17 @@ COVER_SIZE = (560, 280)
 KAGGLE_TAGS = ["news", "text", "nlp", "multilingual", "social science"]
 #: Kaggle publishes no length limit for a description; this is the project's own cap.
 DESCRIPTION_MAX = 20_000
+#: What a removal does to earlier versions, as the Kaggle page says it (series 0.3 on; the
+#: card's "Removals and corrections" says the same for Hugging Face).
+KAGGLE_REMOVALS = (
+    "- **Earlier versions** stay in the Hugging Face dataset's history (each minor release "
+    "under its tag, each weekly version as a commit), and this Kaggle dataset keeps its earlier "
+    "versions. They still hold the rows that later versions withdrew or removed. `changes.csv` "
+    "lists those rows: drop them from your copy.\n"
+    "- **Removal from every version:** if a publisher, a writer or a person named in an article "
+    "asks for it to be removed from every version, the dataset and its Kaggle mirror are "
+    "created again without it, so that no version still holds it."
+)
 CREATOR = {"name": "Kraishan, Obada", "affiliation": "Texas Tech University"}
 KEYWORDS = ["news", "journalism", "corpus", "creative commons", "communication research"]
 ZENODO_FILES = ("sources.csv", "README.md", "LICENSES.md", "manifest.json")
@@ -387,6 +398,7 @@ def kaggle_description(manifest: dict, card: str) -> str:
         "## Limitations",
         _card_section(body, "Limitations"),
         "## Contact, removals and corrections",
+        KAGGLE_REMOVALS,
         _card_section(body, "Contact"),
         "## Links",
         f"- The dataset card, with every table and the rights rules of this version: {HF_URL}\n"
