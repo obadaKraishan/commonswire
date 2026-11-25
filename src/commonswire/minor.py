@@ -136,7 +136,9 @@ def build_from_previous(
             "taken_down": "taken_down_rows_not_released",
         }[key]
         setattr(rel.checks, key, Counter(manifest.get(field, {})) + getattr(rel.checks, key))
-    third = third_prev + sum(third_party_of(root, s) for s in new)
+    # Copies of another source's rows (series 0.3 on) are third-party material too.
+    third = third_prev + sum(third_party_of(root, s) for s in new) + len(rel.checks.copy_ids)
+    rel.checks.copies = Counter(manifest.get("copies_left_out", {})) + rel.checks.copies
     pages = page_states(root, list(sources), manifest.get("page_state"))
     extra: dict[str, object] = {
         "third_party_dropped": third,

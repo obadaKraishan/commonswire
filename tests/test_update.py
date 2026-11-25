@@ -576,6 +576,17 @@ def test_an_update_never_begins_a_series(tmp_path, monkeypatch):
     assert w.site.calls == []
 
 
+def test_a_released_row_that_would_become_a_copy_stops_the_run(tmp_path, monkeypatch):
+    """A weekly run never drops a released row as a copy of another source's row (series 0.3's
+    republished-copies rule): it stops for the maintainer."""
+    w = World(tmp_path)
+    w.week_later()
+    monkeypatch.setattr(rel, "REPUBLISHED_COPIES", {"factly": "globalvoices"})
+    res = w.run()
+    assert res.status == "stopped"
+    assert any("left out as copies" in r for r in res.stop_reasons), res.stop_reasons
+
+
 def test_a_refusing_source_is_skipped_and_named(tmp_path):
     w = World(tmp_path)
     w.site.refuse.add("factly.in")

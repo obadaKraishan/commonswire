@@ -1125,7 +1125,18 @@ def run_update(
         Counter(manifest.get("taken_down_rows_not_released", {})) + rel.checks.taken_down
     )
     res.taken_down_ids = list(rel.checks.taken_down_ids)
-    third = third_prev + sum(u.third_party_new for u in res.sources.values())
+    # Series 0.3 on: rows left out as copies of another source's rows. A row the previous
+    # version released is never dropped that way by a weekly run: the maintainer decides.
+    prev_ids = {rid for rows in prev_rows.values() for rid in rows}
+    was_released = [r for r in rel.checks.copy_ids if r in prev_ids]
+    if was_released:
+        res.stop(
+            f"{len(was_released)} released row(s) would now be left out as copies of another "
+            f"source's rows ({', '.join(was_released[:5])}): the maintainer decides"
+        )
+    new_copies = len(rel.checks.copy_ids) - len(was_released)
+    rel.checks.copies = Counter(manifest.get("copies_left_out", {})) + rel.checks.copies
+    third = third_prev + sum(u.third_party_new for u in res.sources.values()) + new_copies
     res.held = len(held)
     if not rel.checks.ok:
         for problem in rel.checks.problems():

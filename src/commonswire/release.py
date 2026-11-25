@@ -261,6 +261,10 @@ class Checks:
     duplicate_ids: list[str] = field(default_factory=list)
     removed_ids: list[str] = field(default_factory=list)
     taken_down_ids: list[str] = field(default_factory=list)
+    #: Series 0.3 on: rows left out as copies of another source's rows (third-party), by
+    #: source, and their ids (:data:`REPUBLISHED_COPIES`).
+    copies: Counter[str] = field(default_factory=Counter)
+    copy_ids: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -300,12 +304,38 @@ class Release:
         }
 
 
-def _flags(rows: dict[str, Row], kept: list[str], threshold: float) -> tuple[dict, int]:
-    pairs, _ = near_duplicates(rows, kept)
+#: Series 0.3 on: a source that republished another's articles, and that other source. A row
+#: of the first whose near-duplicate (at the release's threshold) is a row of the second, held
+#: or released, is a copy: it is left out as third-party material and counted, and the other
+#: row follows its own rules (Arabic Wikinews carried Global Voices' Arabic translations).
+REPUBLISHED_COPIES: dict[str, str] = {"wikinews_ar": "globalvoices_ar"}
+COPIES_FROM = (0, 3)
+
+
+def copies_of(pairs: list, threshold: float) -> dict[str, str]:
+    """The rows that are copies of another source's rows (:data:`REPUBLISHED_COPIES`): copy id
+    -> its source id."""
+    out: dict[str, str] = {}
+    for a, b, sa, sb, j, _t in pairs:
+        if j < threshold:
+            continue
+        if REPUBLISHED_COPIES.get(sa) == sb:
+            out[a] = sa
+        elif REPUBLISHED_COPIES.get(sb) == sa:
+            out[b] = sb
+    return out
+
+
+def _flags(
+    pairs: list, threshold: float, left_out: Iterable[str] = ()
+) -> tuple[dict[str, list[str]], int]:
+    """The near-duplicate flags across sources, and the pairs counted, without the rows left
+    out."""
+    gone = set(left_out)
     flags: dict[str, list[str]] = defaultdict(list)
     n = 0
     for a, b, sa, sb, j, _t in pairs:
-        if sa != sb and j >= threshold:
+        if sa != sb and j >= threshold and a not in gone and b not in gone:
             flags[a].append(b)
             flags[b].append(a)
             n += 1
@@ -390,7 +420,13 @@ def collect(
     exact = exact_duplicates(by_id.values(), order)
     checks.exact_duplicates.update(exact.dropped_by)
     checks.duplicate_ids = sorted(exact.dropped)
-    flags, n_pairs = _flags(by_id, exact.kept_ids, threshold)
+    pairs, _ = near_duplicates(by_id, exact.kept_ids)
+    copies: dict[str, str] = {}
+    if _series(version) >= COPIES_FROM:
+        copies = {r: s for r, s in copies_of(pairs, threshold).items() if s in sources}
+    checks.copies.update(copies.values())
+    checks.copy_ids = sorted(copies)
+    flags, n_pairs = _flags(pairs, threshold, copies)
     grouped: dict[str, list[dict]] = {c: [] for c in CONFIGURATIONS}
 
     def hold(rid: str, d: dict, why: str) -> None:
@@ -420,8 +456,8 @@ def collect(
             f"{', '.join(sorted(ruled))} are released only with their English versions, but "
             f"series {version} has no {ENGLISH_SOURCE}"
         )
-    kept = [r for r in exact.kept_ids if data[r]["source_id"] not in ruled]
-    kept += [r for r in exact.kept_ids if data[r]["source_id"] in ruled]
+    kept = [r for r in exact.kept_ids if data[r]["source_id"] not in ruled and r not in copies]
+    kept += [r for r in exact.kept_ids if data[r]["source_id"] in ruled and r not in copies]
     english_released: set[str] | None = None
     for rid in kept:
         d = data[rid]
@@ -681,6 +717,12 @@ def write_release(
         "exact_duplicates_dropped": dict(sorted(release.checks.exact_duplicates.items())),
         "near_duplicate_threshold": NEAR_DUPLICATE_THRESHOLD,
         "near_duplicate_pairs_across_sources": release.near_duplicate_pairs,
+        # Series 0.3 on (an older version's manifest keeps the keys it was published with).
+        **(
+            {"copies_left_out": dict(sorted(release.checks.copies.items()))}
+            if _series(release.version) >= COPIES_FROM
+            else {}
+        ),
         **(extra or {}),
         "files": [
             {"path": name, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()}

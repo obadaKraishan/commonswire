@@ -20,7 +20,7 @@ from commonswire.release_pack import (
     zenodo_folder,
 )
 from commonswire.release_text import card, licenses_md
-from commonswire.schema import make_article, text_hash
+from commonswire.schema import article_id, make_article, text_hash
 from commonswire.sources import load_sources, render_credit
 from test_sources import row, write_csv
 
@@ -227,6 +227,48 @@ def test_collect_dedups_checks_and_groups(tmp_path, series):
         x["published_at"] for x in r.rows["by"]
     )
     assert {x["status"] for x in r.rows["by-sa"]} == {"live", "changed"}
+
+
+def test_a_copy_of_another_sources_row_is_left_out_and_counted(tmp_path, series, monkeypatch):
+    """Series 0.3 on: a row of a source that republished another's (REPUBLISHED_COPIES) whose
+    near-duplicate is that other source's row is third-party material: left out, counted, and
+    no longer named in its twin's near_duplicates."""
+    corpus(tmp_path)
+    registry = load_sources(registry_csv(tmp_path))
+    before = collect(tmp_path, "9.9.0", registry)
+    assert before.near_duplicate_pairs >= 1 and not before.checks.copies
+    monkeypatch.setattr(rel, "REPUBLISHED_COPIES", {"beta": "alpha"})
+    r = collect(tmp_path, "9.9.0", registry)
+    copy_id = article_id("https://beta.example/story-1")
+    assert r.checks.ok and dict(r.checks.copies) == {"beta": 1}
+    assert r.checks.copy_ids == [copy_id]
+    released = {x["id"]: x for c in r.rows.values() for x in c}
+    assert copy_id not in released
+    assert all(copy_id not in x["near_duplicates"] for x in released.values())
+    assert r.near_duplicate_pairs == 0
+    out = tmp_path / "out"
+    m = write_release(
+        r,
+        out,
+        tmp_path / "sources.csv",
+        registry,
+        card=card(r, registry, len(r.checks.copy_ids)),
+        licenses_md=licenses_md(r, registry),
+    )
+    assert m["copies_left_out"] == {"beta": 1}
+    # An older series keeps its rules and its manifest's keys.
+    monkeypatch.setitem(rel.SERIES, (0, 2), ("alpha", "beta", "gamma"))
+    old = collect(tmp_path, "0.2.9", registry)
+    assert not old.checks.copies and old.near_duplicate_pairs >= 1
+    m_old = write_release(
+        old,
+        tmp_path / "old",
+        tmp_path / "sources.csv",
+        registry,
+        card="x",
+        licenses_md="x",
+    )
+    assert "copies_left_out" not in m_old
 
 
 def test_two_removed_rows_are_both_counted_as_removed_not_as_duplicates(tmp_path, series):
