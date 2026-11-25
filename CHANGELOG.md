@@ -43,6 +43,19 @@ All notable changes to this project are documented here. The format follows
   language sites get no count check. Series 0.1 and 0.2 ask for the same fields and write
   the same files as before.
 - The registry's new reason code `released_with_english`, which needs `edition_of`.
+- **Series 0.3's sources:** the Bosnian Balkan Diskurs edition, 46 Global Voices language sites
+  and six Wikinews editions (French, Chinese, Arabic, Greek, Romanian, Korean) beside the nine
+  of before. Each Wikinews edition's published articles are told by its own publication
+  template, found in its dump's template census; Chinese headline digests, made only of
+  templates, have no text of their own.
+- **The card** names the languages, the license versions and the Lingua rule's held rows from
+  the rows (a 0.2.x card is unchanged).
+- **Backfills and listings hold up better:** an API answer whose JSON follows an HTML notice
+  from the site is kept unchanged (`.notjson`) and its posts read; a listing page still
+  failing with a server error after the client's retries is asked again after 5 and 15
+  minutes; a site that redirects its listing pages only to drop the trailing slash is asked in
+  that form; `backfill-tags --missing-from` reads only the posts a run saved without tags.
+
 - **The variables that need no model, as columns from series 0.3** (earlier series keep
   their columns, so a 0.2.x build is unchanged): `publisher_section`,
   `publisher_categories` and `publisher_tags` (the publisher's own labels, as written);
@@ -211,6 +224,9 @@ All notable changes to this project are documented here. The format follows
   rises, rows checked and rows removed.
 
 ### Changed
+- `release`: for an edition under the Lingua rule the rule is checked first, so a row it
+  holds is counted under it.
+- `validate`: a row of a date its source's license table does not place must be held.
 - `docs/automation.md` describes the weekly update as built: what GitHub and Hugging Face
   allow (with links), the run's steps and stops, the delivery modes and their risks, the
   tokens, the options for removals older than 30 days with their cost in requests, and the
