@@ -30,7 +30,7 @@ def test_citation_cff_and_zenodo_json_carry_the_orcid_and_the_title():
     assert cff.count(f'orcid: "{citation.ORCID}"') == 2  # the software and the data set
     preferred = cff[cff.index("preferred-citation:") :]
     assert f'title: "{citation.TITLE}"' in preferred
-    assert f"url: \"{citation.HF_URL}\"" in preferred
+    assert f'url: "{citation.HF_URL}"' in preferred
     zen = json.loads((ROOT / ".zenodo.json").read_text(encoding="utf-8"))
     assert zen["creators"][0]["orcid"] == citation.ORCID.removeprefix("https://orcid.org/")
     assert f"doi: {citation.ZENODO_ALL_VERSIONS}" in cff
