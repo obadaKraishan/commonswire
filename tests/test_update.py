@@ -587,6 +587,16 @@ def test_a_released_row_that_would_become_a_copy_stops_the_run(tmp_path, monkeyp
     assert any("left out as copies" in r for r in res.stop_reasons), res.stop_reasons
 
 
+def test_a_runs_request_cap_skips_the_sources_past_it(tmp_path):
+    w = World(tmp_path)
+    w.week_later()
+    res = w.run(max_requests=3)
+    assert res.status == "stopped"
+    over = [s for s, u in res.sources.items() if u.status == "over_budget"]
+    assert over and all("request budget" in res.sources[s].note for s in over)
+    assert len(w.site.calls) <= 3
+
+
 def test_a_refusing_source_is_skipped_and_named(tmp_path):
     w = World(tmp_path)
     w.site.refuse.add("factly.in")

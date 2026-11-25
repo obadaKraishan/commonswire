@@ -206,7 +206,11 @@ def test_a_language_site_week_links_new_posts_and_applies_the_rule(tmp_path):
         "page_names_no_english_row": 1,
         "pages_read": 2,
     }
-    assert fr.count is None  # no count check for a language site
+    # A language site's count check: its first series 0.3 run records its total (baseline).
+    assert fr.count is not None and fr.count.baseline and fr.count.count_requests == 1
+    assert fr.count.counts == {"total": {"posts": 5, "before": "2026-11-19"}}
+    m = json.loads((tmp_path / "next" / "manifest.json").read_text())
+    assert m["post_counts"]["globalvoices_fr"] == fr.count.counts
     # the language site asks only for the categories its posts use, not its whole list
     assert ("categories", "fr") in site.term_lookups
     assert not any("fr.globalvoices.org/wp-json/wp/v2/categories?per_page" in u for u in site.calls)

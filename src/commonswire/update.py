@@ -64,6 +64,7 @@ from commonswire.counts import (
     CountCeiling,
     CountCheck,
     check_counts,
+    check_site_total,
 )
 from commonswire.daily import DailyResult, _removed, _take
 from commonswire.fetchers import WORDPRESS
@@ -289,6 +290,23 @@ class SourceUpdate:
             return f"{self.source_id} count check: not counted (a page source has no post counts)"
         if c is None:
             return f"{self.source_id} count check: not run ({self.status.replace('_', ' ')})"
+        if "total" in c.counts:
+            if c.baseline:
+                return f"{self.source_id} count check: its total recorded (baseline)"
+            fell = c.drops.get("total")
+            years = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items()) if y != "total")
+            return (
+                f"{self.source_id} count check: total "
+                + (
+                    f"fell by {fell}"
+                    if fell
+                    else f"rose by {c.rises['total']}"
+                    if c.rises
+                    else "held"
+                )
+                + (f"; years {years}" if years else "")
+                + f"; {c.rows_checked} rows checked, {c.rows_removed} removed"
+            )
         if c.baseline:
             return f"{self.source_id} count check: {len(c.counts)} years recorded (baseline)"
         drops = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items())) or "none"
@@ -450,8 +468,8 @@ def update_wordpress(
     Series 0.3 on (``with_tags``): the posts' tags are asked for, and the rows'
     other-language versions are kept from the previous version. With ``lingua_links``, a
     Global Voices language site's new posts are linked to their English versions; the English
-    site, which comes first in the series, leaves its posts and rows there. A language site
-    gets no count check."""
+    site, which comes first in the series, leaves its posts and rows there. A language site's
+    count check reads its total (:func:`commonswire.counts.check_site_total`)."""
     from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     sid = fetcher.source_id
@@ -568,8 +586,24 @@ def update_wordpress(
         if lingua_links is not None and sid == ENGLISH_SOURCE:
             lingua_links.english_rows = {canonical_url(d["url"]): d["url"] for d in rows.values()}
         if lingua_site:
-            # A language site gets no count check (it would take one request per year of
-            # every site each week): its older removals are not looked for.
+            # A language site's count check: one request for its total (series 0.3 on); a
+            # fall is placed by year and walked like the English check's.
+            res.count = check_site_total(
+                fetcher.api_base,
+                client,
+                prev,
+                prev_counts,
+                now=now,
+                rows=rows,
+                skip=res.seen_ids | {rid for rid, _ in missing},
+                removed_in_window={
+                    rid: d["published_at"] for rid, d in missing if rows[rid]["status"] == "removed"
+                },
+                held_days=[str(v.get("published_on", "")) for v in (held or {}).values()],
+                allowance=allowance or Allowance(),
+                note=note,
+            )
+            res.seen_ids.update(res.count.removed_ids)
             return _finish_source(rows, prev, res, client)
         res.count = check_counts(
             fetcher.api_base,
@@ -912,6 +946,7 @@ def run_update(
     open_dataset_prs: int = 0,
     allow_skipped: frozenset[str] = frozenset(),
     max_count_requests: int = MAX_COUNT_REQUESTS,
+    max_requests: int | None = None,
     dry_run: bool = True,
     offline: bool = False,
     clients: ClientFactory | None = None,
@@ -1006,6 +1041,9 @@ def run_update(
     log = UsageLog(usage_log or work / "usage_log.csv")
     clients = clients or default_clients(root, lock_dir or work / "locks")
     budget_left = int(max_mb * 1e6)
+    # The run's request cap (a dry run's limit; None for none): what each source's client may
+    # still send, every attempt counted.
+    requests_left = max_requests
     allowance = Allowance(limit=max_count_requests)
     prev_counts: dict[str, dict] | None = manifest.get("post_counts")
     res.count_baseline, res.count_limit = prev_counts is None, max_count_requests
@@ -1027,6 +1065,7 @@ def run_update(
 
             src_log = UsageLog(log.path)
             client = clients(max(0, min(int(max_mb_per_source * 1e6), budget_left)), src_log, cache)
+            client.request_budget = None if requests_left is None else max(0, requests_left)
             fetcher = PAGE_FETCHERS[sid](client, registry[sid], ReplayStore(answers / sid))
             rows, upd, page_state[sid] = update_pages(
                 fetcher,
@@ -1038,6 +1077,8 @@ def run_update(
                 held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
             )
             budget_left -= client.bytes_used
+            if requests_left is not None:
+                requests_left -= client.requests_sent
             log.recent.extend(src_log.recent)
             merged[sid] = rows
             res.sources[sid] = upd
@@ -1051,6 +1092,7 @@ def run_update(
             continue
         src_log = UsageLog(log.path)
         client = clients(max(0, min(int(max_mb_per_source * 1e6), budget_left)), src_log, cache)
+        client.request_budget = None if requests_left is None else max(0, requests_left)
         fetcher = WORDPRESS[sid](client, registry[sid], ReplayStore(answers / sid))
         rows, upd = update_wordpress(
             fetcher,
@@ -1067,6 +1109,8 @@ def run_update(
             lingua_links=links,
         )
         budget_left -= client.bytes_used
+        if requests_left is not None:
+            requests_left -= client.requests_sent
         log.recent.extend(src_log.recent)
         merged[sid] = rows
         res.sources[sid] = upd

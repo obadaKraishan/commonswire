@@ -1490,6 +1490,7 @@ def cmd_update(args: argparse.Namespace) -> int:
             open_dataset_prs=args.open_dataset_prs,
             allow_skipped=frozenset(filter(None, (args.allow_skipped or "").split(","))),
             max_count_requests=args.max_count_requests,
+            max_requests=args.max_requests,
             dry_run=args.dry_run,
             offline=args.offline,
             say=lambda m: print(redact(m), flush=True),
@@ -1877,6 +1878,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=200,
         help="requests the count check may spend on drops in one run (default: 200)",
+    )
+    up.add_argument(
+        "--max-requests",
+        type=int,
+        help="the run's request cap, every attempt counted (default: none; a dry run's limit)",
     )
     up.add_argument("--now", help="the run's time (ISO 8601; default: now)")
     up.add_argument(
