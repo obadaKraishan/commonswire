@@ -1466,7 +1466,7 @@ def cmd_update(args: argparse.Namespace) -> int:
             prev,
             out,
             work,
-            registry_path=Path(args.sources),
+            registry_path=Path(args.sources) if args.sources else None,
             takedowns_path=Path(args.takedowns),
             baseline_path=Path(args.baseline),
             version=args.version,
@@ -1846,7 +1846,11 @@ def build_parser() -> argparse.ArgumentParser:
     up.add_argument("--usage-log", help="the request log (default: WORK/usage_log.csv)")
     up.add_argument("--locks", help="the pacer's lock folder (default: WORK/locks)")
     up.add_argument("--summary", help="the summary file (default: WORK/summary.json, and .md)")
-    up.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    up.add_argument(
+        "--sources",
+        help="the registry (default: the series' own: data/series/0.2/sources.csv for 0.2.x, "
+        "data/sources.csv from 0.3.x)",
+    )
     up.add_argument("--takedowns", default=str(repo_root() / "data" / "takedowns.csv"))
     up.add_argument("--baseline", default=str(repo_root() / "data" / "update-baseline.json"))
     up.add_argument("--window", type=int, default=30, help="days looked back (default: 30)")

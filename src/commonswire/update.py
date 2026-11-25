@@ -4,8 +4,10 @@
 ``manifest.json`` and ``sources.csv``, downloaded or local) and builds the next one:
 
 1. **Checks before any request.** The previous version passes its own manifest check; the
-   registry (``data/sources.csv``) is byte for byte the one the previous version carries, and
-   the next version has the same sources (a new source or a registry change always needs the
+   next version is in the same series (a new series is built by ``release build-from``); the
+   registry is byte for byte the one the previous version carries (``data/sources.csv``, or
+   for a series whose registry is frozen, its copy: :data:`FROZEN_REGISTRIES`), and the next
+   version has the same sources (a new source or a registry change always needs the
    maintainer); no takedown request is open and no earlier update waits as a pull request on
    the dataset (both counted by the caller). Any of these stops the run before it sends
    anything.
@@ -90,6 +92,7 @@ from commonswire.release import (
     CONFIGURATIONS,
     VARIABLE_COLUMNS,
     ReleaseError,
+    _series,
     collect,
     columns,
     series_sources,
@@ -120,6 +123,13 @@ CLOSED = {"wikinews_en": "closed since 2026-05-04; its archive comes from the du
 BASELINE = "update-baseline.json"
 #: The run's fixed clock, saved with its answers so that an offline replay builds the same.
 RUN_FILE = "run.json"
+#: The registry of a series whose weekly updates go on while ``data/sources.csv`` already
+#: holds the next series' registry: a byte copy of the registry its versions were published
+#: with (series 0.2: the ``sources.csv`` of 0.2.0 to 0.2.3). The series an update builds comes
+#: from the published version it starts from (the next patch number), so publishing the next
+#: series' first version is what moves the weekly update to ``data/sources.csv``.
+FROZEN_REGISTRIES: dict[tuple[int, int], str] = {(0, 2): "data/series/0.2/sources.csv"}
+REGISTRY = "data/sources.csv"
 
 _URL = re.compile(r"https?://([^/\s\"'<>]+)[^\s\"'<>]*")
 
@@ -133,6 +143,20 @@ def next_version(version: str) -> str:
     """0.2.0 -> 0.2.1."""
     major, minor, patch = (int(x) for x in version.split("."))
     return f"{major}.{minor}.{patch + 1}"
+
+
+def _shown(path: Path, root: Path) -> str:
+    """A path as a message shows it: relative to the checkout when it is inside it."""
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except ValueError:
+        return path.name
+
+
+def registry_for(root: Path, version: str) -> Path:
+    """The registry an update to ``version`` builds with: its series' frozen copy
+    (:data:`FROZEN_REGISTRIES`), or ``data/sources.csv``."""
+    return root / FROZEN_REGISTRIES.get(_series(version), REGISTRY)
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -872,7 +896,7 @@ def run_update(
     out: Path,
     work: Path,
     *,
-    registry_path: Path,
+    registry_path: Path | None = None,
     takedowns_path: Path,
     baseline_path: Path,
     version: str | None = None,
@@ -894,7 +918,8 @@ def run_update(
     say: Callable[[str], None] = lambda _m: None,
 ) -> UpdateResult:
     """A whole weekly run, from the version in ``prev_dir`` to the next one in ``out``.
-    ``clients`` makes each source's polite client (tests pass one with a fake clock)."""
+    ``clients`` makes each source's polite client (tests pass one with a fake clock).
+    ``registry_path`` defaults to the series' own registry (:func:`registry_for`)."""
     import time
 
     from commonswire.release_text import card, licenses_md
@@ -918,10 +943,28 @@ def run_update(
     # 1. Checks before any request.
     for problem in verify(prev_dir, ignore_hidden=True):
         res.stop(f"the previous version fails its own check: {problem}")
+    try:
+        same_series = _series(version) == _series(manifest["version"])
+    except ReleaseError as exc:
+        same_series = True  # the version's own form is reported below, by series_sources
+        res.stop(str(exc))
+    if not same_series:
+        res.stop(
+            f"version {version} begins a new series after {manifest['version']}: a new series "
+            "is built by commonswire release build-from, never by an update"
+        )
+    if registry_path is None:
+        try:
+            registry_path = registry_for(root, version)
+        except ReleaseError:
+            registry_path = root / REGISTRY
+    if not registry_path.exists():
+        res.stop(f"the registry {registry_path} is missing")
+        return _finish(res, clock)
     if registry_path.read_bytes() != (prev_dir / "sources.csv").read_bytes():
         res.stop(
-            "the registry (data/sources.csv) differs from the one in the previous version: a "
-            "registry change needs the maintainer"
+            f"the registry ({_shown(registry_path, root)}) differs from the one in the previous "
+            "version: a registry change needs the maintainer"
         )
     try:
         sources = series_sources(version)

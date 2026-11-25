@@ -536,6 +536,46 @@ def test_stops_before_any_request(tmp_path, monkeypatch, change, reason):
     assert w.site.calls == []
 
 
+def test_the_registry_is_the_series_own(tmp_path, monkeypatch):
+    """A series whose registry is frozen updates with its copy, so data/sources.csv can hold
+    the next series' registry; the published version's number picks the series."""
+    from commonswire.update import FROZEN_REGISTRIES, registry_for
+
+    assert registry_for(tmp_path, "0.2.4") == tmp_path / FROZEN_REGISTRIES[(0, 2)]
+    assert registry_for(tmp_path, "0.3.1") == tmp_path / "data" / "sources.csv"
+    w = World(tmp_path)
+    frozen = tmp_path / "frozen" / "sources.csv"
+    frozen.parent.mkdir()
+    frozen.write_bytes(w.reg_path.read_bytes())
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "data" / "sources.csv").write_text("source_id\nnext_series_only\n")
+    monkeypatch.setitem(FROZEN_REGISTRIES, (9, 9), "frozen/sources.csv")
+    res = w.run(registry_path=None)
+    assert res.status == "ready", res.stop_reasons
+    assert (tmp_path / "next" / "sources.csv").read_bytes() == frozen.read_bytes()
+
+
+def test_the_registry_of_the_next_series_stops_a_frozen_series(tmp_path, monkeypatch):
+    from commonswire.update import FROZEN_REGISTRIES
+
+    w = World(tmp_path)
+    (tmp_path / "frozen").mkdir()
+    (tmp_path / "frozen" / "sources.csv").write_text("source_id\nnext_series_only\n")
+    monkeypatch.setitem(FROZEN_REGISTRIES, (9, 9), "frozen/sources.csv")
+    res = w.run(registry_path=None)
+    assert any("frozen/sources.csv) differs" in r for r in res.stop_reasons), res.stop_reasons
+    assert w.site.calls == []
+
+
+def test_an_update_never_begins_a_series(tmp_path, monkeypatch):
+    monkeypatch.setitem(rel.SERIES, (9, 10), SOURCES)
+    w = World(tmp_path)
+    res = w.run(version="9.10.0")
+    assert res.status == "stopped"
+    assert any("begins a new series" in r for r in res.stop_reasons), res.stop_reasons
+    assert w.site.calls == []
+
+
 def test_a_refusing_source_is_skipped_and_named(tmp_path):
     w = World(tmp_path)
     w.site.refuse.add("factly.in")
