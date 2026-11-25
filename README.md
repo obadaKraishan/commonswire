@@ -11,26 +11,31 @@ published. The
 variables that communication and journalism researchers usually code by
 hand (topic, frame, the types of sources quoted, and tone) are planned for a later version.
 
-**Status:** published and updated weekly, no coded variables yet. The dataset card on Hugging
-Face gives the current version, its row counts and what changed in the last update.
+**Status:** published and updated weekly (series 0.3 since version 0.3.0, published on
+2026-11-25), no coded variables yet. The dataset card on Hugging Face gives the current
+version, its row counts and what changed in the last update.
 
 ## The dataset
 - **Hugging Face:** <https://huggingface.co/datasets/obadakr/commonswire>
 - **Kaggle (a mirror):** <https://www.kaggle.com/datasets/obadakraishan/commonswire>, updated
   about once a month, so it can be a few weekly versions behind Hugging Face.
 
-CommonsWire holds the full text of about 150,000 articles (2004 to now) from seven sources:
-Global Voices (about two thirds of the rows), English Wikinews (a closed archive), 360info,
-The Public Record, Balkan Diskurs, and the fact-checkers Factly and Alt News. There is one
-configuration per license class: `by` (CC BY, nearly every row), `by-sa` (CC BY-SA) and `pd`
-(public domain). Every row carries its license, a link to the license and the
-credit line its publisher asks for. Where the source names translators, `translators` lists
-them apart from the writers in `authors`, and the credit line names them ("This story by A,
-translated by B, originally appeared on Global Voices: ..."). The dataset card
-(on Hugging Face; `docs/data-card.md` holds version 0.2.0's) has the details and the limits.
-Earlier versions stay available on Hugging Face: 0.1.0 (47,585 articles from six sources) under
-the tag `v0.1.0`, 0.2.0 (the first with seven sources) under `v0.2.0`, and each weekly version
-as the commit that merged it.
+Version 0.3.0 holds the full text of 297,287 articles (2001 to 2026) in 50 languages from nine
+publishers: Global Voices (in English and 46 other languages; about two thirds of the rows),
+Wikinews (closed archives in seven languages), the fact-checkers Factly and Alt News,
+SciDev.Net, The Public Record, Africa Is a Country, 360info, and Balkan Diskurs (in English and
+Bosnian). There is one configuration per license class: `by` (CC BY, nearly every row),
+`by-sa` (CC BY-SA) and `pd` (public domain). Every row carries its license, a link to the
+license and the credit line its publisher asks for. Where the source names translators,
+`translators` lists them apart from the writers in `authors`, and the credit line names them
+("This story by A, translated by B, originally appeared on Global Voices: ..."). A Global Voices
+story in another language is released only with its English version, and `other_versions`
+links the versions of a story. `changes.csv` records when each article came in, changed or
+left. The dataset card (on Hugging Face; `docs/data-card.md` holds version 0.3.0's and
+0.2.0's) has the details and the limits. Earlier versions stay available on Hugging Face:
+0.1.0 (47,585 articles from six sources) under the tag `v0.1.0`, 0.2.0 (the first with seven
+sources) under `v0.2.0`, 0.3.0 under `v0.3.0`, and each weekly version as the commit that
+merged it.
 
 ```python
 from datasets import load_dataset
@@ -113,10 +118,11 @@ uv run commonswire update --from data/release/0.2.0 --out data/release/0.2.1 --d
 Please cite the version of the dataset you used, and credit the newsrooms as each row's
 `credit_line` asks:
 
-> Kraishan, Obada. *CommonsWire: a full-text corpus of openly licensed news*, version X.Y.Z.
-> Hugging Face, 2026. <https://huggingface.co/datasets/obadakr/commonswire>
+> Kraishan, O. (2026). *CommonsWire: A full-text corpus of openly licensed news* (Version
+> 0.3.0) [Data set]. Hugging Face. <https://huggingface.co/datasets/obadakr/commonswire>
 
-The dataset card of each version gives its own BibTeX entry.
+For a weekly version, put its own number in place of 0.3.0 (the card and `manifest.json` give
+it). The dataset card of each version gives its own BibTeX entry.
 
 The code and the source registry are archived on Zenodo, with no article text:
 

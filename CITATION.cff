@@ -16,6 +16,8 @@ authors:
     affiliation: "College of Media and Communication, Texas Tech University"
     orcid: "https://orcid.org/0009-0007-7180-8620"
 license: Apache-2.0
+version: "0.3.0"
+date-released: "2026-11-25"
 doi: 10.5281/zenodo.24231835
 identifiers:
   - type: doi
@@ -33,8 +35,8 @@ keywords:
 preferred-citation:
   type: data
   title: "CommonsWire: A full-text corpus of openly licensed news"
-  version: "0.2.0"
-  date-released: "2026-11-14"
+  version: "0.3.0"
+  date-released: "2026-11-25"
   authors:
     - family-names: Kraishan
       given-names: Obada

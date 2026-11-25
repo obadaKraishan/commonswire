@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-25
+
+The code release made with version 0.3.0 of the dataset (published on Hugging Face and Kaggle
+on 2026-11-25), the first of series 0.3. It also holds the weekly update (0.2.1 to 0.2.3)
+and everything since 0.2.0.
+
 ### Added
 - **The language editions (series 0.3).**
   - Balkan Diskurs' Bosnian edition (`balkandiskurs_bs`): read like the English edition, with
