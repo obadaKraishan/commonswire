@@ -1,0 +1,27 @@
+{
+  "bytes_fetched": 0,
+  "credits_from_later_sighting": 0,
+  "end": "",
+  "http_status": {},
+  "labels_known": true,
+  "last_page": 57,
+  "long_waits": 0,
+  "pages_already_saved": 57,
+  "pages_fetched": 0,
+  "pages_skipped": 0,
+  "run": "2026-11-23",
+  "seen_again": 4,
+  "source_id": "globalvoices_ko",
+  "stopped": "",
+  "stories": 399,
+  "stories_seen": 403,
+  "translated": 399,
+  "translators_not_a_person": 0,
+  "why_none": {},
+  "with_writer": 399,
+  "without_writer": 0,
+  "writers_per_story": {
+    "1": 396,
+    "2": 3
+  }
+}

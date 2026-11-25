@@ -1,0 +1,29 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 1214,
+    "CC-BY-4.0": 7,
+    "held:license date not placed": 94
+  },
+  "files": {
+    "articles": {
+      "bytes": 1880019,
+      "checked": true,
+      "md5": "2d3dd7677cf2f6aef922f221718463d6"
+    },
+    "stubs": {
+      "bytes": 2492593,
+      "checked": true,
+      "md5": "6b1cc10345ded5d96f488ad25a2a3c82"
+    }
+  },
+  "held": 94,
+  "kept": 1315,
+  "run": "2026-11-25",
+  "skipped": {
+    "not_an_article_namespace": 2804,
+    "not_marked_published": 395,
+    "redirect": 1002
+  },
+  "source_id": "wikinews_ro",
+  "validate_errors": 0
+}

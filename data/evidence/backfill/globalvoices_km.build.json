@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2010-02-16",
+  "kept": 32,
+  "last": "2013-12-13",
+  "raw_bytes": 963573,
+  "raw_files": 6,
+  "releasable": 32,
+  "releasable_after_daily": 32,
+  "rows_after_daily": 32,
+  "rows_bytes": 449879,
+  "run": "2026-11-23",
+  "seen": 32,
+  "source_id": "globalvoices_km",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

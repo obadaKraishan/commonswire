@@ -1,0 +1,29 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text still holds HTML tags; give plain text": 1
+  },
+  "first": "2007-06-24",
+  "kept": 2905,
+  "last": "2026-11-23",
+  "raw_bytes": 49034444,
+  "raw_files": 35,
+  "releasable": 2885,
+  "releasable_after_daily": 2885,
+  "rows_after_daily": 2905,
+  "rows_bytes": 23816425,
+  "run": "2026-11-23",
+  "seen": 2906,
+  "source_id": "globalvoices_jp",
+  "validate_errors": 0,
+  "validate_warnings": 181
+}

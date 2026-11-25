@@ -1,0 +1,31 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 5,
+    "third_party:republication_note": 2,
+    "third_party:wire_byline": 1
+  },
+  "first": "2014-06-04",
+  "kept": 872,
+  "last": "2026-11-20",
+  "raw_bytes": 9487593,
+  "raw_files": 14,
+  "releasable": 871,
+  "releasable_after_daily": 871,
+  "rows_after_daily": 872,
+  "rows_bytes": 6751917,
+  "run": "2026-11-23",
+  "seen": 880,
+  "source_id": "balkandiskurs_bs",
+  "validate_errors": 0,
+  "validate_warnings": 2
+}

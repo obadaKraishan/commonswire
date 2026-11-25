@@ -1,0 +1,31 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 3,
+    "invalid:Value error, text still holds HTML tags; give plain text": 2,
+    "invalid:title": 4
+  },
+  "first": "2008-08-05",
+  "kept": 1739,
+  "last": "2022-10-14",
+  "raw_bytes": 11449565,
+  "raw_files": 23,
+  "releasable": 1734,
+  "releasable_after_daily": 1734,
+  "rows_after_daily": 1739,
+  "rows_bytes": 8879939,
+  "run": "2026-11-23",
+  "seen": 1748,
+  "source_id": "globalvoices_sw",
+  "validate_errors": 0,
+  "validate_warnings": 45
+}

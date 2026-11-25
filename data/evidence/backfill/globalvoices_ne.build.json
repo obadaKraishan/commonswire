@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2008-08-06",
+  "kept": 298,
+  "last": "2026-10-14",
+  "raw_bytes": 8176500,
+  "raw_files": 7,
+  "releasable": 297,
+  "releasable_after_daily": 297,
+  "rows_after_daily": 298,
+  "rows_bytes": 3778044,
+  "run": "2026-11-23",
+  "seen": 298,
+  "source_id": "globalvoices_ne",
+  "validate_errors": 0,
+  "validate_warnings": 1
+}

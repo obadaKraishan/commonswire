@@ -1,0 +1,31 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 9983,
+    "CC-BY-4.0": 266,
+    "held:own notice differs": 2
+  },
+  "files": {
+    "articles": {
+      "bytes": 33815460,
+      "checked": true,
+      "md5": "1c6566218e7c90ec97eae83a74c86925"
+    },
+    "stubs": {
+      "bytes": 20320957,
+      "checked": true,
+      "md5": "9ec30ae344419caf8ae2c69df0192e4e"
+    }
+  },
+  "held": 2,
+  "kept": 10251,
+  "run": "2026-11-25",
+  "skipped": {
+    "empty_text": 8075,
+    "marked_draft_or_under_review": 276,
+    "not_an_article_namespace": 21523,
+    "not_marked_published": 106,
+    "redirect": 2028
+  },
+  "source_id": "wikinews_zh",
+  "validate_errors": 0
+}

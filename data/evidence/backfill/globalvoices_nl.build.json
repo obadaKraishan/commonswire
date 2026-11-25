@@ -1,0 +1,31 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 2,
+    "invalid:Value error, text still holds HTML tags; give plain text": 1,
+    "third_party:wire_byline": 1
+  },
+  "first": "2009-01-23",
+  "kept": 2279,
+  "last": "2026-11-18",
+  "raw_bytes": 23376881,
+  "raw_files": 27,
+  "releasable": 2243,
+  "releasable_after_daily": 2243,
+  "rows_after_daily": 2279,
+  "rows_bytes": 16860864,
+  "run": "2026-11-23",
+  "seen": 2283,
+  "source_id": "globalvoices_nl",
+  "validate_errors": 0,
+  "validate_warnings": 27
+}

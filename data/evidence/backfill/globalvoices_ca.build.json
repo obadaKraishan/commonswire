@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2010-01-31",
+  "kept": 874,
+  "last": "2026-11-04",
+  "raw_bytes": 9860781,
+  "raw_files": 14,
+  "releasable": 871,
+  "releasable_after_daily": 871,
+  "rows_after_daily": 874,
+  "rows_bytes": 6467306,
+  "run": "2026-11-23",
+  "seen": 874,
+  "source_id": "globalvoices_ca",
+  "validate_errors": 0,
+  "validate_warnings": 7
+}

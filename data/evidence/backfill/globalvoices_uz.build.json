@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2019-04-04",
+  "kept": 11,
+  "last": "2021-02-17",
+  "raw_bytes": 474159,
+  "raw_files": 5,
+  "releasable": 10,
+  "releasable_after_daily": 10,
+  "rows_after_daily": 11,
+  "rows_bytes": 162572,
+  "run": "2026-11-23",
+  "seen": 11,
+  "source_id": "globalvoices_uz",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

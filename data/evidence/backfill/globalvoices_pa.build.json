@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2017-10-25",
+  "kept": 121,
+  "last": "2025-03-18",
+  "raw_bytes": 3777254,
+  "raw_files": 6,
+  "releasable": 117,
+  "releasable_after_daily": 117,
+  "rows_after_daily": 121,
+  "rows_bytes": 1809894,
+  "run": "2026-11-23",
+  "seen": 121,
+  "source_id": "globalvoices_pa",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

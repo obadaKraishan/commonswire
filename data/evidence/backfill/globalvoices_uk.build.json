@@ -1,0 +1,29 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "third_party:wire_byline": 1
+  },
+  "first": "2005-12-20",
+  "kept": 1393,
+  "last": "2026-09-28",
+  "raw_bytes": 57117014,
+  "raw_files": 19,
+  "releasable": 1351,
+  "releasable_after_daily": 1351,
+  "rows_after_daily": 1393,
+  "rows_bytes": 20203563,
+  "run": "2026-11-23",
+  "seen": 1394,
+  "source_id": "globalvoices_uk",
+  "validate_errors": 0,
+  "validate_warnings": 5
+}

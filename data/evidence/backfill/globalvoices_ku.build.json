@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2018-01-03",
+  "kept": 4,
+  "last": "2018-04-29",
+  "raw_bytes": 135033,
+  "raw_files": 5,
+  "releasable": 4,
+  "releasable_after_daily": 4,
+  "rows_after_daily": 4,
+  "rows_bytes": 44333,
+  "run": "2026-11-23",
+  "seen": 4,
+  "source_id": "globalvoices_ku",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}
