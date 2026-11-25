@@ -209,7 +209,12 @@ def test_cli_census_and_rows_of_an_edition(tmp_path, monkeypatch, capsys):
 
 # ---- notices of a page's own ----
 
-from commonswire.wikieditions import notice_differs, page_notices  # noqa: E402
+from commonswire.wikieditions import (  # noqa: E402
+    notice_differs,
+    notice_kind,
+    own_notice_hold,
+    page_notices,
+)
 
 
 def test_page_notices_name_the_licenses_of_templates_and_statements():
@@ -252,6 +257,24 @@ def test_a_page_is_held_only_when_its_own_notice_differs_from_the_table():
     assert not notice_differs("{{PD}} Mots.", "public-domain")
     # one agreeing and one differing notice: held
     assert notice_differs("{{CC-BY-2.5}} Extrait sous CC BY-SA 3.0.", "CC-BY-2.5")
+
+
+def test_a_differing_notice_is_counted_by_its_kind():
+    assert notice_kind("Mots.", "CC-BY-2.5") == ""
+    assert notice_kind("{{CC-BY-2.5}} Mots.", "CC-BY-2.5") == ""
+    assert notice_kind("{{CC-BY-SA-4.0}} Mots.", "CC-BY-2.5") == "another license"
+    assert notice_kind("{{Copyright}} Mots.", "CC-BY-2.5") == "other"
+    assert notice_kind("© Agence inventée.", "public-domain") == "a third party's copyright"
+    assert notice_kind("{{PD}} Mots.", "CC-BY-2.5") == "public domain"
+    # A page with several: a copyright notice first, then public domain, then a license.
+    assert notice_kind("{{PD}} {{CC-BY-SA-4.0}} © Agence.", "CC-BY-2.5") == (
+        "a third party's copyright"
+    )
+    assert notice_kind("{{PD}} {{CC-BY-SA-4.0}}", "CC-BY-2.5") == "public domain"
+    assert own_notice_hold("{{CC-BY-SA-4.0}} Mots.", "CC-BY-2.5").startswith(
+        "own notice differs (another license): "
+    )
+    assert own_notice_hold("Mots.", "CC-BY-2.5") == ""
 
 
 def test_the_edition_command_holds_and_counts_pages_with_their_own_differing_notice(
@@ -325,4 +348,8 @@ def test_the_edition_command_holds_and_counts_pages_with_their_own_differing_not
     assert not rows["Avis autre"]["releasable"] and not rows["Droits"]["releasable"]
     assert rows["Droits"]["hold_reason"].startswith("own notice differs")
     info = json.loads((tmp_path / "data/evidence/backfill/wikinews_fr.build.json").read_text())
-    assert info["by_license"] == {"CC-BY-2.5": 2, "held:own notice differs": 2}
+    assert info["by_license"] == {
+        "CC-BY-2.5": 2,
+        "held:own notice differs (another license)": 1,
+        "held:own notice differs (a third party's copyright)": 1,
+    }

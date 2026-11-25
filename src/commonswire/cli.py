@@ -592,8 +592,8 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
         file_names,
         file_url,
         first_revisions,
-        notice_differs,
         open_stubs,
+        own_notice_hold,
         read_edition,
         template_census,
     )
@@ -680,11 +680,8 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
             if lic == UNPLACED:
                 hold = "license date not placed: its edition's copyright page does not settle it"
                 lic = src.license
-            elif notice_differs(art.wikitext, lic):
-                hold = (
-                    "own notice differs: the page carries a license or copyright notice of its "
-                    "own that differs from its edition's license for its date"
-                )
+            else:
+                hold = own_notice_hold(art.wikitext, lic)
             credit = render_credit(
                 src.credit_line,
                 title=art.title,
@@ -759,6 +756,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
         open_dump,
         read_dump,
     )
+    from commonswire.wikieditions import own_notice_hold
 
     root = Path(args.root)
     folder = root / "data" / "raw" / "backfill" / "wikinews_en" / args.run
@@ -793,6 +791,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     out = root / "data" / "interim" / "rows" / "wikinews_en.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     kept = 0
+    held: Counter[str] = Counter()
     seen: set[str] = set()
     first = last = ""
     with open_dump(dump) as stream, out.open("w", encoding="utf-8") as fh:
@@ -802,6 +801,9 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                 continue
             seen.add(art.url)
             lic = license_on("wikinews_en", art.published_at, src.license)
+            # From series 0.3: a page whose own notice differs from its date's license is held,
+            # as in the other editions.
+            hold = own_notice_hold(art.wikitext, lic)
             credit = render_credit(
                 src.credit_line,
                 title=art.title,
@@ -822,6 +824,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                     language="en",
                     license=lic,
                     credit_line=credit,
+                    releasable=not hold,
+                    hold_reason=hold,
                     **wiki_variables(art.wikitext),
                 )
             except ValueError:
@@ -829,6 +833,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                 continue
             fh.write(row.model_dump_json() + "\n")
             kept += 1
+            if hold:
+                held[hold.split(":", 1)[0]] += 1
             day = art.published_at.date().isoformat()
             first, last = min(first or day, day), max(last or day, day)
     check = validate_file(out, registry)
@@ -839,6 +845,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
         "md5_checked": bool(want),
         "dump_bytes": dump.stat().st_size,
         "kept": kept,
+        "held": dict(sorted(held.items())),
         "skipped": dict(sorted(skipped.items())),
         "first": first,
         "last": last,
@@ -850,7 +857,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
-        f"wikinews_en: kept {kept}; skipped {dict(skipped)}; validate: {len(check.errors)} errors"
+        f"wikinews_en: kept {kept} ({sum(held.values())} held: {dict(sorted(held.items()))}); "
+        f"skipped {dict(skipped)}; validate: {len(check.errors)} errors"
     )
     return 0 if check.ok else 1
 

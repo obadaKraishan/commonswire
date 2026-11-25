@@ -5,6 +5,7 @@ from __future__ import annotations
 import bz2
 import csv
 import io
+import json
 from collections import Counter
 
 import pytest
@@ -83,6 +84,7 @@ def dump_bytes():
             "{{date|January 9, 2005}}{{archive}}Invented 2005 text.",
             ts="2004-01-01T00:00:00Z",
         ),
+        page("Wire story", 0, "{{date|May 5, 2026}}{{publish}}Invented wire text. © 2026 Wire"),
     ]
     xml = (
         '<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/">'
@@ -95,7 +97,7 @@ def dump_bytes():
 def test_read_dump_keeps_published_articles_and_counts_every_skip():
     skipped = Counter()
     arts = list(read_dump(bz2.BZ2File(io.BytesIO(dump_bytes())), skipped))
-    assert [a.title for a in arts] == ["Invented town elects council", "Early story"]
+    assert [a.title for a in arts] == ["Invented town elects council", "Early story", "Wire story"]
     assert arts[0].url == "https://en.wikinews.org/wiki/Invented_town_elects_council"
     assert arts[1].last_edit is None  # an edit time before the date line is not an update
     assert skipped == {
@@ -151,9 +153,17 @@ def test_cli_downloads_once_checks_md5_and_builds(tmp_path, monkeypatch, capsys)
         cli.main([*root, "wikinews-dump", "--run", "r", "--download", "--sources", str(reg)]) == 0
     )
     out = capsys.readouterr().out
-    assert "kept 2" in out and "validate: 0 errors" in out
+    assert "kept 3 (1 held" in out and "validate: 0 errors" in out
     rows = (tmp_path / "data" / "interim" / "rows" / "wikinews_en.jsonl").read_text().splitlines()
     assert '"license":"CC-BY-4.0"' in rows[0] and '"license":"public-domain"' in rows[1]
+    # Its own copyright notice differs from its date's license: held, counted by kind.
+    wire = json.loads(rows[2])
+    assert not wire["releasable"]
+    assert wire["hold_reason"].startswith("own notice differs (a third party's copyright): ")
+    info = json.loads(
+        (tmp_path / "data" / "evidence" / "backfill" / "wikinews_en.build.json").read_text()
+    )
+    assert info["held"] == {"own notice differs (a third party's copyright)": 1}
     calls = len(t.calls)
     assert (
         cli.main([*root, "wikinews-dump", "--run", "r", "--download", "--sources", str(reg)]) == 0

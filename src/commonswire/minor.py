@@ -8,6 +8,10 @@ needs the maintainer. :func:`build_from_previous` is that step. It takes:
   third-party count and the post counts carried from its manifest;
 - the rows of each new source of the series from ``data/interim/rows/<source>.jsonl`` (built
   from raw pages, no requests), with their held rows and third-party drops;
+- for a source the previous version has, the holds for a rights reason that its rows, as
+  rebuilt from raw answers with today's rules, carry (:data:`RIGHTS_HOLDS`: series 0.3 holds
+  English Wikinews pages whose own notice differs from their date's license); a published
+  row held this way is recorded as ``withdrawn`` in ``changes.csv``;
 - for a new source read from its pages, the weekly route's state (``page_state``: the newest
   change date of its saved sitemaps, or the ids of its first listing pages) from the saved
   backfill run its build summary names, so the first weekly update reads only what came
@@ -29,6 +33,7 @@ from commonswire.changes import to_csv as changes_csv
 from commonswire.http import FetchError
 from commonswire.release import (
     VARIABLE_COLUMNS,
+    Release,
     ReleaseError,
     _read_jsonl,
     collect,
@@ -40,6 +45,27 @@ from commonswire.release import (
 from commonswire.release_text import card, licenses_md
 from commonswire.sources import Source
 from commonswire.update import carried_state, read_version
+
+#: The hold reasons (their first words) that a new series carries onto rows an earlier
+#: version released: rights reasons found since, never a byline or a date question.
+RIGHTS_HOLDS = ("own notice differs",)
+
+
+def join_rights_holds(prev: dict[str, dict], path: Path) -> list[str]:
+    """Hold the published rows (in place) that the rows rebuilt in ``path`` hold for a rights
+    reason (:data:`RIGHTS_HOLDS`); return their ids."""
+    if not path.exists():
+        return []
+    out = []
+    for d in _read_jsonl(path):
+        row = prev.get(d["id"])
+        reason = str(d.get("hold_reason") or "")
+        if row is None or d.get("releasable", True) or not reason.startswith(RIGHTS_HOLDS):
+            continue
+        row["releasable"] = False
+        row["hold_reason"] = reason
+        out.append(d["id"])
+    return sorted(out)
 
 
 def third_party_of(root: Path, source_id: str) -> int:
@@ -120,6 +146,11 @@ def build_from_previous(
         # as rebuilt from its saved answers (a row that has no saved answer keeps none).
         for s in old:
             joined[s] = join_variables(prev_rows.get(s, {}), rows_dir / f"{s}.jsonl")
+    withdrawn: dict[str, list[str]] = {}
+    for s in old:
+        ids = join_rights_holds(prev_rows.get(s, {}), rows_dir / f"{s}.jsonl")
+        if ids:
+            withdrawn[s] = ids
     rows = {s: list(prev_rows.get(s, {}).values()) for s in old}
     rows.update({s: list(_read_jsonl(rows_dir / f"{s}.jsonl")) for s in new})
     rel = collect(root, version, registry, rows=rows, takedowns_path=takedowns_path)
@@ -157,12 +188,19 @@ def build_from_previous(
     extra_files: dict[str, bytes] = {}
     if joined:
         extra["built_from"]["variables_joined"] = dict(sorted(joined.items()))  # type: ignore[index]
+    if withdrawn:
+        extra["built_from"]["withdrawn"] = {s: len(v) for s, v in sorted(withdrawn.items())}  # type: ignore[index]
     if changes is not None or (prev_dir / CHANGES_FILE).exists():
         lines = read_changes(changes if changes is not None else prev_dir / CHANGES_FILE)
         released = {
             r["id"]: r for config in rel.rows.values() for r in config if r["source_id"] in new
         }
+        gone = sorted(i for ids in withdrawn.values() for i in ids)
+        before = {rid: d for rows_ in prev_rows.values() for rid, d in rows_.items()}
         lines += entries(version, released, new=released)
+        lines += entries(
+            version, {rid: before[rid] for rid in gone}, withdrawn=gone, as_of=_as_of(rel)
+        )
         extra_files[CHANGES_FILE] = changes_csv(lines)
     out_manifest = write_release(
         rel,
@@ -175,6 +213,12 @@ def build_from_previous(
         extra_files=extra_files or None,
     )
     return out_manifest, verify(out)
+
+
+def _as_of(rel: Release) -> str:
+    """A version's own date (the latest retrieval among its rows), as changes.csv writes it."""
+    times = [r["retrieved_at"] for config in rel.rows.values() for r in config]
+    return max(times).strftime("%Y-%m-%dT%H:%M:%SZ") if times else ""
 
 
 def join_variables(prev: dict[str, dict], path: Path) -> int:

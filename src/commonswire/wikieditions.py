@@ -308,3 +308,36 @@ def notice_differs(wikitext: str, table_license: str) -> bool:
     """True when the page carries a notice of its own that differs from the license its
     edition's table gives for its date (the page is then held and counted)."""
     return any(n != table_license for n in page_notices(wikitext))
+
+
+#: The first words of the hold reason of a page whose own notice differs.
+OWN_NOTICE = "own notice differs"
+#: The kinds of a differing notice, in the order a page with several is counted under.
+NOTICE_KINDS = ("a third party's copyright", "public domain", "another license", "other")
+
+
+def notice_kind(wikitext: str, table_license: str) -> str:
+    """The kind of a page's own notice that differs from its date's license: a copyright
+    notice ("a third party's copyright"), a public-domain one, another license, or a license
+    template that names none ("other"); empty when no notice differs."""
+    differing = {n for n in page_notices(wikitext) if n != table_license}
+    if not differing:
+        return ""
+    if "rights-reserved" in differing:
+        return NOTICE_KINDS[0]
+    if "public-domain" in differing:
+        return NOTICE_KINDS[1]
+    if any(n.startswith("CC-") for n in differing):
+        return NOTICE_KINDS[2]
+    return NOTICE_KINDS[3]
+
+
+def own_notice_hold(wikitext: str, table_license: str) -> str:
+    """The hold reason of a page whose own notice differs (its kind in brackets), or empty."""
+    kind = notice_kind(wikitext, table_license)
+    if not kind:
+        return ""
+    return (
+        f"{OWN_NOTICE} ({kind}): the page carries a license or copyright notice of its own "
+        "that differs from its edition's license for its date"
+    )
