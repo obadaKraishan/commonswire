@@ -283,7 +283,10 @@ def test_an_unknown_reason_code_is_a_field_error(tmp_path):
 def test_every_code_has_a_status_and_a_description():
     assert set(CODE_STATUS) == set(REASON_CODES)
     assert set(CODE_STATUS.values()) == {"include", "pending", "exclude"}
-    assert [c for c, s in CODE_STATUS.items() if s == "include"] == ["license_allows"]
+    assert [c for c, s in CODE_STATUS.items() if s == "include"] == [
+        "license_allows",
+        "released_with_english",
+    ]
 
 
 @pytest.mark.parametrize(

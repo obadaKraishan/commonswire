@@ -227,6 +227,32 @@ stop the source (`over_ceiling`), as the count check does for the other sources.
 alone, as a dry run. `--max-requests` caps it and `--offline` replays it. It writes a summary
 of counts and ids, never a version.
 
+### The language editions (series 0.3 on)
+Series 0.3 adds the language editions ruled `include` (`docs/rights-audit.md`). A weekly run
+of series 0.3 also:
+
+- **asks for each post's tags** (tag ids, then the names of the tags used, 100 ids a
+  request), on every WordPress source; series 0.1 and 0.2 ask for the same fields as before;
+- **keeps each row's other-language versions** (`other_versions`, `original_url`), and adds
+  a new version to its group after the run (versions are added, never removed);
+- **Balkan Diskurs in Bosnian** goes like the English edition (its API, then each new
+  article's page for its byline); the two editions' new pages name each other in their
+  `hreflang` tags;
+- **each Global Voices language site:** its new and edited posts through its API, the
+  writers and translators of new stories from its listing's first pages (the labels learned
+  from the listing), and only the categories its posts use. Each new post is linked to its
+  English version by its body's fingerprint against the English posts the same run read (the
+  English site comes first in the series), or else from its own page's list of versions
+  (one request, logged by the article's id; at most 40 a site a week). The release then
+  applies the Lingua rule. A language site gets **no count check** (it would take one
+  request per site and year every week, about 700 at a 10-second crawl-delay);
+- **the Wikinews editions are closed** and carried with no request, like the English edition.
+
+**What it costs.** About ten requests a language site a week (robots.txt, the posts, the
+edited posts, the categories and tags used, listing page 1, a few pages of new posts with no
+match), at each site's 10-second crawl-delay: about an hour more a week for the 46 sites
+collected, one site at a time.
+
 ### The first dry run (2026-11-14)
 One live run on the maintainer's machine, from the published 0.2.0 to an unpublished 0.2.1,
 with `--dry-run`. Version 0.2.0 had been collected about 18 hours earlier, so "new" here

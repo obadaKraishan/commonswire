@@ -81,8 +81,9 @@ def test_a_baseline_run_records_the_counts_and_compares_nothing(tmp_path):
     assert "| factly | 0 of 3 recorded | none | none | 0 | 0 |" in md
     assert any("a baseline run" in n for n in res.notes)
     readme = (tmp_path / "next" / "README.md").read_text()
-    assert "first to record each source's post count per year" in readme
-    assert "compares every source's post count per year" in readme  # Removals and corrections
+    flat = " ".join(readme.split())
+    assert "the first to record each source's post counts" in flat
+    assert "compares every WordPress source's post count per year" in flat  # Removals
     assert "not checked yet" not in readme
 
 
@@ -108,7 +109,9 @@ def test_counts_that_hold_cost_a_request_a_year_and_list_nothing(tmp_path):
     assert "(0 of 200 requests used for drops)" in md
     assert "| factly | 3 | none | none | 0 | 0 |" in md
     readme = (tmp_path / "next" / "README.md").read_text()
-    assert "compared with 9.9.0's (7 years): 0 fell" in readme
+    flat = " ".join(readme.split())
+    assert "compared with 9.9.0's (7 years, and each language site's total" in flat
+    assert "): 0 fell, and 0 older articles were found removed" in flat
 
 
 @pytest.mark.parametrize(
@@ -289,3 +292,167 @@ def test_record_until_and_count_url():
         "before": ["2025-01-01T00:00:00"],
         "_fields": ["id"],
     }
+
+
+# --- A language site's total (series 0.3 on): check_site_total, with a fake client. ---
+
+from commonswire.counts import (  # noqa: E402
+    ADVANCE_DAYS,
+    CountCeiling,
+    check_site_total,
+    total_url,
+)
+from commonswire.http import Response  # noqa: E402
+
+LANG = "https://xx.site.example"
+TODAY = datetime(2026, 11, 30, 12, tzinfo=timezone.utc)
+
+
+class TotalsSite:
+    """A language site's WordPress API: totals and year counts by their range, each year's
+    listing (links only) and article pages. Records every URL asked for."""
+
+    def __init__(self, totals, years=None, links=None, pages=None):
+        self.totals, self.years = totals, years or {}
+        self.links, self.pages = links or {}, pages or {}
+        self.calls: list[str] = []
+
+    def get(self, url, accept="", note="", log_as="", **kw):
+        self.calls.append(log_as or url)
+        q = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+        if url.startswith(f"{LANG}/wp-json/wp/v2/posts") and q.get("_fields") == "id":
+            before = q["before"][:10]
+            year = int(q["after"][:4]) + 1 if "after" in q else 0
+            n = self.years[(year, before)] if year else self.totals[before]
+            return Response(url, 200, {"X-WP-Total": str(n)}, b"[]")
+        if url.startswith(f"{LANG}/wp-json/wp/v2/posts"):
+            year = int(q["after"][:4]) + 1
+            body = json.dumps([{"link": x} for x in self.links.get(year, [])]).encode()
+            return Response(url, 200, {"X-WP-TotalPages": "1"}, body)
+        return Response(url, self.pages.get(url, 200), {}, b"<html></html>")
+
+
+def lang_row(n, day):
+    from commonswire.schema import make_article
+
+    url = f"{LANG}/{day[:4]}/{day[5:7]}/{day[8:]}/{n}/"
+    a = make_article(
+        source_id="globalvoices_xx",
+        url=url,
+        title=f"Invented headline {n}",
+        text=f"{SECRET_TEXT} {n} of an invented story.",
+        published_at=datetime.fromisoformat(f"{day}T08:00:00+00:00"),
+        retrieved_at=TODAY,
+        language="xx",
+        license="CC-BY-3.0",
+        credit_line=f"Invented headline {n}, by {NAMES[0]} ({url}), CC-BY-3.0",
+        authors=(NAMES[0],),
+    )
+    return json.loads(a.model_dump_json())
+
+
+def total_check(site, prev_rows, record, *, limit=200, removed=None, held=()):
+    rows = dict(prev_rows)
+    chk = check_site_total(
+        LANG,
+        site,
+        prev_rows,
+        record,
+        now=TODAY,
+        rows=rows,
+        skip=set(),
+        removed_in_window=removed or {},
+        held_days=list(held),
+        allowance=Allowance(limit=limit),
+        note="update:globalvoices_xx",
+    )
+    return chk, rows
+
+
+def test_a_language_sites_first_run_records_its_total_with_one_request():
+    site = TotalsSite({"2026-11-29": 40})
+    chk, _ = total_check(site, {}, None)
+    assert chk.baseline and chk.count_requests == 1 and len(site.calls) == 1
+    assert chk.counts == {"total": {"posts": 40, "before": "2026-11-29"}}
+    assert site.calls == [total_url(LANG, date(2026, 11, 29))]
+
+
+def test_a_total_that_holds_costs_one_request_and_moves_up_when_old():
+    rec = {"total": {"posts": 40, "before": "2026-11-22"}}
+    site = TotalsSite({"2026-11-22": 40})
+    chk, _ = total_check(site, {}, rec)
+    assert not chk.drops and not chk.rises and chk.count_requests == 1
+    assert chk.counts == rec  # 8 days old: the same range again next week
+    old = {"total": {"posts": 40, "before": f"2026-11-{29 - ADVANCE_DAYS:02d}"}}
+    site = TotalsSite({old["total"]["before"]: 40, "2026-11-29": 43})
+    chk, _ = total_check(site, {}, old)
+    assert chk.count_requests == 2
+    assert chk.counts == {"total": {"posts": 43, "before": "2026-11-29"}}
+
+
+def test_a_rise_is_reported_only():
+    site = TotalsSite({"2026-11-22": 41})
+    chk, _ = total_check(site, {}, {"total": {"posts": 40, "before": "2026-11-22"}})
+    assert chk.rises == {"total": 1} and not chk.drops and len(site.calls) == 1
+
+
+def test_a_fall_is_placed_by_the_recorded_years_and_walked():
+    prev = {r["id"]: r for r in (lang_row(1, "2024-03-01"), lang_row(2, "2025-05-01"))}
+    gone = lang_row(1, "2024-03-01")
+    rec = {
+        "total": {"posts": 10, "before": "2026-11-22"},
+        "2024": {"posts": 5, "before": "2025-01-01"},
+        "2025": {"posts": 3, "before": "2026-01-01"},
+        "2026": {"posts": 2, "before": "2026-11-22"},
+    }
+    site = TotalsSite(
+        {"2026-11-22": 9},
+        years={(2024, "2025-01-01"): 4, (2025, "2026-01-01"): 3, (2026, "2026-11-22"): 2},
+        links={2024: []},  # the 2024 listing no longer has row 1
+        pages={gone["url"]: 404},
+    )
+    chk, rows = total_check(site, prev, rec)
+    assert chk.drops == {"total": 1, "2024": 1} and chk.years_listed == ["2024"]
+    assert chk.rows_removed == 1 and rows[gone["id"]]["status"] == "removed"
+    assert chk.years_checked == 3 and chk.counts["2024"] == {"posts": 4, "before": "2025-01-01"}
+    assert gone["id"] in site.calls  # the page read is logged by its id
+
+
+def test_a_fall_with_no_recorded_years_uses_the_rows_as_a_floor():
+    rows = [lang_row(1, "2025-02-01"), lang_row(2, "2025-03-01"), lang_row(3, "2026-02-01")]
+    prev = {r["id"]: r for r in rows}
+    site = TotalsSite(
+        {"2026-11-22": 3},
+        years={(2025, "2026-01-01"): 1, (2026, "2026-11-22"): 2},
+        links={2025: [rows[0]["url"]]},
+        pages={rows[1]["url"]: 200},
+    )
+    chk, _ = total_check(site, prev, {"total": {"posts": 4, "before": "2026-11-22"}})
+    assert chk.drops == {"total": 1, "2025": 1} and chk.years_listed == ["2025"]
+    assert chk.rows_checked == 1 and chk.rows_kept == 1 and chk.rows_removed == 0
+
+
+def test_a_fall_no_year_shows_walks_every_year():
+    prev = {lang_row(1, "2025-02-01")["id"]: lang_row(1, "2025-02-01")}
+    site = TotalsSite(
+        {"2026-11-22": 9},
+        years={(2025, "2026-01-01"): 4, (2026, "2026-11-22"): 5},
+        links={2025: [lang_row(1, "2025-02-01")["url"]]},
+    )
+    chk, _ = total_check(site, prev, {"total": {"posts": 10, "before": "2026-11-22"}})
+    assert chk.years_listed == ["2025", "2026"] and chk.rows_checked == 0
+
+
+def test_a_fall_the_window_explains_is_not_placed_and_one_past_the_ceiling_stops():
+    site = TotalsSite({"2026-11-22": 9})
+    chk, _ = total_check(
+        site,
+        {},
+        {"total": {"posts": 10, "before": "2026-11-22"}},
+        removed={"cw_" + "ab" * 8: "2026-11-10T08:00:00Z"},
+    )
+    assert chk.explained == {"total": 1} and len(site.calls) == 1
+    prev = {lang_row(1, "2020-02-01")["id"]: lang_row(1, "2020-02-01")}
+    site = TotalsSite({"2026-11-22": 9})
+    with pytest.raises(CountCeiling, match="counting its 7 years"):
+        total_check(site, prev, {"total": {"posts": 10, "before": "2026-11-22"}}, limit=3)

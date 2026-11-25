@@ -1,0 +1,33 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 18876,
+    "CC-BY-SA-4.0": 259,
+    "held:own notice differs (a third party's copyright)": 6,
+    "held:own notice differs (another license)": 4,
+    "held:own notice differs (other)": 46,
+    "public-domain": 387
+  },
+  "files": {
+    "articles": {
+      "bytes": 25346880,
+      "checked": true,
+      "md5": "06ca2a718c9f281d14a94f0df234744a"
+    },
+    "stubs": {
+      "bytes": 58791359,
+      "checked": true,
+      "md5": "1f1aac9ac791ffab99cbd5e7b04d5f47"
+    }
+  },
+  "held": 56,
+  "kept": 19578,
+  "run": "2026-11-25",
+  "skipped": {
+    "empty_text": 16,
+    "not_an_article_namespace": 30791,
+    "not_marked_published": 4626,
+    "redirect": 2478
+  },
+  "source_id": "wikinews_fr",
+  "validate_errors": 0
+}

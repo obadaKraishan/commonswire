@@ -69,6 +69,7 @@ Every row has one `reason_code` saying why it has its status. The free-text `rea
 | Code | Status | Meaning |
 |---|---|---|
 | `license_allows` | include | A license or public-domain statement allows unchanged redistribution, and nothing on the publisher's pages conflicts |
+| `released_with_english` | include | A license allows unchanged redistribution, and third-party material is told on the English pages: a row is released only when its English version is a released row of the corpus (the Lingua rule, 2026-11-23; editions only) |
 | `bulk_clause` | exclude | A clause against systematic, wholesale, bulk or automatic republishing |
 | `tracker_required` | exclude | Republishing requires a tracking pixel or counter |
 | `terms_forbid_automation` | exclude | The terms of use forbid automated collection |
@@ -317,6 +318,67 @@ links to. An English gloss beside it in the notes is marked "(gloss)" and is thi
   localized credit sections (for example "Escrito por" and "Traducido por"). An article lists
   the story's other language versions; 43 of the 47 article pages read link a post on
   another Global Voices site. The markup read does not mark which version is the original.
+
+## The editions after the maintainer's answers (2026-11-23)
+- **Global Voices: 47 editions `include` under the Lingua rule (`released_with_english`).**
+  Their footers and the publisher's attribution policy, which names "our sites", settle the
+  license (CC BY 3.0). Third-party material is settled mechanically: a Lingua row is released
+  only when its English version is a released row of the corpus, because the English pages
+  are where republished partner pieces are detected. Every other Lingua row is held and
+  counted, by edition. The quotes of 2026-11-17 are kept.
+  - The link from a Lingua post to its English version is found from the bodies the API
+    gives (their links and images), against the saved English bodies; `docs/method.md` says
+    how, and how well it agreed with the pages' own links.
+- **Global Voices: Amharic, Igbo, Santali and Yoruba stay `pending`** (`statement_unread`):
+  no reader is sought.
+- **Alt News (Hindi) stays `pending`** (`conflicting_statements`): nobody is contacted.
+- **Wikinews: a license-by-date table for each edition whose copyright page dates its
+  licenses.** An article takes the license of its creation date (its first revision in the
+  dump); a date the table does not place is held and counted. On a boundary day the wording
+  leaves to both sides, the license that asks more of the reuser is taken, as for the English
+  edition. Eight editions are `include`:
+
+  | Edition | Table | The page's words (one of them; all are in the registry and were checked word for word) |
+  |---|---|---|
+  | French | public domain before 2005-09-24; CC BY 2.5; CC BY-SA 4.0 from 2025-01-02 | "Le contenu publié entre le 24 septembre 2005 et le 2 janvier 2025 est sous licence Creative Commons Attribution 2.5, sauf mention contraire." |
+  | Arabic | CC BY 2.5; CC BY-SA 4.0 from 2024-08-21 | "جميع النصوص المنشورة قبل 21 أغسطس 2024 تخضع لرخصة رخصة المشاع الإبداعي الملزمة بنسبة العمل لمؤلفه 2.5." |
+  | Russian | CC BY 2.5; CC BY 4.0 from 2025-02-26 | "(публикации до 26.02.2025 распространяются по лицензии CC-BY версии 2.5, если не указано иное)" |
+  | Chinese | CC BY 2.5; CC BY 4.0 from 2025-01-30 | "2025年1月30日之前加入维基新闻的内容也以CC BY 2.5授权。" |
+  | Romanian | GNU FDL before 2005-09-26 (held); CC BY 2.5; CC BY 4.0 from 2025-01-03 | "Materialul publicat înainte de 2 ianuarie 2025, dar după 25 septembrie 2005, este licențiat în conformitate cu termenii licenței Creative Commons Attribution 2.5 License." |
+  | Swedish | before 2005-07-01 not placed (held); CC BY 2.5; CC BY-SA 4.0 from 2025-01-29 | "Bidrag som publicerats före den 1 juli 2005 kan ha publicerats under en annan licens (och bidrag före 29 januari 2025 har publicerats under den äldre versionen Creative Commons Attribution 2.5)." |
+  | Korean | public domain before 2005-09-25; CC BY 2.5 to the page's last edit (2015-08-05); later not placed (held) | "2005년 9월 25일을 기점으로, 이 이후에 위키뉴스에서 발행된 모든 내용은 크리에이티브 커먼즈 저작자표시 2.5 라이선스로 배포됩니다." |
+  | Greek | public domain before 2005-09-25; CC BY 2.5 to the page's last edit (2018-12-28); later not placed (held) | "Από τις 25 Σεπτεμβρίου όλα τα περιεχόμενα που δημοσιεύονται στα Βικινέα αδειοδοτούνται με τους όρους της Αναφορά προέλευσης 2.5 Γενικό (CC BY 2.5)." |
+
+  Each of the eight pages also bars copyrighted text (quoted in `third_party_rule`), as the
+  English edition's does. **A page with a notice of its own** (the maintainer's rule,
+  2026-11-23): a page that carries a license or copyright notice of its own that differs from
+  its edition's license for its creation date is held and counted, by edition; the table's
+  license applies only to pages with no notice of their own, or with one that agrees with it.
+  An image's caption or gallery is the image's notice, not the page's. (The English row says
+  the same of its pages, which the dump reader of versions 0.1.0 to 0.2.x did not check.)
+- **Read from their dumps (2026-11-25):** French, Chinese, Arabic, Greek, Romanian and
+  Korean. Each edition's published articles are told by its own publication template, found
+  in a count of its article pages' templates (`commonswire wikinews-edition --census`). The
+  Swedish edition is `include` but not read yet: no template marks most of its pages
+  ("publicerad" is on 186 of 3,317). The Russian dump (1.1 GB) waits for a later version.
+- **Wikinews editions still `pending`,** each with the question its page leaves:
+  - German (`third_party_unclear`): the page dates its licenses but says nothing about text
+    copied from elsewhere;
+  - Italian (`partial_license`): CC BY from 25 September 2005 with no version named;
+  - Catalan, Spanish, Dutch, Norwegian, Turkish, Tamil and Esperanto (`partial_license`):
+    one license (CC BY 2.5) and no dates, while today's footer names CC BY 4.0; the
+    Esperanto page is marked a proposal;
+  - Portuguese, Hebrew and Finnish (`partial_license`): CC BY 4.0 and no dates;
+  - Japanese, Polish and Czech (`partial_license`): the page names no license (Czech's is a
+    redirect to the English policy);
+  - Persian (`conflicting_statements`): the page names the GNU FDL, the footer CC BY-SA 4.0;
+  - Shan (`partial_license`): its statement was not read with confidence (answer 3b);
+  - the seven editions with no copyright page found (Bosnian, Gun, Hungarian, Limburgish,
+    Albanian, Serbian, Ukrainian).
+- **The registry now:** 151 rows, 69 `include` (22 `license_allows`, 47
+  `released_with_english`), 65 `pending`, 17 `exclude`. The outside lists' figures above are
+  unchanged: the editions are on neither list. Each list keeps its own date (Common Pile
+  2024-05-27, Open Newswire 2025-11-11).
 
 ## The audit in the release
 - **Version 0.3.0's `sources.csv`** carries the `reason_code` column. Every published version

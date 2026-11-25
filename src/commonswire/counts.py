@@ -21,10 +21,21 @@ The current year's count covers the days up to the day before the run (by then e
 time zone has published them); the next update compares the same days (one more request) and
 records the longer range. That range overlaps the window, so a removal is missed only when a
 back-dated post offsets it in the same range, or when two runs are more than the window apart.
+
+**A language site** (series 0.3 on, :func:`check_site_total`) costs one request a run: the
+total of its posts dated before a recorded day, compared with the total recorded for the same
+range. The range moves up to the day before the run (one more request) once its day is
+``ADVANCE_DAYS`` old, so a new post enters it while the window still watches it. When the
+total falls, the count of each year of the range (one request a year) finds the year: a year
+whose count fell below the one recorded for it, or, where none is recorded, below the
+previous version's released and held rows of that year. Those years get the removal walk
+above; when no year can be named, every year does. The years' counts are then recorded, so the
+next fall is placed exactly. Everything a fall costs comes out of the same ceiling.
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
@@ -42,6 +53,12 @@ PER_PAGE = 100
 #: Days added on each side of a range when it is listed, so that a row's day in UTC and the
 #: site's own day (its time zone) cannot fall on different sides of the edge.
 EDGE_DAYS = 2
+#: A language site's total covers the posts dated before a recorded day; the day moves up to
+#: the day before the run once it is this old, so a new post enters the range inside the
+#: update's 30-day window (which watches it until then).
+ADVANCE_DAYS = 21
+#: The key of a language site's total in its record (beside any years recorded at a fall).
+TOTAL = "total"
 
 
 class CountCeiling(Exception):
@@ -104,6 +121,12 @@ def count_url(api_base: str, year: int, before: date) -> str:
         "before": f"{before.isoformat()}T00:00:00",
         "_fields": "id",
     }
+    return f"{api_base}/wp-json/wp/v2/posts?{urlencode(q)}"
+
+
+def total_url(api_base: str, before: date) -> str:
+    """The count of every post dated before the day ``before`` (the site's own dates)."""
+    q = {"per_page": "1", "before": f"{before.isoformat()}T00:00:00", "_fields": "id"}
     return f"{api_base}/wp-json/wp/v2/posts?{urlencode(q)}"
 
 
@@ -246,31 +269,204 @@ def check_counts(
                 f"year needs about {need} requests, {allowance.left} left of this run's "
                 f"{allowance.limit}: a removal on that scale is for the maintainer to look at"
             )
-        chk.years_listed.append(key)
-        links = _list_range(api_base, client, year, before, allowance, chk, note)
-        missing = [
-            (rid, d)
-            for rid, d in sorted(prev_rows.items())
-            if rid not in skip
-            and start <= d["published_at"] < end
-            and _canon(d["url"]) not in links
-        ]
-        if len(missing) > allowance.left:
-            raise CountCeiling(
-                f"the post count of {year} fell by {fall}, and {len(missing)} released rows are "
-                f"missing from its listing; {allowance.left} requests are left of this run's "
-                f"{allowance.limit}: a removal on that scale is for the maintainer to look at"
-            )
-        for rid, d in missing:
-            # One article's page: the request log records its id, not its address.
-            resp = client.get(d["url"], accept="text/html", note=note, log_as=rid)
-            allowance.used += 1
-            chk.rows_checked += 1
-            skip.add(rid)
-            if resp.status in (404, 410):
-                rows[rid] = _removed(d)
-                chk.rows_removed += 1
-                chk.removed_ids.append(rid)
-            else:
-                chk.rows_kept += 1
+        _walk_year(
+            api_base,
+            client,
+            prev_rows,
+            year,
+            before,
+            rows=rows,
+            skip=skip,
+            allowance=allowance,
+            chk=chk,
+            note=note,
+            why=f"the post count of {year} fell by {fall}",
+        )
     return chk
+
+
+def _walk_year(
+    api_base: str,
+    client: PoliteClient,
+    prev_rows: dict[str, dict],
+    year: int,
+    before: date,
+    *,
+    rows: dict[str, dict],
+    skip: set[str],
+    allowance: Allowance,
+    chk: CountCheck,
+    note: str,
+    why: str,
+) -> None:
+    """The removal walk of one year up to ``before``: its posts listed (links only), and the
+    page of each released row missing from the listing read once (404 or 410: removed)."""
+    start, end = f"{year}-01-01T00:00:00Z", f"{before.isoformat()}T00:00:00Z"
+    chk.years_listed.append(str(year))
+    links = _list_range(api_base, client, year, before, allowance, chk, note)
+    missing = [
+        (rid, d)
+        for rid, d in sorted(prev_rows.items())
+        if rid not in skip and start <= d["published_at"] < end and _canon(d["url"]) not in links
+    ]
+    if len(missing) > allowance.left:
+        raise CountCeiling(
+            f"{why}, and {len(missing)} released rows are missing from its listing; "
+            f"{allowance.left} requests are left of this run's {allowance.limit}: a removal on "
+            "that scale is for the maintainer to look at"
+        )
+    for rid, d in missing:
+        # One article's page: the request log records its id, not its address.
+        resp = client.get(d["url"], accept="text/html", note=note, log_as=rid)
+        allowance.used += 1
+        chk.rows_checked += 1
+        skip.add(rid)
+        if resp.status in (404, 410):
+            rows[rid] = _removed(d)
+            chk.rows_removed += 1
+            chk.removed_ids.append(rid)
+        else:
+            chk.rows_kept += 1
+
+
+def _year_end(year: int, before: date) -> date:
+    return min(date(year + 1, 1, 1), before)
+
+
+def check_site_total(
+    api_base: str,
+    client: PoliteClient,
+    prev_rows: dict[str, dict],
+    prev_record: dict[str, dict] | None,
+    *,
+    now: datetime,
+    rows: dict[str, dict],
+    skip: set[str],
+    removed_in_window: dict[str, str],
+    held_days: list[str],
+    allowance: Allowance,
+    note: str,
+) -> CountCheck:
+    """A language site's count check (series 0.3 on; see the module docstring).
+    ``prev_record`` is what the previous version recorded for the site (``{"total": {"posts",
+    "before"}}``, with the years recorded at a fall), None for a baseline run; ``held_days``
+    are the days of the site's held rows (their ``published_on``)."""
+    chk = CountCheck(baseline=not prev_record or TOTAL not in prev_record)
+    until = now.date() - timedelta(days=1)
+    if chk.baseline:
+        chk.counts = {TOTAL: {"posts": _count(client, total_url(api_base, until), note)}}
+        chk.counts[TOTAL]["before"] = until.isoformat()
+        chk.count_requests += 1
+        return chk
+    assert prev_record is not None
+    years_rec = {k: v for k, v in prev_record.items() if k != TOTAL}
+    before = date.fromisoformat(str(prev_record[TOTAL]["before"]))
+    was = int(prev_record[TOTAL]["posts"])  # type: ignore[call-overload]
+    got = _count(client, total_url(api_base, before), note)
+    chk.count_requests += 1
+    record: dict[str, dict[str, object]] = {
+        TOTAL: {"posts": got, "before": before.isoformat()},
+        **years_rec,
+    }
+    if got > was:
+        chk.rises[TOTAL] = got - was
+    elif got < was:
+        fall = was - got
+        chk.drops[TOTAL] = fall
+        end = f"{before.isoformat()}T00:00:00Z"
+        explained = sum(1 for p in removed_in_window.values() if p < end)
+        if explained:
+            chk.explained[TOTAL] = min(explained, fall)
+        if fall > explained:
+            record.update(
+                _place_fall(
+                    api_base,
+                    client,
+                    prev_rows,
+                    years_rec,
+                    before,
+                    fall,
+                    rows=rows,
+                    skip=skip,
+                    held_days=held_days,
+                    allowance=allowance,
+                    chk=chk,
+                    note=note,
+                )
+            )
+    if (now.date() - before).days >= ADVANCE_DAYS and until > before:
+        record[TOTAL] = {"posts": _count(client, total_url(api_base, until), note)}
+        record[TOTAL]["before"] = until.isoformat()
+        chk.count_requests += 1
+    chk.counts = record
+    return chk
+
+
+def _place_fall(
+    api_base: str,
+    client: PoliteClient,
+    prev_rows: dict[str, dict],
+    years_rec: dict[str, dict],
+    before: date,
+    fall: int,
+    *,
+    rows: dict[str, dict],
+    skip: set[str],
+    held_days: list[str],
+    allowance: Allowance,
+    chk: CountCheck,
+    note: str,
+) -> dict[str, dict[str, object]]:
+    """The years of a language site's fall: each year's count of the range (one request a
+    year), the walk of the years it names (or of every year when none is named), and the
+    years' counts to record."""
+    known = [d["published_at"][:4] for d in prev_rows.values()] + [d[:4] for d in held_days]
+    known += [y for y in years_rec if y.isdigit()]
+    first = min((int(y) for y in known), default=before.year)
+    years = [y for y in range(first, before.year + 1) if _year_end(y, before) > date(y, 1, 1)]
+    if len(years) > allowance.left:
+        raise CountCeiling(
+            f"the total fell by {fall}; counting its {len(years)} years needs {len(years)} "
+            f"requests, {allowance.left} left of this run's {allowance.limit}: for the "
+            "maintainer to look at"
+        )
+    floor = Counter(known[: len(prev_rows) + len(held_days)])
+    named: list[int] = []
+    counted: dict[str, dict[str, object]] = {}
+    for y in years:
+        y_before = _year_end(y, before)
+        n = _count(client, count_url(api_base, y, y_before), note)
+        allowance.used += 1
+        chk.count_requests += 1
+        chk.years_checked += 1
+        counted[str(y)] = {"posts": n, "before": y_before.isoformat()}
+        old = years_rec.get(str(y))
+        if old is not None and old.get("before") == y_before.isoformat():
+            if n < int(old["posts"]):  # type: ignore[call-overload]
+                chk.drops[str(y)] = int(old["posts"]) - n  # type: ignore[call-overload]
+                named.append(y)
+        elif n < floor.get(str(y), 0):
+            chk.drops[str(y)] = floor[str(y)] - n
+            named.append(y)
+    for y in named or years:
+        need = int(counted[str(y)]["posts"]) // PER_PAGE + 2  # type: ignore[call-overload]
+        if need > allowance.left:
+            raise CountCeiling(
+                f"the total fell by {fall}; listing {y} needs about {need} requests, "
+                f"{allowance.left} left of this run's {allowance.limit}: a removal on that "
+                "scale is for the maintainer to look at"
+            )
+        _walk_year(
+            api_base,
+            client,
+            prev_rows,
+            y,
+            _year_end(y, before),
+            rows=rows,
+            skip=skip,
+            allowance=allowance,
+            chk=chk,
+            note=note,
+            why=f"the total fell by {fall}",
+        )
+    return counted

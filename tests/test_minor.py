@@ -211,3 +211,46 @@ def test_a_new_page_source_takes_its_route_state_from_its_backfill(tmp_path, mon
     monkeypatch.setitem(pagebackfill.PAGE_ROUTES, "alpha", route)
     with pytest.raises(ReleaseError, match="build alpha"):
         page_states(tmp_path, ["alpha"], None)
+
+
+def test_a_rights_hold_found_since_withdraws_a_published_row(tmp_path):
+    """A published row that its source's rows, rebuilt with today's rules, hold for a rights
+    reason (a page's own notice) is held in the new series and recorded as withdrawn; a hold
+    for any other reason (a byline) is not carried."""
+    from commonswire.changes import read_changes
+
+    reg_path, registry, takedowns, prev = world(tmp_path)
+    rows_dir = tmp_path / "data" / "interim" / "rows"
+    rebuilt = [
+        article(
+            "alpha",
+            1,
+            "An invented first story.",
+            releasable=False,
+            hold_reason="own notice differs (another license): the page carries a notice",
+        ),
+        article("alpha", 2, "Two.", releasable=False, hold_reason="no byline: not carried"),
+    ]
+    (rows_dir / "alpha.jsonl").write_text("".join(json.dumps(x) + "\n" for x in rebuilt))
+    changes = tmp_path / "through.csv"
+    changes.write_text("id,source_id,version,change,date\n")
+    out = tmp_path / "out"
+    manifest, problems = build_from_previous(
+        tmp_path,
+        prev,
+        "9.10.0",
+        out,
+        registry_path=reg_path,
+        registry=registry,
+        takedowns_path=takedowns,
+        baseline_path=tmp_path / "none.json",
+        changes=changes,
+    )
+    assert problems == []
+    assert manifest["built_from"]["withdrawn"] == {"alpha": 1}
+    assert manifest["held_rows_by_reason"]["own notice differs (another license)"] == 1
+    gone = [r for r in read_changes(out / "changes.csv") if r["change"] == "withdrawn"]
+    assert [(r["id"], r["source_id"], r["version"]) for r in gone] == [
+        (article("alpha", 1, "x")["id"], "alpha", "9.10.0")
+    ]
+    assert gone[0]["date"] == manifest["as_of"]

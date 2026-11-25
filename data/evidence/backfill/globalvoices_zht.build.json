@@ -1,0 +1,31 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 1,
+    "invalid:Value error, text still holds HTML tags; give plain text": 9,
+    "third_party:republication_note": 2
+  },
+  "first": "2005-09-18",
+  "kept": 6222,
+  "last": "2026-11-06",
+  "raw_bytes": 65683036,
+  "raw_files": 68,
+  "releasable": 6208,
+  "releasable_after_daily": 6208,
+  "rows_after_daily": 6222,
+  "rows_bytes": 31866709,
+  "run": "2026-11-23",
+  "seen": 6234,
+  "source_id": "globalvoices_zht",
+  "validate_errors": 0,
+  "validate_warnings": 676
+}

@@ -75,16 +75,23 @@ def gv_site(posts_p1, posts_p2=(), total=None, per_page=3):
 
 
 def test_registry_of_fetchers():
-    assert set(FETCHERS) == {
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS, LINGUA_SITES
+
+    assert set(FETCHERS) - set(LINGUA_FETCHERS) == {
         "globalvoices",
         "wikinews_en",
         "360info",
         "thepublicrecord",
         "balkandiskurs",
+        "balkandiskurs_bs",
         "factly",
         "altnews",
     }
+    assert set(LINGUA_FETCHERS) == {f"globalvoices_{s}" for s in LINGUA_SITES}
+    assert len(LINGUA_SITES) == 51
     assert FETCHERS["360info"].api_base == "https://360info.org"
+    assert FETCHERS["balkandiskurs_bs"].api_base == "https://balkandiskurs.com"
+    assert FETCHERS["globalvoices_zht"].api_base == "https://zht.globalvoices.org"
 
 
 def test_fetcher_refuses_a_source_that_is_not_include(tmp_path):

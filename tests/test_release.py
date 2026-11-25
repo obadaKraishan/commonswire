@@ -20,7 +20,7 @@ from commonswire.release_pack import (
     zenodo_folder,
 )
 from commonswire.release_text import card, licenses_md
-from commonswire.schema import make_article, text_hash
+from commonswire.schema import article_id, make_article, text_hash
 from commonswire.sources import load_sources, render_credit
 from test_sources import row, write_csv
 
@@ -229,6 +229,48 @@ def test_collect_dedups_checks_and_groups(tmp_path, series):
     assert {x["status"] for x in r.rows["by-sa"]} == {"live", "changed"}
 
 
+def test_a_copy_of_another_sources_row_is_left_out_and_counted(tmp_path, series, monkeypatch):
+    """Series 0.3 on: a row of a source that republished another's (REPUBLISHED_COPIES) whose
+    near-duplicate is that other source's row is third-party material: left out, counted, and
+    no longer named in its twin's near_duplicates."""
+    corpus(tmp_path)
+    registry = load_sources(registry_csv(tmp_path))
+    before = collect(tmp_path, "9.9.0", registry)
+    assert before.near_duplicate_pairs >= 1 and not before.checks.copies
+    monkeypatch.setattr(rel, "REPUBLISHED_COPIES", {"beta": "alpha"})
+    r = collect(tmp_path, "9.9.0", registry)
+    copy_id = article_id("https://beta.example/story-1")
+    assert r.checks.ok and dict(r.checks.copies) == {"beta": 1}
+    assert r.checks.copy_ids == [copy_id]
+    released = {x["id"]: x for c in r.rows.values() for x in c}
+    assert copy_id not in released
+    assert all(copy_id not in x["near_duplicates"] for x in released.values())
+    assert r.near_duplicate_pairs == 0
+    out = tmp_path / "out"
+    m = write_release(
+        r,
+        out,
+        tmp_path / "sources.csv",
+        registry,
+        card=card(r, registry, len(r.checks.copy_ids)),
+        licenses_md=licenses_md(r, registry),
+    )
+    assert m["copies_left_out"] == {"beta": 1}
+    # An older series keeps its rules and its manifest's keys.
+    monkeypatch.setitem(rel.SERIES, (0, 2), ("alpha", "beta", "gamma"))
+    old = collect(tmp_path, "0.2.9", registry)
+    assert not old.checks.copies and old.near_duplicate_pairs >= 1
+    m_old = write_release(
+        old,
+        tmp_path / "old",
+        tmp_path / "sources.csv",
+        registry,
+        card="x",
+        licenses_md="x",
+    )
+    assert "copies_left_out" not in m_old
+
+
 def test_two_removed_rows_are_both_counted_as_removed_not_as_duplicates(tmp_path, series):
     rows_dir = corpus(tmp_path)
     gone = article("alpha", 8, "Another invented story later removed.", days=9)
@@ -281,10 +323,10 @@ def test_checks_catch_bad_credit_third_party_nc_and_invalid_rows(tmp_path, serie
         )
 
 
-def build(tmp_path, out_name="out"):
+def build(tmp_path, out_name="out", version="9.9.0"):
     registry_path = registry_csv(tmp_path)
     registry = load_sources(registry_path)
-    r = collect(tmp_path, "9.9.0", registry)
+    r = collect(tmp_path, version, registry)
     out = tmp_path / out_name
     m = write_release(
         r,
@@ -346,9 +388,11 @@ def test_verify_finds_changed_missing_and_extra_files_and_count_mismatches(tmp_p
     assert any(p.startswith("pd: 1 rows in the files, 2") for p in verify(out))
 
 
-def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
+def test_card_and_licenses_say_what_the_release_holds(tmp_path, series, monkeypatch):
+    """Series 0.2's card, which its weekly versions keep word for word."""
+    monkeypatch.setitem(rel.SERIES, (0, 2), ("alpha", "beta", "gamma"))
     corpus(tmp_path)
-    _, out, _ = build(tmp_path)
+    _, out, _ = build(tmp_path, version="0.2.9")
     text = (out / "README.md").read_text()
     assert text.startswith("---\npretty_name: CommonsWire\n")
     assert (
@@ -357,7 +401,7 @@ def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
     ) in text
     by_config = '- config_name: by\n  data_files:\n  - split: train\n    path: "data/by/*.parquet"'
     assert by_config + "\n  default: true" in text
-    assert "# CommonsWire 9.9.0" in text and "6 articles" in text
+    assert "# CommonsWire 0.2.9" in text and "6 articles" in text
     assert "| Alpha News | news | CC BY 4.0 | 3 |" in text
     assert "not affiliated with" in text and "issues/new?template=takedown.yml" in text
     assert "1 more rows are held back" in text
@@ -367,7 +411,7 @@ def test_card_and_licenses_say_what_the_release_holds(tmp_path, series):
     assert "`{title}, by {authors}, {source} ({url}), {license}`" in text
     assert "<https://doi.org/10.5281/zenodo.24231835> (all versions)" in text
     body = card_body(text)
-    assert body.startswith("# CommonsWire 9.9.0") and "config_name" not in body
+    assert body.startswith("# CommonsWire 0.2.9") and "config_name" not in body
     lic = (out / "LICENSES.md").read_text()
     assert "| `by-sa` | CC BY-SA 4.0 (2) | 2 |" in lic and "not legal advice" in lic
 
@@ -380,9 +424,10 @@ def test_the_card_of_a_later_series_says_what_changed(tmp_path, series, monkeypa
     with (rows_dir / "alpha.jsonl").open("a") as fh:
         fh.write(json.dumps(tr) + "\n")
     monkeypatch.setitem(rel.SERIES, (0, 1), ("alpha", "beta"))
-    monkeypatch.setitem(release_text.CHANGES_SINCE, (9, 9), "0.1.0")
+    monkeypatch.setitem(rel.SERIES, (0, 2), ("alpha", "beta", "gamma"))
+    monkeypatch.setitem(release_text.CHANGES_SINCE, (0, 2), "0.1.0")
     monkeypatch.setitem(release_text.SHORT_REASONS, "alpha", "invented short notes")
-    _, out, _ = build(tmp_path)
+    _, out, _ = build(tmp_path, version="0.2.9")
     text = (out / "README.md").read_text()
     assert "## Changes since 0.1.0" in text
     assert (
@@ -399,6 +444,67 @@ def test_the_card_of_a_later_series_says_what_changed(tmp_path, series, monkeypa
     assert "Fact-checks are" in text and "{" + "fact_words}" not in text
     prose = [x for x in text.splitlines() if not x.startswith("|") and "https://" not in x]
     assert max(len(x) for x in prose) <= 100
+
+
+def test_the_series_0_3_card_covers_languages_licenses_rules_and_how_to_cite(tmp_path, series):
+    """The card of series 0.3 on (commonswire.card03): sections, numbers from the rows, the
+    citation first in "How to cite", and no raw HTML."""
+    from commonswire import citation
+    from commonswire.release import raw_html
+
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    text = (out / "README.md").read_text()
+    flat = " ".join(text.split())
+    heads = [x for x in text.splitlines() if x.startswith("## ")]
+    assert heads == [
+        "## What it is, and what it is not",
+        "## The publishers",
+        "## Languages",
+        "## Configurations and licenses",
+        "## The rights rules of this version",
+        "## Fields",
+        "## How it was collected",
+        "## Removals and corrections",
+        "## Limitations",
+        "## Contact",
+        "## How to cite",
+    ]
+    assert "in 1 languages" not in flat and "It is English only" not in text
+    assert "| `en` | English | 6 |" in text
+    assert (
+        "| CC BY 4.0 | `CC-BY-4.0` | 3 |" in text and "| Public domain | `public-domain` |" in text
+    )
+    assert "- **Mirror:** the same files on Kaggle, " + citation.KAGGLE_URL in text
+    assert "need a free GitHub account" in flat and "Community tab" in flat
+    cite = text[text.index("## How to cite") :]
+    order = [
+        cite.index(x)
+        for x in ("*CommonsWire: A full-text", "@misc{", "10.5281/zenodo", "credit_line")
+    ]
+    assert order == sorted(order)
+    assert citation.apa("9.9.0") in " ".join(cite.split())
+    assert raw_html(text) == []
+    for leftover in ("{_n(", "{f[", "{release", "{HF_", "{citation", "{chr(", "type: ignore"):
+        assert leftover not in text, leftover
+    prose = [x for x in text.splitlines() if not x.startswith("|") and "https://" not in x]
+    assert max(len(x) for x in prose) <= 100
+    lic = (out / "LICENSES.md").read_text()
+    assert "**CC BY 4.0** (`by`)" in lic and "CC BY 2.5, 3.0 and 4.0" not in lic
+    assert "| `by-sa` | CC BY-SA 4.0 (2) | 2 |" in lic
+
+
+def test_verify_finds_raw_html_in_a_card(tmp_path, series):
+    from commonswire.release import raw_html
+
+    assert raw_html("x <https://a.example> `<b>` y") == []
+    assert raw_html("x <br> y <!-- z -->") == ["<br>", "<!--"]
+    corpus(tmp_path)
+    _, out, _ = build(tmp_path)
+    card_file = out / "README.md"
+    card_file.write_text(card_file.read_text() + "\n<details>x</details>\n")
+    problems = verify(out)
+    assert any("raw HTML outside code ('<details>')" in p for p in problems)
 
 
 def test_kaggle_and_zenodo_folders(tmp_path, series):
@@ -611,7 +717,19 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     k = kaggle_folder(out, tmp_path / "k")
     meta = json.loads((k / "dataset-metadata.json").read_text())
     assert meta["expectedUpdateFrequency"] == "monthly" and meta["isPrivate"] is False
-    assert "sources.csv" in meta["userSpecifiedSources"] and "alpha" in meta["userSpecifiedSources"]
+    assert "sources.csv" in meta["userSpecifiedSources"]
+    assert (
+        "Publishers in version 9.9.0: Alpha News, Beta Record, Gamma Checks."
+        in (meta["userSpecifiedSources"])
+    )
+    assert meta["keywords"] == rel_pack.KAGGLE_TAGS and len(meta["keywords"]) <= 5
+    desc = meta["description"]
+    heads = [x for x in desc.splitlines() if x.startswith("## ")]
+    assert heads[0] == "## How to cite" and "## What is inside" in heads
+    cite = desc[desc.index("## How to cite") :].split("\n", 2)[2]
+    assert cite.startswith("Kraishan, O. (2026). *CommonsWire: A full-text corpus")
+    assert len(desc) <= rel_pack.DESCRIPTION_MAX and "config_name" not in desc
+    assert "`commonswire-by.parquet`: Articles under CC BY 4.0, one row each" in desc
     by = {r["path"]: r for r in meta["resources"]}
     fields = by["commonswire-by.parquet"]["schema"]["fields"]
     assert [f["name"] for f in fields] == list(columns("9.9.0"))
@@ -622,7 +740,7 @@ def test_kaggle_metadata_describes_files_columns_provenance_and_frequency(tmp_pa
     png = (k / "dataset-cover-image.png").read_bytes()
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
     width, height = struct.unpack(">II", png[16:24])
-    assert (width, height) == (1120, 560) and width >= 560 and height >= 280
+    assert (width, height) == (560, 280)  # Kaggle's own cover size
     assert png == cover_image(m["rows_by_configuration"])  # the same input, the same image
     idat = png[png.index(b"IDAT") + 4 : png.index(b"IEND") - 8]
     assert len(zlib.decompress(idat)) == height * (1 + width * 3)
@@ -685,6 +803,10 @@ preferred-citation:
         ),
         ({"license": "MIT"}, "the license ('mit') differs from CITATION.cff"),
         ({"license": ""}, "license is missing"),
+        (
+            {"creators": [{**GOOD_ZENODO["creators"][0], "orcid": "0000-0000-0000-0000"}]},
+            "the ORCID iD ('0000-0000-0000-0000') differs from CITATION.cff",
+        ),
     ],
 )
 def test_check_zenodo_json(tmp_path, change, message):

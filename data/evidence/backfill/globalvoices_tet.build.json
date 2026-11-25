@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2016-09-10",
+  "kept": 15,
+  "last": "2017-03-01",
+  "raw_bytes": 155188,
+  "raw_files": 5,
+  "releasable": 15,
+  "releasable_after_daily": 15,
+  "rows_after_daily": 15,
+  "rows_bytes": 99055,
+  "run": "2026-11-23",
+  "seen": 15,
+  "source_id": "globalvoices_tet",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

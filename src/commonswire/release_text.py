@@ -10,7 +10,7 @@ import textwrap
 from collections import Counter
 from datetime import timedelta
 
-from commonswire.release import CONFIGURATIONS, Release, columns, source_table
+from commonswire.release import CONFIGURATIONS, Release, _series, columns, source_table
 from commonswire.sources import Source, license_label
 
 REPO = "https://github.com/obadaKraishan/commonswire"
@@ -50,6 +50,14 @@ HELD_TEXT = {
     "credited to an account, not a person": 'are credited only to an account such as "Guest '
     'Contributor", which names no person',
 }
+#: The held reasons of the Lingua rule (``commonswire.lingua``), in the card's words.
+LINGUA_HELD = {
+    "no English version found (the Lingua rule)": "no English version was found",
+    "its English version is not a released row (the Lingua rule)": "their English version is "
+    "held or left out",
+}
+#: The first series with its own card (many languages and editions: commonswire.card03).
+CARD03_FROM = (0, 3)
 #: Series whose card has a "Changes since" section, and the version it compares with.
 CHANGES_SINCE = {(0, 2): "0.1.0"}
 _NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
@@ -59,6 +67,40 @@ CONFIG_TEXT = {
     "by-sa": "Creative Commons Attribution-ShareAlike (CC BY-SA 4.0)",
     "pd": "public domain",
 }
+_CONFIG_NAMES = {
+    "by": ("Creative Commons Attribution", "CC BY"),
+    "by-sa": ("Creative Commons Attribution-ShareAlike", "CC BY-SA"),
+}
+
+
+def config_text(config: str, rows: list[dict]) -> str:
+    """A configuration's name with the license versions its rows carry (CC BY 2.0, 2.5, 3.0
+    and 4.0, ...); the fixed text when the rows carry none or the configuration has no
+    versions."""
+    if config not in _CONFIG_NAMES:
+        return CONFIG_TEXT[config]
+    prefix = "CC-BY-SA-" if config == "by-sa" else "CC-BY-"
+    versions = sorted(
+        {
+            r["license"][len(prefix) :].replace("-", " ")
+            for r in rows
+            if r["license"].startswith(prefix)
+        },
+        key=lambda v: [float(x) if x.replace(".", "").isdigit() else 0 for x in v.split()[:1]],
+    )
+    if not versions:
+        return CONFIG_TEXT[config]
+    name, short = _CONFIG_NAMES[config]
+    listed = versions[0]
+    if len(versions) > 1:
+        listed = ", ".join(versions[:-1]) + " and " + versions[-1]
+    return f"{name} ({short} {listed})"
+
+
+def language_tags(languages: Counter[str]) -> list[str]:
+    """The card's metadata languages: each row language's primary subtag, English first."""
+    tags = {lang.split("-")[0] for lang in languages}
+    return sorted(tags, key=lambda t: (t != "en", t))
 
 
 def _n(x: int) -> str:
@@ -150,6 +192,7 @@ def facts(release: Release, registry: dict[str, Source], third_party: int) -> di
             for s in release.sources
             if any(r["source_id"] == s for r in rows)
         },
+        "languages": Counter(r["language"] for r in rows),
         "held": sum(release.checks.held.values()),
         "held_reasons": dict(release.checks.held_reasons),
         "exact_duplicates": sum(release.checks.exact_duplicates.values()),
@@ -169,12 +212,19 @@ def card(
     registry: dict[str, Source],
     third_party: int,
     update: dict[str, object] | None = None,
+    series_from: str | None = None,
 ) -> str:
     """The dataset card of a release, with the Hugging Face metadata block on top. ``update``
     (from ``commonswire update``) adds a short section on what changed since the version it
     was built from: ``from_version``, ``window_days``, ``as_of``, the counts ``new``,
     ``changed``, ``removed`` and ``taken_down``, and ``count_check`` (``baseline``, ``sources``,
-    ``years_checked``, ``drops``, ``rows_removed``)."""
+    ``years_checked``, ``drops``, ``rows_removed``). Series 0.3 on has its own card
+    (:mod:`commonswire.card03`, with ``series_from``); older series keep this one, word for
+    word."""
+    if _series(release.version) >= CARD03_FROM:
+        from commonswire import card03
+
+        return card03.card(release, registry, third_party, update, series_from)
     f = facts(release, registry, third_party)
     update_section = ""
     if update:
@@ -227,7 +277,16 @@ def card(
         for t in table
     )
     config_lines = "\n".join(
-        f"| `{c}` | {CONFIG_TEXT[c]} | {_n(per_config[c])} |" for c in CONFIGURATIONS
+        f"| `{c}` | {config_text(c, release.rows[c])} | {_n(per_config[c])} |"
+        for c in CONFIGURATIONS
+    )
+    langs: Counter[str] = f["languages"]  # type: ignore[assignment]
+    language_yaml = "\n".join(f"- {t}" for t in language_tags(langs))
+    language_field = (
+        "`en`"
+        if set(langs) <= {"en"}
+        else f"the article's language, a BCP 47 tag from its edition or the publisher's own "
+        f"label ({len(langs)} in this version)"
     )
     fact_share = round(100 * f["flow_fact_checks"] / f["flow"]) if f["flow"] else 0  # type: ignore[operator]
     fact_words = (
@@ -239,11 +298,26 @@ def card(
     by_src: Counter[str] = f["rows_by_source"]  # type: ignore[assignment]
     total = int(f["rows"])  # type: ignore[call-overload]
     held_note = ""
-    if f["held"]:
-        reasons = sorted(f["held_reasons"].items(), key=lambda kv: (-kv[1], kv[0]))  # type: ignore[union-attr]
+    all_reasons: dict[str, int] = f["held_reasons"]  # type: ignore[assignment]
+    by_rule = {k: v for k, v in all_reasons.items() if k in LINGUA_HELD}
+    by_name = {k: v for k, v in all_reasons.items() if k not in LINGUA_HELD}
+    if by_name:
+        reasons = sorted(by_name.items(), key=lambda kv: (-kv[1], kv[0]))
         held_note = _wrap(
-            f"{_n(f['held'])} more rows are held back because the source asks for the author's "
-            "name: " + "; ".join(f"{_n(v)} {HELD_TEXT.get(k, k)}" for k, v in reasons) + "."
+            f"{_n(sum(by_name.values()))} more rows are held back because the source asks for "
+            "the author's name: "
+            + "; ".join(f"{_n(v)} {HELD_TEXT.get(k, k)}" for k, v in reasons)
+            + "."
+        )
+    if by_rule:
+        reasons = sorted(by_rule.items(), key=lambda kv: (-kv[1], kv[0]))
+        held_note += ("\n\n" if held_note else "") + _wrap(
+            f"{_n(sum(by_rule.values()))} rows of Global Voices' language sites are held back by "
+            "the Lingua rule (a row is released only when its English version is a released row "
+            "of this dataset, because the English pages are where republished partner pieces "
+            "are told apart): for "
+            + "; for ".join(f"{_n(v)}, {LINGUA_HELD[k]}" for k, v in reasons)
+            + "."
         )
     largest = max(release.sources, key=lambda x: (by_src.get(x, 0), x))
     share = by_src.get(largest, 0) / total if total else 0.0
@@ -375,7 +449,7 @@ def card(
     return f"""---
 pretty_name: CommonsWire
 language:
-- en
+{language_yaml}
 license: other
 license_name: per-row-open-licenses
 license_link: https://huggingface.co/datasets/obadakr/commonswire/blob/main/LICENSES.md
@@ -466,7 +540,7 @@ pd = load_dataset("{HF_ID}", "pd", split="train")  # public domain
 | `authors` | the bylines as published (empty when the article names no person) |
 {tr_field}| `published_at`, `updated_at` | UTC, as the source gives them |
 | `retrieved_at` | UTC, when CommonsWire fetched the article |
-| `language` | `en` |
+| `language` | {language_field} |
 | `section` | the source's own section or category, if any |
 | `url` | the article at its source |
 | `license`, `license_url` | the article's license and a link to its legal text |
@@ -548,7 +622,12 @@ Version {release.version}, collected up to {f["as_of"]}. Code: {REPO} (Apache-2.
 
 
 def licenses_md(release: Release, registry: dict[str, Source]) -> str:
-    """A short LICENSES.md: the licenses in this version and what users must do."""
+    """A short LICENSES.md: the licenses in this version and what users must do (series 0.3
+    on: :func:`commonswire.card03.licenses_md`)."""
+    if _series(release.version) >= CARD03_FROM:
+        from commonswire import card03
+
+        return card03.licenses_md(release, registry)
     counts = release.counts()
     lines = []
     for c in CONFIGURATIONS:

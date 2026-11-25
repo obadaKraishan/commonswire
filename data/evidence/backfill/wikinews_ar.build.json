@@ -1,0 +1,31 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 6900,
+    "CC-BY-SA-4.0": 13,
+    "held:own notice differs (a third party's copyright)": 2,
+    "held:own notice differs (another license)": 2
+  },
+  "files": {
+    "articles": {
+      "bytes": 10452306,
+      "checked": true,
+      "md5": "77555d376ad377305aee45f35cdd9109"
+    },
+    "stubs": {
+      "bytes": 16773858,
+      "checked": true,
+      "md5": "7c5cfa0c5737739b07a8a214fd50c1fa"
+    }
+  },
+  "held": 4,
+  "kept": 6917,
+  "run": "2026-11-25",
+  "skipped": {
+    "empty_text": 24,
+    "not_an_article_namespace": 26366,
+    "not_marked_published": 890,
+    "redirect": 455
+  },
+  "source_id": "wikinews_ar",
+  "validate_errors": 0
+}

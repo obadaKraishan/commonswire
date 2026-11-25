@@ -7,6 +7,55 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **The language editions (series 0.3).**
+  - Balkan Diskurs' Bosnian edition (`balkandiskurs_bs`): read like the English edition, with
+    Bosnian republication notes left out as well.
+  - 47 Global Voices language sites under **the Lingua rule** (reason code
+    `released_with_english`): a language-site row is released only when its English version
+    is a released row of the corpus, because the English pages are where republished partner
+    pieces are detected. `release` holds every other such row and counts it, by edition.
+  - The link to the English version comes from the body the API gives
+    (`commonswire lingua-link`, no requests). A translation keeps its source's links to other
+    sites, its links to English articles and its image file names, so these are matched
+    against the saved English bodies. On a study of the pages' own links it was never wrong
+    and found 82% (`docs/method.md`).
+  - Writers and translators come from each site's own listing, its labels learned from the
+    listing; `listing-bylines --plan` reads only the listing pages that may show a story the
+    rule could release.
+- **`other_versions`** (series 0.3): the addresses of an article's versions in other
+  languages, as the publisher links them (Global Voices through the English post, Balkan
+  Diskurs from its `hreflang` tags; `commonswire versions`). `original_url` is set only where
+  exactly one version in the group credits no translator.
+- **Wikinews' editions by date:** license-by-date tables for eight editions, read on their
+  own copyright pages (`commonswire.licensing`). An article takes the license of its creation
+  date; a date the table does not place is held, and so is a page that carries a license or
+  copyright notice of its own that differs from that license (counted by edition). Sixteen
+  editions stay pending, each with the question its page leaves. `commonswire
+  wikinews-edition` saves an edition's dumps once (md5 checked), counts its templates
+  (`--census`), and builds its rows by creation date (the stub history's first revision).
+- **Tags:** `backfill --tags` asks new archives for each post's tags and saves the site's tag
+  names; `commonswire backfill-tags` reads the tags of an archive saved without them (post
+  ids with tag ids, then only the names used). Builds join them by post id.
+- **The weekly route of series 0.3** asks for tags and keeps each row's versions. It links a
+  new language-site post to its English version by fingerprint against the run's English
+  posts, or else from the post's own page (at most 40 pages a site a week). Versions are
+  added to their groups after the run. The Wikinews editions are carried as closed. The
+  language sites get no count check. Series 0.1 and 0.2 ask for the same fields and write
+  the same files as before.
+- The registry's new reason code `released_with_english`, which needs `edition_of`.
+- **Series 0.3's sources:** the Bosnian Balkan Diskurs edition, 46 Global Voices language sites
+  and six Wikinews editions (French, Chinese, Arabic, Greek, Romanian, Korean) beside the nine
+  of before. Each Wikinews edition's published articles are told by its own publication
+  template, found in its dump's template census; Chinese headline digests, made only of
+  templates, have no text of their own.
+- **The card** names the languages, the license versions and the Lingua rule's held rows from
+  the rows (a 0.2.x card is unchanged).
+- **Backfills and listings hold up better:** an API answer whose JSON follows an HTML notice
+  from the site is kept unchanged (`.notjson`) and its posts read; a listing page still
+  failing with a server error after the client's retries is asked again after 5 and 15
+  minutes; a site that redirects its listing pages only to drop the trailing slash is asked in
+  that form; `backfill-tags --missing-from` reads only the posts a run saved without tags.
+
 - **The variables that need no model, as columns from series 0.3** (earlier series keep
   their columns, so a 0.2.x build is unchanged): `publisher_section`,
   `publisher_categories` and `publisher_tags` (the publisher's own labels, as written);
@@ -175,6 +224,9 @@ All notable changes to this project are documented here. The format follows
   rises, rows checked and rows removed.
 
 ### Changed
+- `release`: for an edition under the Lingua rule the rule is checked first, so a row it
+  holds is counted under it.
+- `validate`: a row of a date its source's license table does not place must be held.
 - `docs/automation.md` describes the weekly update as built: what GitHub and Hugging Face
   allow (with links), the run's steps and stops, the delivery modes and their risks, the
   tokens, the options for removals older than 30 days with their cost in requests, and the

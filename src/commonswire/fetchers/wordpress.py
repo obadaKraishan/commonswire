@@ -114,6 +114,10 @@ class WordPressFetcher(Fetcher):
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         #: category id -> name, for answers without embedded terms (backfills).
         self.category_names: dict[int, str] = {}
+        #: tag id -> name, and post id -> tag ids (a tags backfill), for answers without
+        #: embedded terms.
+        self.tag_names: dict[int, str] = {}
+        self.post_tags: dict[int, tuple[int, ...]] = {}
         #: author id -> byline, for sites whose API gives no author names.
         self.byline_map: dict[int, tuple[str, ...]] = {}
         #: canonical URL -> byline read from the article page (``commonswire page-bylines``).
@@ -124,21 +128,45 @@ class WordPressFetcher(Fetcher):
         self.page_translators: dict[str, tuple[str, ...]] = {}
         #: canonical URL -> why the page or listing names no person (``not_a_person``, ...).
         self.byline_why_none: dict[str, str] = {}
+        #: canonical URL -> its other-language versions and original (series 0.3 on;
+        #: ``commonswire versions``).
+        self.versions: dict[str, dict] = {}
 
-    def backfill_url(self, page: int, per_page: int = PER_PAGE) -> str:
+    def fields(self, *, with_tags: bool = False) -> str:
+        """The fields a backfill or an update asks for. Series 0.3 on also asks for each
+        post's tag ids (``with_tags``); the fields of series 0.1 and 0.2 are unchanged."""
+        return f"{self.backfill_fields},tags" if with_tags else self.backfill_fields
+
+    def backfill_url(self, page: int, per_page: int = PER_PAGE, *, with_tags: bool = False) -> str:
         """Oldest first, so posts published during a backfill do not shift the pages."""
         params = {
             "per_page": str(per_page),
             "page": str(page),
             "orderby": "date",
             "order": "asc",
-            "_fields": self.backfill_fields,
+            "_fields": self.fields(with_tags=with_tags),
+        }
+        return f"{self.api_base}/wp-json/wp/v2/posts?{urlencode(params)}"
+
+    def tags_only_url(self, page: int, per_page: int = PER_PAGE) -> str:
+        """A page of posts with their ids and tag ids only (the tags backfill of an archive
+        saved without them), oldest first."""
+        params = {
+            "per_page": str(per_page),
+            "page": str(page),
+            "orderby": "date",
+            "order": "asc",
+            "_fields": "id,tags",
         }
         return f"{self.api_base}/wp-json/wp/v2/posts?{urlencode(params)}"
 
     def categories_url(self, page: int) -> str:
         params = {"per_page": "100", "page": str(page), "_fields": "id,name"}
         return f"{self.api_base}/wp-json/wp/v2/categories?{urlencode(params)}"
+
+    def tags_url(self, page: int) -> str:
+        params = {"per_page": "100", "page": str(page), "_fields": "id,name"}
+        return f"{self.api_base}/wp-json/wp/v2/tags?{urlencode(params)}"
 
     def _posts_url(self, page: int, per_page: int = PER_PAGE, **extra: str) -> str:
         params = {
@@ -220,6 +248,12 @@ class WordPressFetcher(Fetcher):
                 if c in self.category_names
             ]
         tags = [strip_tags(t.get("name", "")) for t in terms if t.get("taxonomy") == "post_tag"]
+        if not tags and self.tag_names:
+            ids = post.get("tags")
+            if not isinstance(ids, list):
+                ids = self.post_tags.get(post.get("id"), ())  # type: ignore[arg-type]
+            tags = [strip_tags(self.tag_names[t]) for t in ids if t in self.tag_names]
+        versions = self.versions.get(key, {}) if key else {}
         published = _gmt(post.get("date_gmt"))
         if published is None:
             raise ValueError("a post has no date_gmt")
@@ -243,6 +277,8 @@ class WordPressFetcher(Fetcher):
                 "type": post.get("type", ""),
                 "byline_is_source": byline_is_source,
                 "byline_why_none": why_none,
+                "other_versions": tuple(versions.get("other_versions") or ()),
+                "original_url": versions.get("original_url", ""),
             },
         )
 
@@ -284,6 +320,48 @@ class GlobalVoicesFetcher(WordPressFetcher):
     )
 
 
+#: Global Voices' language sites (Lingua), by subdomain, as listed on
+#: https://globalvoices.org/lingua/ (2026-11-17).
+LINGUA_SITES = (
+    "am", "ar", "aym", "bg", "bn", "ca", "cs", "da", "de", "el", "eo", "es", "fa", "fil", "fr",
+    "he", "hi", "hr", "hu", "id", "ig", "it", "jp", "kk", "km", "ko", "ku", "mg", "mk", "my",
+    "ne", "nl", "or", "pa", "pl", "pt", "ro", "ru", "sat", "sq", "sr", "sv", "sw", "tet", "tr",
+    "uk", "ur", "uz", "yo", "zhs", "zht",
+)  # fmt: skip
+
+
+class GlobalVoicesLinguaFetcher(GlobalVoicesFetcher):
+    """A Global Voices language site (Lingua). Its rows take their language from the registry
+    row, their writers and translators from the site's own listing, and their other-language
+    versions from ``commonswire versions``; the release applies the Lingua rule
+    (``commonswire.lingua``)."""
+
+    site = ""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.language = self.source.languages[0]
+
+
+def _lingua_class(site: str) -> type[GlobalVoicesLinguaFetcher]:
+    return type(
+        f"GlobalVoicesLingua_{site}",
+        (GlobalVoicesLinguaFetcher,),
+        {
+            "source_id": f"globalvoices_{site}",
+            "site": site,
+            "api_base": f"https://{site}.globalvoices.org",
+            "__doc__": f"Global Voices' {site} site (Lingua).",
+        },
+    )
+
+
+#: One fetcher class per Lingua site.
+LINGUA_FETCHERS: dict[str, type[GlobalVoicesLinguaFetcher]] = {
+    f"globalvoices_{site}": _lingua_class(site) for site in LINGUA_SITES
+}
+
+
 class ThreeSixtyInfoFetcher(WordPressFetcher):
     """360info: commissioned articles by named researchers, CC BY 4.0 except where noted.
     Third-party material is noted with the content; such posts are dropped."""
@@ -315,6 +393,35 @@ class BalkanDiskursFetcher(WordPressFetcher):
     api_base = "https://balkandiskurs.com/en"
     language = "en"
     drop_classes = ("sharedaddy", "jp-relatedposts", "share", "newsletter", "wp-caption")
+
+
+#: Republication notes in Bosnian ("originally published", "taken from"), for the Bosnian
+#: edition, whose notes the English words would miss.
+REPUBLISHED_BS = re.compile(
+    r"\b((originalno|prvobitno|izvorno) (je )?(objavljen|objavljena|objavljeno)|"
+    r"(tekst|članak|clanak) (je )?(preuzet|prenesen)|preuzeto (sa|s|iz|od)|"
+    r"preneseno (sa|s|iz|od)|objavljeno uz dozvolu)",
+    re.I,
+)
+
+
+class BalkanDiskursBosnianFetcher(BalkanDiskursFetcher):
+    """Balkan Diskurs, Bosnian edition (the root WordPress site, its default language): CC BY
+    under its own Bosnian attribution policy. Republication notes are looked for in Bosnian
+    as well as in English."""
+
+    source_id = "balkandiskurs_bs"
+    api_base = "https://balkandiskurs.com"
+    language = "bs"
+
+    def third_party_reason(self, item: Item) -> str | None:
+        reason = super().third_party_reason(item)
+        if reason:
+            return reason
+        text = strip_tags(item.body_html)
+        if REPUBLISHED_BS.search(text[:400]) or REPUBLISHED_BS.search(text[-600:]):
+            return "republication_note"
+        return None
 
 
 class FactlyFetcher(WordPressFetcher):

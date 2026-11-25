@@ -334,6 +334,9 @@ def _load_bylines(root: Path, fetcher) -> None:  # type: ignore[no-untyped-def]
         for u, v in load_page_bylines(path).items()
         if v.get("why_none")
     }
+    from commonswire.versions import load_versions
+
+    fetcher.versions = load_versions(root / "data" / "interim" / "versions", fetcher.source_id)
 
 
 def cmd_backfill_pages(args: argparse.Namespace) -> int:
@@ -423,6 +426,7 @@ def cmd_backfill(args: argparse.Namespace) -> int:
         folder,
         run=args.run,
         max_pages=args.max_pages,
+        with_tags=args.tags,
         say=lambda m: print(m, flush=True),
     )
     print(
@@ -432,6 +436,48 @@ def cmd_backfill(args: argparse.Namespace) -> int:
         + ("finished" if progress.finished else f"not finished: {progress.stopped or 'stopped'}")
     )
     return 0 if progress.finished or progress.stopped.startswith("stopped after") else 1
+
+
+def cmd_backfill_tags(args: argparse.Namespace) -> int:
+    """The tags of an archive saved without them: post ids with tag ids, then the names of
+    the tags used (resumable, every answer saved once)."""
+    from commonswire.backfill import backfill_tags
+
+    root = Path(args.root)
+    if not (root / "data" / "raw").exists():
+        print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+        return 2
+    fetcher, client = _wordpress_fetcher(root, args.source_id, args.sources)
+    client.byte_budget = int(args.max_mb * 1024 * 1024)
+    folder = root / "data" / "raw" / "backfill" / args.source_id / f"{args.run}-tags"
+    only_ids = None
+    if args.missing_from:
+        import json
+
+        run = root / "data" / "raw" / "backfill" / args.source_id / args.missing_from
+        only_ids = [
+            int(p["id"])
+            for path in sorted(run.glob("posts-p*.json"))
+            for p in json.loads(path.read_bytes())
+            if isinstance(p, dict) and "tags" not in p and isinstance(p.get("id"), int)
+        ]
+        print(f"{args.source_id}: {len(only_ids)} posts of run {args.missing_from} have no tags")
+    progress = backfill_tags(
+        fetcher,
+        client,
+        folder,
+        run=args.run,
+        max_requests=args.max_requests,
+        only_ids=only_ids,
+        say=lambda m: print(m, flush=True),
+    )
+    print(
+        f"{args.source_id}: {progress.pages_saved} of {progress.total_pages or '?'} tag pages "
+        f"({progress.total_posts or '?'} posts), {progress.tag_pages} pages of tag names; "
+        f"{progress.requests_this_run} requests and {progress.bytes_this_run:,} bytes this run; "
+        + ("finished" if progress.finished else f"not finished: {progress.stopped}")
+    )
+    return 0 if progress.finished else 1
 
 
 def _build_pages(args: argparse.Namespace) -> int:
@@ -528,6 +574,168 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0 if check.ok else 1
 
 
+def cmd_wikinews_edition(args: argparse.Namespace) -> int:
+    """A Wikinews language edition from its dumps: download (once), census, or rows."""
+    import json
+    from collections import Counter
+    from datetime import datetime, timezone
+
+    from commonswire.backfill import save_once
+    from commonswire.http import make_client
+    from commonswire.licensing import LICENSE_SCHEDULES, UNPLACED, license_on
+    from commonswire.schema import make_article
+    from commonswire.sources import load_sources, render_credit
+    from commonswire.validate import validate_file
+    from commonswire.wikidump import expected_md5, md5_of, open_dump
+    from commonswire.wikieditions import (
+        EDITION_MARKERS,
+        file_names,
+        file_url,
+        first_revisions,
+        open_stubs,
+        own_notice_hold,
+        read_edition,
+        template_census,
+    )
+
+    root = Path(args.root)
+    sid = args.source_id
+    registry = load_sources(Path(args.sources))
+    if sid not in registry or registry[sid].edition_of != "wikinews_en":
+        print(f"{sid} is not a Wikinews edition in the registry", file=sys.stderr)
+        return 2
+    if sid not in LICENSE_SCHEDULES:
+        print(f"{sid} has no license-by-date table", file=sys.stderr)
+        return 2
+    names = file_names(sid)
+    folder = root / "data" / "raw" / "backfill" / sid / args.run
+    paths = {k: folder / v for k, v in names.items()}
+    note = f"backfill:{sid}"
+    if args.download:
+        if not (root / "data" / "raw").exists():
+            print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+            return 2
+        client = make_client(root, byte_budget=int(args.max_mb * 1024 * 1024))
+        for key in ("md5sums", "articles", "stubs"):
+            if paths[key].exists():
+                continue
+            resp = client.get(
+                file_url(sid, names[key]),
+                accept="*/*",
+                max_bytes=int(args.max_mb * 1024 * 1024),
+                note=note,
+            )
+            if resp.status != 200 or resp.truncated:
+                print(f"{names[key]} answered HTTP {resp.status} (truncated: {resp.truncated})")
+                return 1
+            save_once(paths[key], resp.body)
+    missing = [k for k in ("articles", "stubs") if not paths[k].exists()]
+    if missing:
+        print(f"{sid}: no saved {', '.join(missing)}; run with --download first", file=sys.stderr)
+        return 2
+    sums = paths["md5sums"].read_text() if paths["md5sums"].exists() else ""
+    checked = {}
+    for key in ("articles", "stubs"):
+        want = expected_md5(sums, names[key]) if sums else None
+        got = md5_of(paths[key])
+        if want and want != got:
+            print(f"{names[key]}: md5 {got} differs from the published {want}", file=sys.stderr)
+            return 1
+        checked[key] = {"md5": got, "checked": bool(want), "bytes": paths[key].stat().st_size}
+    evidence = root / "data" / "evidence" / "wikinews"
+    evidence.mkdir(parents=True, exist_ok=True)
+    if args.census:
+        with open_dump(paths["articles"]) as stream:
+            pages, counts = template_census(stream)
+        info = {"source_id": sid, "article_pages": pages, "templates": dict(counts.most_common(80))}
+        (evidence / f"{sid}.census.json").write_text(
+            json.dumps(info, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"{sid}: {pages} article pages; the 80 commonest templates are in the census file")
+        return 0
+    if sid not in EDITION_MARKERS:
+        print(f"{sid}: no markers set (read its census first)", file=sys.stderr)
+        return 2
+    src = registry[sid]
+    with open_stubs(paths["stubs"]) as stream:
+        created = first_revisions(stream)
+    retrieved = datetime.fromtimestamp(paths["articles"].stat().st_mtime, timezone.utc).replace(
+        microsecond=0
+    )
+    skipped: Counter[str] = Counter()
+    licenses: Counter[str] = Counter()
+    out = root / "data" / "interim" / "rows" / f"{sid}.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    (root / "data" / "evidence" / "backfill").mkdir(parents=True, exist_ok=True)
+    kept = held = 0
+    seen: set[str] = set()
+    with open_dump(paths["articles"]) as stream, out.open("w", encoding="utf-8") as fh:
+        for art in read_edition(sid, stream, created, skipped):
+            if art.url in seen:
+                skipped["duplicate_url"] += 1
+                continue
+            seen.add(art.url)
+            lic = license_on(sid, art.published_at, src.license)
+            hold = ""
+            if lic == UNPLACED:
+                hold = "license date not placed: its edition's copyright page does not settle it"
+                lic = src.license
+            else:
+                hold = own_notice_hold(art.wikitext, lic)
+            credit = render_credit(
+                src.credit_line,
+                title=art.title,
+                authors=(),
+                source=src.name,
+                url=art.url,
+                license=lic,
+            )
+            try:
+                row = make_article(
+                    source_id=sid,
+                    url=art.url,
+                    title=art.title,
+                    text=art.text,
+                    published_at=art.published_at,
+                    updated_at=art.last_edit,
+                    retrieved_at=max(retrieved, art.published_at),
+                    language=src.languages[0],
+                    license=lic,
+                    credit_line=credit,
+                    releasable=not hold,
+                    hold_reason=hold,
+                    **wiki_variables(art.wikitext, f"{sid.split('_', 1)[1]}.wikinews.org"),
+                )
+            except ValueError:
+                skipped["invalid"] += 1
+                continue
+            fh.write(row.model_dump_json() + "\n")
+            kept += 1
+            held += int(bool(hold))
+            licenses[("held:" + hold.split(":", 1)[0]) if hold else lic] += 1
+    check = validate_file(out, registry)
+    info = {
+        "source_id": sid,
+        "run": args.run,
+        "files": checked,
+        "kept": kept,
+        "held": held,
+        "by_license": dict(sorted(licenses.items())),
+        "skipped": dict(sorted(skipped.items())),
+        "validate_errors": len(check.errors),
+    }
+    (root / "data" / "evidence" / "backfill" / f"{sid}.build.json").write_text(
+        json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        f"{sid}: kept {kept} ({held} held); {dict(licenses)}; skipped "
+        f"{dict(skipped)}; validate: {len(check.errors)} errors"
+    )
+    for msg in check.errors[:5]:
+        print(f"  error: {msg}")
+    return 0 if check.ok else 1
+
+
 def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     import json
     from collections import Counter
@@ -548,6 +756,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
         open_dump,
         read_dump,
     )
+    from commonswire.wikieditions import own_notice_hold
 
     root = Path(args.root)
     folder = root / "data" / "raw" / "backfill" / "wikinews_en" / args.run
@@ -582,6 +791,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     out = root / "data" / "interim" / "rows" / "wikinews_en.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     kept = 0
+    held: Counter[str] = Counter()
     seen: set[str] = set()
     first = last = ""
     with open_dump(dump) as stream, out.open("w", encoding="utf-8") as fh:
@@ -591,6 +801,9 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                 continue
             seen.add(art.url)
             lic = license_on("wikinews_en", art.published_at, src.license)
+            # From series 0.3: a page whose own notice differs from its date's license is held,
+            # as in the other editions.
+            hold = own_notice_hold(art.wikitext, lic)
             credit = render_credit(
                 src.credit_line,
                 title=art.title,
@@ -611,6 +824,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                     language="en",
                     license=lic,
                     credit_line=credit,
+                    releasable=not hold,
+                    hold_reason=hold,
                     **wiki_variables(art.wikitext),
                 )
             except ValueError:
@@ -618,6 +833,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
                 continue
             fh.write(row.model_dump_json() + "\n")
             kept += 1
+            if hold:
+                held[hold.split(":", 1)[0]] += 1
             day = art.published_at.date().isoformat()
             first, last = min(first or day, day), max(last or day, day)
     check = validate_file(out, registry)
@@ -628,6 +845,7 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
         "md5_checked": bool(want),
         "dump_bytes": dump.stat().st_size,
         "kept": kept,
+        "held": dict(sorted(held.items())),
         "skipped": dict(sorted(skipped.items())),
         "first": first,
         "last": last,
@@ -639,7 +857,8 @@ def cmd_wikinews_dump(args: argparse.Namespace) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
-        f"wikinews_en: kept {kept}; skipped {dict(skipped)}; validate: {len(check.errors)} errors"
+        f"wikinews_en: kept {kept} ({sum(held.values())} held: {dict(sorted(held.items()))}); "
+        f"skipped {dict(skipped)}; validate: {len(check.errors)} errors"
     )
     return 0 if check.ok else 1
 
@@ -889,17 +1108,32 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
     import json
 
     from commonswire.http import make_client
-    from commonswire.listingbylines import LISTING_MARKUP, collect_listing_bylines
+    from commonswire.listingbylines import LISTING_MARKUP, collect_listing_bylines, has_listing
     from commonswire.sources import load_sources
 
     root = Path(args.root)
     sid = args.source_id
-    if sid not in LISTING_MARKUP:
+    if not has_listing(sid):
         print(
-            f"no listing markup is known for {sid}; there is for: {', '.join(LISTING_MARKUP)}",
+            f"no listing markup is known for {sid}; there is for: {', '.join(LISTING_MARKUP)} "
+            "and the Global Voices language sites",
             file=sys.stderr,
         )
         return 2
+    plan = None
+    if args.plan:
+        from commonswire.lingua import plan_for
+
+        try:
+            plan, planned = plan_for(root, sid, args.plan)
+        except FileNotFoundError as exc:
+            print(f"{sid}: {exc}", file=sys.stderr)
+            return 2
+        print(
+            f"{sid}: the plan reads the pages of {planned['releasable']} of {planned['posts']} "
+            "posts the rule could release (and pages 1 and 2)",
+            flush=True,
+        )
     if not (root / "data" / "raw").exists():
         print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
         return 2
@@ -913,6 +1147,7 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
         root / "data" / "interim" / "bylines" / f"{sid}.listing.json",
         source_name=load_sources(Path(args.sources))[sid].name,
         max_pages=args.max_pages,
+        plan=plan,
         say=lambda m: print(m, flush=True),
     )
     info = st.summary()
@@ -922,13 +1157,74 @@ def cmd_listing_bylines(args: argparse.Namespace) -> int:
     path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
         f"{sid}: {st.last_page} listing pages ({st.pages_fetched} fetched, "
-        f"{st.pages_already_saved} already saved, {st.bytes_fetched:,} bytes); {st.stories} "
+        f"{st.pages_already_saved} already saved, {st.pages_skipped} skipped by the plan, "
+        f"{st.bytes_fetched:,} bytes); {st.stories} "
         f"stories, {st.with_writer} with a writer's name, {st.without_writer} without"
         + (f"; ended: {st.end}" if st.end else "")
         + (f"; stopped: {st.stopped}" if st.stopped else "")
     )
     print(f"next: commonswire build {sid} --run RUN, to put the names into the rows")
     return 1 if st.stopped else 0
+
+
+def cmd_lingua_link(args: argparse.Namespace) -> int:
+    """Each language-site post's English version, by its body's fingerprint (no requests)."""
+    import json
+
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS
+    from commonswire.lingua import (
+        english_index,
+        english_posts,
+        link_posts,
+        saved_posts,
+        write_links,
+    )
+
+    root = Path(args.root)
+    unknown = [s for s in args.source_ids if s not in LINGUA_FETCHERS]
+    if unknown:
+        print(f"not a Global Voices language site: {', '.join(unknown)}", file=sys.stderr)
+        return 2
+    index = english_index(english_posts(root))
+    print(f"English posts indexed: {len(index):,}", flush=True)
+    for sid in args.source_ids:
+        folder = root / "data" / "raw" / "backfill" / sid / args.run
+        if not folder.is_dir():
+            print(f"{sid}: no saved run at {folder}", file=sys.stderr)
+            return 2
+        links, st = link_posts(sid, saved_posts(folder), index)
+        write_links(root / "data" / "interim" / "lingua" / f"{sid}.links.json", links)
+        info = {**st.summary(), "run": args.run}
+        path = root / "data" / "evidence" / "lingua" / f"{sid}.links.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(
+            f"{sid}: {st.posts} posts, {st.matched} matched to an English post, "
+            f"{st.no_match} not matched, {st.no_parts} with too few links and images to match",
+            flush=True,
+        )
+    return 0
+
+
+def cmd_versions(args: argparse.Namespace) -> int:
+    """Every row's other-language versions (Global Voices and Balkan Diskurs), no requests."""
+    import json
+
+    from commonswire.versions import global_voices_versions, hreflang_versions, write_versions
+
+    root = Path(args.root)
+    interim = root / "data" / "interim"
+    gv, gv_counts = global_voices_versions(interim / "lingua", interim / "bylines")
+    bd, bd_counts = hreflang_versions(root / "data" / "raw" / "pages")
+    write_versions(interim / "versions", {**gv, **bd})
+    counts = dict(sorted((gv_counts + bd_counts).items()))
+    path = root / "data" / "evidence" / "versions.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(counts, indent=2) + "\n", encoding="utf-8")
+    for key, n in counts.items():
+        print(f"{key}: {n:,}")
+    print("next: commonswire build SOURCE --run RUN for each source, to put them into the rows")
+    return 0
 
 
 def _third_party_dropped(root: Path, sources: Sequence[str]) -> int:
@@ -1178,7 +1474,7 @@ def cmd_update(args: argparse.Namespace) -> int:
             prev,
             out,
             work,
-            registry_path=Path(args.sources),
+            registry_path=Path(args.sources) if args.sources else None,
             takedowns_path=Path(args.takedowns),
             baseline_path=Path(args.baseline),
             version=args.version,
@@ -1194,6 +1490,7 @@ def cmd_update(args: argparse.Namespace) -> int:
             open_dataset_prs=args.open_dataset_prs,
             allow_skipped=frozenset(filter(None, (args.allow_skipped or "").split(","))),
             max_count_requests=args.max_count_requests,
+            max_requests=args.max_requests,
             dry_run=args.dry_run,
             offline=args.offline,
             say=lambda m: print(redact(m), flush=True),
@@ -1218,17 +1515,45 @@ def cmd_update(args: argparse.Namespace) -> int:
     return {"ready": 0, "unchanged": 4}.get(result.status, 3)
 
 
-def wiki_variables(wikitext: str) -> dict[str, object]:
-    """Wikinews' variables that need no model, from a page's wikitext."""
+def wiki_variables(wikitext: str, host: str = "en.wikinews.org") -> dict[str, object]:
+    """Wikinews' variables that need no model, from a page's wikitext (``host``: the
+    edition's own)."""
     from commonswire.variables import link_stats, wiki_categories, wiki_link_hosts
 
-    n, ext, hosts = link_stats(wiki_link_hosts(wikitext, "en.wikinews.org"), "en.wikinews.org")
+    n, ext, hosts = link_stats(wiki_link_hosts(wikitext, host), host)
     return {
         "publisher_categories": tuple(wiki_categories(wikitext)),
         "n_links": n,
         "n_links_external": ext,
         "link_hosts": hosts,
     }
+
+
+def cmd_tracked_addresses(args: argparse.Namespace) -> int:
+    """The article addresses in the tracked log and evidence files, as counts (never shown);
+    with --rewrite, their ids in their place (commonswire.addresses)."""
+    from commonswire.addresses import find, rewrite, summary_json
+
+    root = Path(args.root)
+    if args.rewrite:
+        raw = root / "data" / "raw"
+        if not raw.exists():
+            print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+            return 2
+        save_to = Path(args.save_to) if args.save_to else raw / "logs" / f"addresses-{_today()}"
+        try:
+            result = rewrite(root, save_to)
+        except FileExistsError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(summary_json(result))
+        print(f"the files as they were, and the map, are in {save_to} (never tracked)")
+        return 0 if result["left"] == 0 else 1
+    found = find(root)
+    for line in found.lines():
+        print(line)
+    print(f"{found.total} article addresses in the tracked files")
+    return 0 if found.total == 0 else 1
 
 
 def cmd_changes(args: argparse.Namespace) -> int:
@@ -1378,7 +1703,27 @@ def build_parser() -> argparse.ArgumentParser:
     bf.add_argument(
         "--check", action="store_true", help="check a saved run for missing pages (no requests)"
     )
+    bf.add_argument(
+        "--tags",
+        action="store_true",
+        help="ask for each post's tags and save the site's tag names (series 0.3 on)",
+    )
     bf.set_defaults(func=cmd_backfill)
+
+    bt = sub.add_parser(
+        "backfill-tags", help="the tags of an archive saved without them (series 0.3 on)"
+    )
+    bt.add_argument("source_id")
+    bt.add_argument("--run", default=_today(), help="the run's name (default: today)")
+    bt.add_argument("--max-mb", type=float, default=100, help="stop after this many megabytes")
+    bt.add_argument("--max-requests", type=int, help="stop after this many requests")
+    bt.add_argument(
+        "--missing-from",
+        metavar="RUN",
+        help="ask only for the posts of the backfill run RUN that were saved without tags",
+    )
+    bt.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    bt.set_defaults(func=cmd_backfill_tags)
 
     bp = sub.add_parser(
         "backfill-pages",
@@ -1398,6 +1743,16 @@ def build_parser() -> argparse.ArgumentParser:
     bd.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
     bd.set_defaults(func=cmd_build)
 
+    we = sub.add_parser(
+        "wikinews-edition", help="a Wikinews language edition from its dumps (series 0.3 on)"
+    )
+    we.add_argument("source_id")
+    we.add_argument("--run", default=_today())
+    we.add_argument("--download", action="store_true", help="save the dumps once")
+    we.add_argument("--census", action="store_true", help="count its article templates only")
+    we.add_argument("--max-mb", type=float, default=300, help="the download's byte budget")
+    we.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    we.set_defaults(func=cmd_wikinews_edition)
     wd = sub.add_parser("wikinews-dump", help="read the Wikinews dump into rows")
     wd.add_argument("--run", default=_today())
     wd.add_argument("--download", action="store_true", help="download the dump once first")
@@ -1441,7 +1796,26 @@ def build_parser() -> argparse.ArgumentParser:
     lb.add_argument("--max-pages", type=int, default=6000, help="read at most this many pages")
     lb.add_argument("--max-mb", type=int, default=1200, help="stop after this many megabytes")
     lb.add_argument("--replay", action="store_true", help="read saved pages only, no requests")
+    lb.add_argument(
+        "--plan",
+        metavar="RUN",
+        help="a Global Voices language site: read only the pages that may show a story the "
+        "Lingua rule could release (from the backfill run RUN and its links)",
+    )
     lb.set_defaults(func=cmd_listing_bylines)
+
+    ll = sub.add_parser(
+        "lingua-link",
+        help="each Global Voices language-site post's English version, from the saved bodies",
+    )
+    ll.add_argument("source_ids", nargs="+", metavar="SOURCE")
+    ll.add_argument("--run", required=True, help="the language sites' backfill run")
+    ll.set_defaults(func=cmd_lingua_link)
+
+    vs = sub.add_parser(
+        "versions", help="every row's other-language versions, from saved answers (no requests)"
+    )
+    vs.set_defaults(func=cmd_versions)
     by = sub.add_parser("bylines", help="author names from a WordPress users endpoint")
     by.add_argument("source_id")
     by.add_argument("--run", default=_today())
@@ -1508,7 +1882,11 @@ def build_parser() -> argparse.ArgumentParser:
     up.add_argument("--usage-log", help="the request log (default: WORK/usage_log.csv)")
     up.add_argument("--locks", help="the pacer's lock folder (default: WORK/locks)")
     up.add_argument("--summary", help="the summary file (default: WORK/summary.json, and .md)")
-    up.add_argument("--sources", default=str(repo_root() / "data" / "sources.csv"))
+    up.add_argument(
+        "--sources",
+        help="the registry (default: the series' own: data/series/0.2/sources.csv for 0.2.x, "
+        "data/sources.csv from 0.3.x)",
+    )
     up.add_argument("--takedowns", default=str(repo_root() / "data" / "takedowns.csv"))
     up.add_argument("--baseline", default=str(repo_root() / "data" / "update-baseline.json"))
     up.add_argument("--window", type=int, default=30, help="days looked back (default: 30)")
@@ -1528,6 +1906,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=200,
         help="requests the count check may spend on drops in one run (default: 200)",
     )
+    up.add_argument(
+        "--max-requests",
+        type=int,
+        help="the run's request cap, every attempt counted (default: none; a dry run's limit)",
+    )
     up.add_argument("--now", help="the run's time (ISO 8601; default: now)")
     up.add_argument(
         "--dry-run", action="store_true", help="mark the build as never to be delivered"
@@ -1543,6 +1926,22 @@ def build_parser() -> argparse.ArgumentParser:
     ch.add_argument("versions", nargs="+", help="the published versions' folders, oldest first")
     ch.add_argument("--out", required=True, help="the CSV to write")
     ch.set_defaults(func=cmd_changes)
+
+    ta = sub.add_parser(
+        "tracked-addresses",
+        help="count the article addresses left in the tracked log and evidence files (or, once, "
+        "put their ids in their place)",
+    )
+    ta.add_argument(
+        "--rewrite",
+        action="store_true",
+        help="put each article's id in place of its address, after saving the files and the map",
+    )
+    ta.add_argument(
+        "--save-to",
+        help="where the files as they were and the map go (default: data/raw/logs/addresses-DATE)",
+    )
+    ta.set_defaults(func=cmd_tracked_addresses)
 
     ur = sub.add_parser(
         "update-route",

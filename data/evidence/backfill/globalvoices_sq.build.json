@@ -1,0 +1,29 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "third_party:wire_byline": 2
+  },
+  "first": "2008-02-25",
+  "kept": 890,
+  "last": "2026-11-23",
+  "raw_bytes": 11826819,
+  "raw_files": 16,
+  "releasable": 885,
+  "releasable_after_daily": 885,
+  "rows_after_daily": 890,
+  "rows_bytes": 6840903,
+  "run": "2026-11-23",
+  "seen": 892,
+  "source_id": "globalvoices_sq",
+  "validate_errors": 0,
+  "validate_warnings": 2
+}

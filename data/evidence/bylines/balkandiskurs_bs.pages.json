@@ -1,0 +1,29 @@
+{
+  "authors_per_page": {
+    "1": 830,
+    "2": 30,
+    "3": 9,
+    "4": 2
+  },
+  "bytes_fetched": 97082047,
+  "http_status": {
+    "200": 872
+  },
+  "jsonld_check": {
+    "agrees": 24,
+    "differs": 830
+  },
+  "no_person": {
+    "no_byline": 1
+  },
+  "pages_already_saved": 0,
+  "pages_fetched": 872,
+  "routes": {
+    "site": 871
+  },
+  "rows": 872,
+  "rows_without_byline": 872,
+  "source_id": "balkandiskurs_bs",
+  "stopped": "",
+  "with_person": 871
+}

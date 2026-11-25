@@ -7,11 +7,14 @@ and ``date``. A change is one of:
 - ``changed``: its text differs from the version before (its source edited it);
 - ``removed``: its source removed it (its page answers 404 or 410); the row is no longer
   released;
-- ``taken_down``: it was left out on request (``data/takedowns.csv``).
+- ``taken_down``: it was left out on request (``data/takedowns.csv``);
+- ``withdrawn``: an earlier version released it, and this version holds it back or leaves it
+  out for a rights reason found since (series 0.3 on: a Wikinews page whose own notice differs
+  from its date's license); the reason is counted in the manifest's held rows.
 
 ``date`` is when CommonsWire saw it: the row's ``retrieved_at`` for new and changed rows, the
-version's own date (its ``as_of``) for removals and takedowns. The table holds ids and dates
-only, never an address, a title or a name.
+version's own date (its ``as_of``) for removals, takedowns and withdrawals. The table holds
+ids and dates only, never an address, a title or a name.
 
 :func:`history` derives the table from published versions alone (their Parquet files and
 manifests), oldest first. When a version is missing between two of them, the later version's
@@ -32,7 +35,7 @@ from pathlib import Path
 
 CHANGE_FIELDS = ("id", "source_id", "version", "change", "date")
 CHANGES_FILE = "changes.csv"
-KINDS = ("new", "changed", "removed", "taken_down")
+KINDS = ("new", "changed", "removed", "taken_down", "withdrawn")
 
 
 def _iso(value: object) -> str:
@@ -122,6 +125,7 @@ def entries(
     changed: Iterable[str] = (),
     removed: Iterable[str] = (),
     taken_down: Iterable[str] = (),
+    withdrawn: Iterable[str] = (),
     as_of: str = "",
 ) -> list[dict[str, str]]:
     """The lines a new version adds: ``rows`` maps an id to its stored row (source and
@@ -132,6 +136,7 @@ def entries(
         ("changed", changed),
         ("removed", removed),
         ("taken_down", taken_down),
+        ("withdrawn", withdrawn),
     ):
         for rid in sorted(set(ids)):
             d = rows.get(rid, {})

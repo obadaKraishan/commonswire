@@ -1,0 +1,26 @@
+{
+  "bytes_fetched": 0,
+  "credits_from_later_sighting": 0,
+  "end": "page 2 would start past the last post (the plan)",
+  "http_status": {},
+  "labels_known": true,
+  "last_page": 1,
+  "long_waits": 0,
+  "pages_already_saved": 1,
+  "pages_fetched": 0,
+  "pages_skipped": 0,
+  "run": "2026-11-23",
+  "seen_again": 0,
+  "source_id": "globalvoices_ku",
+  "stopped": "",
+  "stories": 4,
+  "stories_seen": 4,
+  "translated": 4,
+  "translators_not_a_person": 0,
+  "why_none": {},
+  "with_writer": 4,
+  "without_writer": 0,
+  "writers_per_story": {
+    "1": 4
+  }
+}

@@ -2,10 +2,16 @@
   "dump_bytes": 47533780,
   "dump_md5": "2ae6c78abee6c66a9dc7740c8d828293",
   "first": "2004-11-13",
+  "held": {
+    "own notice differs (a third party's copyright)": 2,
+    "own notice differs (another license)": 24,
+    "own notice differs (other)": 36,
+    "own notice differs (public domain)": 1
+  },
   "kept": 20680,
   "last": "2026-05-03",
   "md5_checked": true,
-  "rows_bytes": 66418833,
+  "rows_bytes": 66841478,
   "run": "2026-11-13",
   "skipped": {
     "empty_text": 12,

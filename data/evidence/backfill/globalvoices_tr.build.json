@@ -1,0 +1,30 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "third_party:republication_note": 1,
+    "third_party:rights_reserved_note": 1
+  },
+  "first": "2009-09-17",
+  "kept": 280,
+  "last": "2021-04-18",
+  "raw_bytes": 3202462,
+  "raw_files": 8,
+  "releasable": 278,
+  "releasable_after_daily": 278,
+  "rows_after_daily": 280,
+  "rows_bytes": 1803691,
+  "run": "2026-11-23",
+  "seen": 282,
+  "source_id": "globalvoices_tr",
+  "validate_errors": 0,
+  "validate_warnings": 1
+}

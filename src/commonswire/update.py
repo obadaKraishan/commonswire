@@ -4,8 +4,10 @@
 ``manifest.json`` and ``sources.csv``, downloaded or local) and builds the next one:
 
 1. **Checks before any request.** The previous version passes its own manifest check; the
-   registry (``data/sources.csv``) is byte for byte the one the previous version carries, and
-   the next version has the same sources (a new source or a registry change always needs the
+   next version is in the same series (a new series is built by ``release build-from``); the
+   registry is byte for byte the one the previous version carries (``data/sources.csv``, or
+   for a series whose registry is frozen, its copy: :data:`FROZEN_REGISTRIES`), and the next
+   version has the same sources (a new source or a registry change always needs the
    maintainer); no takedown request is open and no earlier update waits as a pull request on
    the dataset (both counted by the caller). Any of these stops the run before it sends
    anything.
@@ -62,12 +64,13 @@ from commonswire.counts import (
     CountCeiling,
     CountCheck,
     check_counts,
+    check_site_total,
 )
 from commonswire.daily import DailyResult, _removed, _take
 from commonswire.fetchers import WORDPRESS
 from commonswire.fetchers.base import ReplayStore
 from commonswire.fetchers.pages import PAGE_FETCHERS
-from commonswire.fetchers.wordpress import WordPressFetcher
+from commonswire.fetchers.wordpress import GlobalVoicesLinguaFetcher, WordPressFetcher
 from commonswire.http import (
     AnswerCache,
     Blocked,
@@ -79,11 +82,20 @@ from commonswire.http import (
     UsageLog,
     make_client,
 )
+from commonswire.lingua import (
+    ENGLISH_SOURCE,
+    WeeklyLinks,
+    add_new_versions,
+    hreflang_new_versions,
+    link_new_posts,
+)
 from commonswire.release import (
     CONFIGURATIONS,
     VARIABLE_COLUMNS,
     ReleaseError,
+    _series,
     collect,
+    columns,
     series_sources,
     sha256,
     verify,
@@ -91,6 +103,7 @@ from commonswire.release import (
 )
 from commonswire.schema import canonical_url
 from commonswire.sources import Source, load_sources
+from commonswire.versions import HREFLANG_SOURCES
 
 WINDOW_DAYS = 30
 #: Listing pages of 100 posts read per listing at most; a fuller listing is a site change.
@@ -111,6 +124,13 @@ CLOSED = {"wikinews_en": "closed since 2026-05-04; its archive comes from the du
 BASELINE = "update-baseline.json"
 #: The run's fixed clock, saved with its answers so that an offline replay builds the same.
 RUN_FILE = "run.json"
+#: The registry of a series whose weekly updates go on while ``data/sources.csv`` already
+#: holds the next series' registry: a byte copy of the registry its versions were published
+#: with (series 0.2: the ``sources.csv`` of 0.2.0 to 0.2.3). The series an update builds comes
+#: from the published version it starts from (the next patch number), so publishing the next
+#: series' first version is what moves the weekly update to ``data/sources.csv``.
+FROZEN_REGISTRIES: dict[tuple[int, int], str] = {(0, 2): "data/series/0.2/sources.csv"}
+REGISTRY = "data/sources.csv"
 
 _URL = re.compile(r"https?://([^/\s\"'<>]+)[^\s\"'<>]*")
 
@@ -124,6 +144,20 @@ def next_version(version: str) -> str:
     """0.2.0 -> 0.2.1."""
     major, minor, patch = (int(x) for x in version.split("."))
     return f"{major}.{minor}.{patch + 1}"
+
+
+def _shown(path: Path, root: Path) -> str:
+    """A path as a message shows it: relative to the checkout when it is inside it."""
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except ValueError:
+        return path.name
+
+
+def registry_for(root: Path, version: str) -> Path:
+    """The registry an update to ``version`` builds with: its series' frozen copy
+    (:data:`FROZEN_REGISTRIES`), or ``data/sources.csv``."""
+    return root / FROZEN_REGISTRIES.get(_series(version), REGISTRY)
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -219,6 +253,8 @@ class SourceUpdate:
     count: CountCheck | None = None
     #: A page source's route (what it read: sitemaps or listing pages, pages after the mark).
     route: dict[str, object] = field(default_factory=dict)
+    #: A Global Voices language site's links to its English versions (series 0.3 on).
+    lingua: dict[str, int] = field(default_factory=dict)
 
     @property
     def skipped(self) -> bool:
@@ -237,6 +273,7 @@ class SourceUpdate:
             "third_party_dropped_new": self.third_party_new,
             "bylines_from_pages": self.page_bylines,
             "listing_credits": self.listing,
+            **({"lingua_links": self.lingua} if self.lingua else {}),
             "dropped": dict(sorted(self.dropped.items())),
             "requests": self.requests,
             "bytes": self.bytes,
@@ -253,6 +290,23 @@ class SourceUpdate:
             return f"{self.source_id} count check: not counted (a page source has no post counts)"
         if c is None:
             return f"{self.source_id} count check: not run ({self.status.replace('_', ' ')})"
+        if "total" in c.counts:
+            if c.baseline:
+                return f"{self.source_id} count check: its total recorded (baseline)"
+            fell = c.drops.get("total")
+            years = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items()) if y != "total")
+            return (
+                f"{self.source_id} count check: total "
+                + (
+                    f"fell by {fell}"
+                    if fell
+                    else f"rose by {c.rises['total']}"
+                    if c.rises
+                    else "held"
+                )
+                + (f"; years {years}" if years else "")
+                + f"; {c.rows_checked} rows checked, {c.rows_removed} removed"
+            )
         if c.baseline:
             return f"{self.source_id} count check: {len(c.counts)} years recorded (baseline)"
         drops = ", ".join(f"{y} ({n})" for y, n in sorted(c.drops.items())) or "none"
@@ -332,10 +386,10 @@ def _listing_credits(
     A story the previous version already held, and that has not been edited since that
     version, keeps its recorded reason with no new look at the listing: otherwise every week
     would walk back to the oldest held story of the 30 days."""
-    from commonswire.listingbylines import LISTING_MARKUP, listing_credits
+    from commonswire.listingbylines import has_listing, listing_credits
     from commonswire.schema import article_id
 
-    if fetcher.source_id not in LISTING_MARKUP:
+    if not has_listing(fetcher.source_id):
         return
     held = held or {}
     wanted: dict[str, str] = {}
@@ -402,12 +456,20 @@ def update_wordpress(
     held: dict[str, dict] | None = None,
     prev_counts: dict[str, dict] | None = None,
     allowance: Allowance | None = None,
+    with_tags: bool = False,
+    lingua_links: WeeklyLinks | None = None,
 ) -> tuple[dict[str, dict], SourceUpdate]:
     """One source's update over the window, then its count check. Returns the source's rows
     after the update (the previous rows unchanged if the source refused, failed, or ran over
     its budget or the count check's ceiling) and what happened, as counts and ids. ``held`` is
     the previous version's held rows (id -> source, day, reason), ``prev_counts`` its post
-    counts per year for this source (None: none recorded yet, so a baseline run)."""
+    counts per year for this source (None: none recorded yet, so a baseline run).
+
+    Series 0.3 on (``with_tags``): the posts' tags are asked for, and the rows'
+    other-language versions are kept from the previous version. With ``lingua_links``, a
+    Global Voices language site's new posts are linked to their English versions; the English
+    site, which comes first in the series, leaves its posts and rows there. A language site's
+    count check reads its total (:func:`commonswire.counts.check_site_total`)."""
     from commonswire.pagebylines import SITE_MARKUP, PageBylineReader
 
     sid = fetcher.source_id
@@ -416,14 +478,16 @@ def update_wordpress(
     pager = _Pages(fetcher, client, note)
     since_s = since.strftime("%Y-%m-%dT%H:%M:%S")
     since_iso = _iso(since) or ""
-    fields = fetcher.backfill_fields
+    fields = fetcher.fields(with_tags=with_tags)
     rows = dict(prev)
+    lingua_site = isinstance(fetcher, GlobalVoicesLinguaFetcher)
     try:
-        fetcher.category_names = {
-            int(c["id"]): str(c.get("name", ""))
-            for c in pager.posts("categories", {"_fields": "id,name"})
-            if isinstance(c, dict) and "id" in c
-        }
+        if not lingua_site:
+            fetcher.category_names = {
+                int(c["id"]): str(c.get("name", ""))
+                for c in pager.posts("categories", {"_fields": "id,name"})
+                if isinstance(c, dict) and "id" in c
+            }
         if sid in USERS_ENDPOINT:
             fetcher.byline_map = {
                 int(u["id"]): (str(u["name"]),)
@@ -431,6 +495,8 @@ def update_wordpress(
                 if isinstance(u, dict) and u.get("name")
             }
         _seed_bylines(fetcher, prev)
+        if with_tags:
+            _seed_versions(fetcher, prev)
         recent = list(
             pager.posts(
                 "posts", {"after": since_s, "orderby": "date", "order": "asc", "_fields": fields}
@@ -458,7 +524,17 @@ def update_wordpress(
             posts.append(post)
         res.listed = len(posts)
         known = {d["url"]: rid for rid, d in prev.items()}
+        if lingua_site:
+            # A language site's categories: only those its posts use (one request for up
+            # to 100), not its whole list each week.
+            _term_names(fetcher, client, posts, note, "categories")
+        if with_tags:
+            _tag_names(fetcher, client, posts, note)
         _listing_credits(fetcher, client, posts, known, res, held=held, prev_as_of=prev_as_of)
+        if lingua_links is not None and lingua_site:
+            res.lingua = link_new_posts(fetcher, client, posts, known, lingua_links)
+        if lingua_links is not None and sid == ENGLISH_SOURCE:
+            lingua_links.english_posts.extend(posts)
         reader = None
         if sid in SITE_MARKUP and fetcher.requires_byline:
             reader = PageBylineReader(
@@ -507,6 +583,28 @@ def update_wordpress(
             if resp.status in (404, 410):
                 rows[rid] = _removed(d)
                 res.seen_ids.add(rid)
+        if lingua_links is not None and sid == ENGLISH_SOURCE:
+            lingua_links.english_rows = {canonical_url(d["url"]): d["url"] for d in rows.values()}
+        if lingua_site:
+            # A language site's count check: one request for its total (series 0.3 on); a
+            # fall is placed by year and walked like the English check's.
+            res.count = check_site_total(
+                fetcher.api_base,
+                client,
+                prev,
+                prev_counts,
+                now=now,
+                rows=rows,
+                skip=res.seen_ids | {rid for rid, _ in missing},
+                removed_in_window={
+                    rid: d["published_at"] for rid, d in missing if rows[rid]["status"] == "removed"
+                },
+                held_days=[str(v.get("published_on", "")) for v in (held or {}).values()],
+                allowance=allowance or Allowance(),
+                note=note,
+            )
+            res.seen_ids.update(res.count.removed_ids)
+            return _finish_source(rows, prev, res, client)
         res.count = check_counts(
             fetcher.api_base,
             client,
@@ -540,6 +638,13 @@ def update_wordpress(
         return dict(prev), _skipped(res, client, status, exc)
     except FetchError as exc:
         return dict(prev), _skipped(res, client, "failed", exc)
+    return _finish_source(rows, prev, res, client)
+
+
+def _finish_source(
+    rows: dict[str, dict], prev: dict[str, dict], res: SourceUpdate, client: PoliteClient
+) -> tuple[dict[str, dict], SourceUpdate]:
+    """The new, changed and removed ids of a source's update, and its requests."""
     for rid, d in rows.items():
         old = prev.get(rid)
         if old is None:
@@ -559,6 +664,57 @@ def update_wordpress(
     )
     res.requests, res.bytes = _usage(client)
     return rows, res
+
+
+def _seed_versions(fetcher: WordPressFetcher, prev: dict[str, dict]) -> None:
+    """The other-language versions of rows already released (series 0.3 on), so a changed
+    row keeps them."""
+    for d in prev.values():
+        if d.get("other_versions") or d.get("original_url"):
+            try:
+                key = canonical_url(d["url"])
+            except ValueError:
+                continue
+            fetcher.versions.setdefault(
+                key,
+                {
+                    "other_versions": list(d.get("other_versions") or ()),
+                    "original_url": d.get("original_url") or "",
+                },
+            )
+
+
+def _tag_names(
+    fetcher: WordPressFetcher, client: PoliteClient, posts: list[dict], note: str
+) -> None:
+    """The names of the tags the run's posts use (series 0.3 on), 100 ids a request."""
+    _term_names(fetcher, client, posts, note, "tags")
+
+
+def _term_names(
+    fetcher: WordPressFetcher,
+    client: PoliteClient,
+    posts: list[dict],
+    note: str,
+    taxonomy: str,
+) -> None:
+    """The names of the terms (``tags`` or ``categories``) the run's posts use, 100 ids a
+    request, into the fetcher's maps."""
+    names = fetcher.tag_names if taxonomy == "tags" else fetcher.category_names
+    used = sorted(
+        {t for p in posts for t in (p.get(taxonomy) or []) if isinstance(t, int)} - set(names)
+    )
+    for start in range(0, len(used), 100):
+        ids = ",".join(str(t) for t in used[start : start + 100])
+        url = f"{fetcher.api_base}/wp-json/wp/v2/{taxonomy}?" + urlencode(
+            {"include": ids, "per_page": "100", "_fields": "id,name"}
+        )
+        resp = client.get(url, accept="application/json", note=note)
+        if resp.status != 200 or resp.truncated:
+            raise FetchError(f"{url} answered HTTP {resp.status}")
+        for t in resp.json() or []:
+            if isinstance(t, dict) and isinstance(t.get("id"), int):
+                names[t["id"]] = str(t.get("name", ""))
 
 
 def _usage(client: PoliteClient) -> tuple[int, int]:
@@ -642,6 +798,8 @@ class UpdateResult:
     count_baseline: bool = False
     count_limit: int = MAX_COUNT_REQUESTS
     count_used: int = 0
+    #: Rows whose other-language versions this run added (series 0.3 on).
+    versions_added: int = 0
 
     @property
     def ready_to_deliver(self) -> bool:
@@ -772,7 +930,7 @@ def run_update(
     out: Path,
     work: Path,
     *,
-    registry_path: Path,
+    registry_path: Path | None = None,
     takedowns_path: Path,
     baseline_path: Path,
     version: str | None = None,
@@ -788,13 +946,15 @@ def run_update(
     open_dataset_prs: int = 0,
     allow_skipped: frozenset[str] = frozenset(),
     max_count_requests: int = MAX_COUNT_REQUESTS,
+    max_requests: int | None = None,
     dry_run: bool = True,
     offline: bool = False,
     clients: ClientFactory | None = None,
     say: Callable[[str], None] = lambda _m: None,
 ) -> UpdateResult:
     """A whole weekly run, from the version in ``prev_dir`` to the next one in ``out``.
-    ``clients`` makes each source's polite client (tests pass one with a fake clock)."""
+    ``clients`` makes each source's polite client (tests pass one with a fake clock).
+    ``registry_path`` defaults to the series' own registry (:func:`registry_for`)."""
     import time
 
     from commonswire.release_text import card, licenses_md
@@ -818,10 +978,28 @@ def run_update(
     # 1. Checks before any request.
     for problem in verify(prev_dir, ignore_hidden=True):
         res.stop(f"the previous version fails its own check: {problem}")
+    try:
+        same_series = _series(version) == _series(manifest["version"])
+    except ReleaseError as exc:
+        same_series = True  # the version's own form is reported below, by series_sources
+        res.stop(str(exc))
+    if not same_series:
+        res.stop(
+            f"version {version} begins a new series after {manifest['version']}: a new series "
+            "is built by commonswire release build-from, never by an update"
+        )
+    if registry_path is None:
+        try:
+            registry_path = registry_for(root, version)
+        except ReleaseError:
+            registry_path = root / REGISTRY
+    if not registry_path.exists():
+        res.stop(f"the registry {registry_path} is missing")
+        return _finish(res, clock)
     if registry_path.read_bytes() != (prev_dir / "sources.csv").read_bytes():
         res.stop(
-            "the registry (data/sources.csv) differs from the one in the previous version: a "
-            "registry change needs the maintainer"
+            f"the registry ({_shown(registry_path, root)}) differs from the one in the previous "
+            "version: a registry change needs the maintainer"
         )
     try:
         sources = series_sources(version)
@@ -863,15 +1041,22 @@ def run_update(
     log = UsageLog(usage_log or work / "usage_log.csv")
     clients = clients or default_clients(root, lock_dir or work / "locks")
     budget_left = int(max_mb * 1e6)
+    # The run's request cap (a dry run's limit; None for none): what each source's client may
+    # still send, every attempt counted.
+    requests_left = max_requests
     allowance = Allowance(limit=max_count_requests)
     prev_counts: dict[str, dict] | None = manifest.get("post_counts")
     res.count_baseline, res.count_limit = prev_counts is None, max_count_requests
     merged: dict[str, dict[str, dict]] = {}
     page_state: dict[str, dict] = {}
+    # Series 0.3 on: tags, kept versions, and the language sites' links to the English site.
+    with_variables = "n_links" in columns(version)
+    links = WeeklyLinks() if with_variables else None
     for sid in sources:
-        if sid in CLOSED:
+        if sid in CLOSED or sid.startswith("wikinews_"):
             merged[sid] = prev_rows.get(sid, {})
-            res.sources[sid] = SourceUpdate(source_id=sid, status="closed", note=CLOSED[sid])
+            note = CLOSED.get(sid, "closed since 2026-05-04; its archive comes from its dump")
+            res.sources[sid] = SourceUpdate(source_id=sid, status="closed", note=note)
             say(res.sources[sid].line())
             continue
         if sid in PAGE_FETCHERS:
@@ -880,6 +1065,7 @@ def run_update(
 
             src_log = UsageLog(log.path)
             client = clients(max(0, min(int(max_mb_per_source * 1e6), budget_left)), src_log, cache)
+            client.request_budget = None if requests_left is None else max(0, requests_left)
             fetcher = PAGE_FETCHERS[sid](client, registry[sid], ReplayStore(answers / sid))
             rows, upd, page_state[sid] = update_pages(
                 fetcher,
@@ -891,6 +1077,8 @@ def run_update(
                 held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
             )
             budget_left -= client.bytes_used
+            if requests_left is not None:
+                requests_left -= client.requests_sent
             log.recent.extend(src_log.recent)
             merged[sid] = rows
             res.sources[sid] = upd
@@ -904,6 +1092,7 @@ def run_update(
             continue
         src_log = UsageLog(log.path)
         client = clients(max(0, min(int(max_mb_per_source * 1e6), budget_left)), src_log, cache)
+        client.request_budget = None if requests_left is None else max(0, requests_left)
         fetcher = WORDPRESS[sid](client, registry[sid], ReplayStore(answers / sid))
         rows, upd = update_wordpress(
             fetcher,
@@ -916,13 +1105,28 @@ def run_update(
             held={k: v for k, v in held_prev.items() if v["source_id"] == sid},
             prev_counts=None if prev_counts is None else prev_counts.get(sid),
             allowance=allowance,
+            with_tags=with_variables,
+            lingua_links=links,
         )
         budget_left -= client.bytes_used
+        if requests_left is not None:
+            requests_left -= client.requests_sent
         log.recent.extend(src_log.recent)
         merged[sid] = rows
         res.sources[sid] = upd
         say(upd.line())
         say(upd.count_line())
+    if with_variables:
+        new_ids = [i for u in res.sources.values() for i in u.new_ids]
+        res.versions_added = add_new_versions(merged, new_ids)
+        pages = [
+            p.read_bytes().decode("utf-8", errors="replace")
+            for sid in HREFLANG_SOURCES
+            for p in sorted((answers / "pages" / sid).glob("*.html"))
+        ]
+        res.versions_added += hreflang_new_versions(
+            merged, pages, [s for s in HREFLANG_SOURCES if s in sources]
+        )
     res.requests = requests_by_host_and_day(log.recent)
     res.count_used = allowance.used
     # The counts the next update compares: this run's, or for a skipped source the previous
@@ -952,6 +1156,7 @@ def run_update(
     held.update(rel.checks.held_ids)
     rel.checks.held = Counter(v["source_id"] for v in held.values())
     rel.checks.held_reasons = Counter(v["reason"] for v in held.values())
+    rel.checks.held_pairs = Counter((v["source_id"], v["reason"]) for v in held.values())
     published = {rid: d["published_at"] for rows in merged.values() for rid, d in rows.items()}
     prev_as_of = str(manifest.get("as_of", ""))
     new_dupes = Counter(
@@ -965,7 +1170,18 @@ def run_update(
         Counter(manifest.get("taken_down_rows_not_released", {})) + rel.checks.taken_down
     )
     res.taken_down_ids = list(rel.checks.taken_down_ids)
-    third = third_prev + sum(u.third_party_new for u in res.sources.values())
+    # Series 0.3 on: rows left out as copies of another source's rows. A row the previous
+    # version released is never dropped that way by a weekly run: the maintainer decides.
+    prev_ids = {rid for rows in prev_rows.values() for rid in rows}
+    was_released = [r for r in rel.checks.copy_ids if r in prev_ids]
+    if was_released:
+        res.stop(
+            f"{len(was_released)} released row(s) would now be left out as copies of another "
+            f"source's rows ({', '.join(was_released[:5])}): the maintainer decides"
+        )
+    new_copies = len(rel.checks.copy_ids) - len(was_released)
+    rel.checks.copies = Counter(manifest.get("copies_left_out", {})) + rel.checks.copies
+    third = third_prev + sum(u.third_party_new for u in res.sources.values()) + new_copies
     res.held = len(held)
     if not rel.checks.ok:
         for problem in rel.checks.problems():
@@ -1005,8 +1221,11 @@ def run_update(
             "drops": sum(len(c.drops) for c in counted),
             "rows_removed": sum(c.rows_removed for c in counted),
         },
+        **({"versions_added": res.versions_added} if with_variables else {}),
     }
+    series_from = manifest.get("series_from")
     extra = {
+        **({"series_from": series_from} if series_from else {}),
         "third_party_dropped": third,
         "held_rows": [{"id": k, **v} for k, v in sorted(held.items())],
         "post_counts": post_counts,
@@ -1039,7 +1258,7 @@ def run_update(
         out,
         registry_path,
         registry,
-        card=card(rel, registry, third, update=update_info),
+        card=card(rel, registry, third, update=update_info, series_from=series_from),
         licenses_md=licenses_md(rel, registry),
         extra=extra,
         extra_files=extra_files or None,

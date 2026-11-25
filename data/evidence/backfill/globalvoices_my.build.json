@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2010-10-09",
+  "kept": 132,
+  "last": "2018-11-06",
+  "raw_bytes": 3048858,
+  "raw_files": 7,
+  "releasable": 132,
+  "releasable_after_daily": 132,
+  "rows_after_daily": 132,
+  "rows_bytes": 1478752,
+  "run": "2026-11-23",
+  "seen": 132,
+  "source_id": "globalvoices_my",
+  "validate_errors": 0,
+  "validate_warnings": 11
+}
