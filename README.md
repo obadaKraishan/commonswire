@@ -130,7 +130,14 @@ listed on the Zenodo record. GitHub's "Cite this repository" reads `CITATION.cff
 Publishers, writers and people named in an article can ask for it to be removed or corrected
 with the [takedown and correction form](https://github.com/obadaKraishan/commonswire/issues/new?template=takedown.yml).
 An article taken down is listed by id in `data/takedowns.csv` and left out of every later
-version.
+version. If a publisher, a writer or a person named in an article asks for it to be removed
+from every version, the dataset and its Kaggle mirror are created again without it, so that no
+version still holds it.
+
+Earlier versions stay in the dataset's history on Hugging Face (each minor release under its
+tag, each weekly version as a commit), and the Kaggle mirror keeps its earlier versions. They
+still hold the rows that later versions withdrew or removed. Each version's `changes.csv`
+lists those rows: drop them from your copy.
 
 ## License
 The code and the reference tables are licensed under the Apache License 2.0 (see `LICENSE` and

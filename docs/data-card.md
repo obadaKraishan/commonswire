@@ -647,7 +647,14 @@ publication time, without text. `changes.csv` records, for every article and ver
 - **On request.** Publishers, writers and people named in an article can ask for a removal or a
   correction with the [takedown and correction form](https://github.com/obadaKraishan/commonswire/issues/new?template=takedown.yml). Requests are answered
   within 14 days. An article taken down goes on a list of ids (`data/takedowns.csv` in the
-  code repository, with no URL or name) and is left out of every later version.
+  code repository, with no URL or name) and is left out of every later version. If a
+  publisher, a writer or a person named in an article asks for it to be removed from every
+  version, the dataset and its Kaggle mirror are created again without it, so that no version
+  still holds it.
+- **Earlier versions.** Earlier versions stay in this dataset's history (each minor release
+  under its tag, each weekly version as a commit), and the Kaggle mirror keeps its earlier
+  versions. They still hold the rows that later versions withdrew or removed. `changes.csv`
+  lists those rows: drop them from your copy.
 - **Your copy.** If you keep a copy of CommonsWire, please apply removals to it too:
   `index.csv` of the latest version lists every article still in it, and `changes.csv` says
   when each one left.

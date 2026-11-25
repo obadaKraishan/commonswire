@@ -264,6 +264,12 @@ All notable changes to this project are documented here. The format follows
   `license_links.csv`, from the rights-evidence reads of 2026-11-13 to 2026-11-17, named an
   article page by its address. Home and main pages, pages the registry cites for a license or
   terms, and pages that refused keep their address. A test fails on any article address left.
+- **What a removal does to earlier versions:** the card of series 0.3 ("Removals and
+  corrections"), the Kaggle description, the README and `docs/data-card.md` say that earlier
+  versions stay in the dataset's history (each minor release under its tag, each weekly
+  version as a commit) and on Kaggle, that they still hold the rows later versions withdrew or
+  removed, listed in `changes.csv`, and that an article asked to be removed from every version
+  is removed by creating the dataset and its Kaggle mirror again without it.
 - **`release check` fails on raw HTML outside code in a card** (an autolink is fine).
 - **The Kaggle folder** takes its file descriptions and its configuration words from the
   manifest (no fixed list of license versions); series 0.3 gets a description of its own
