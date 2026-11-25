@@ -66,7 +66,12 @@ been run.
   dump), from its edition's table (`commonswire.licensing`); a date the table does not place is
   held and counted. A page that carries a license or copyright notice of its own that
   differs from that license is held and counted too (an image's caption is the image's
-  notice, not the page's). Editions whose page gives no usable table stay `pending`.
+  notice, not the page's; a license named inside a template or a reference is not the page's
+  either). An edition's published articles are those carrying its own publication template,
+  read from a count of its article pages' templates; its text ends at its own closing
+  headings ("Sources", "Πηγές", "출처", ...). Chinese headline digests, made only of templates,
+  have no text of their own and are skipped. Editions whose page gives no usable table stay
+  `pending`.
 - **Balkan Diskurs (Bosnian)** is read like the English edition (API, then each article page for
   its byline); the two editions name each other in their pages' `hreflang` tags.
 

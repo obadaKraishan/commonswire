@@ -356,6 +356,11 @@ links to. An English gloss beside it in the notes is marked "(gloss)" and is thi
   license applies only to pages with no notice of their own, or with one that agrees with it.
   An image's caption or gallery is the image's notice, not the page's. (The English row says
   the same of its pages, which the dump reader of versions 0.1.0 to 0.2.x did not check.)
+- **Read from their dumps (2026-11-25):** French, Chinese, Arabic, Greek, Romanian and
+  Korean. Each edition's published articles are told by its own publication template, found
+  in a count of its article pages' templates (`commonswire wikinews-edition --census`). The
+  Swedish edition is `include` but not read yet: no template marks most of its pages
+  ("publicerad" is on 186 of 3,317). The Russian dump (1.1 GB) waits for a later version.
 - **Wikinews editions still `pending`,** each with the question its page leaves:
   - German (`third_party_unclear`): the page dates its licenses but says nothing about text
     copied from elsewhere;
