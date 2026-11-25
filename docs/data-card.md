@@ -1,4 +1,7 @@
-# Data card: CommonsWire 0.2.0
+# Data card: CommonsWire 0.3.0 and 0.2.0
+
+The card in use is version 0.3.0's (published on 2026-11-25, tag `v0.3.0`): it is the second
+part of this file, "Version 0.3.0". The first part is the card of series 0.2, below.
 
 This is the text of the dataset card of version 0.2.0, as `commonswire release build --version
 0.2.0` writes it (`data/release/<version>/README.md`, the card on Hugging Face). Version 0.2.0
@@ -236,12 +239,12 @@ Version 0.2.0, collected up to 2026-11-14. Code: https://github.com/obadaKraisha
 
 ---
 
-# DRAFT for version 0.3.0 (built, not yet published)
+# Version 0.3.0 (published 2026-11-25)
 
-**DRAFT.** This is the card of version 0.3.0 as built on 2026-11-25 from the published 0.2.3
-(`release build-from`, never uploaded yet). It becomes the published card when 0.3.0 is
-published; until then the card above is the one in use. Its headings are one level down
-here.
+This is the card of version 0.3.0 as published on 2026-11-25 (tag `v0.3.0`), built from the
+published 0.2.3 with `release build-from`. It is the card in use: the weekly versions after it
+(0.3.1, 0.3.2, ...) have the same card with their own counts and a section "This update"; the
+current one is on Hugging Face. Its headings are one level down here.
 
 CommonsWire is a full-text corpus of news articles whose publishers allow their text to be
 shared again. Each row is one article: its body text as published, its metadata, its license,
