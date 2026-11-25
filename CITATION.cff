@@ -23,6 +23,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24231835
     description: "The code and the source registry on Zenodo, all versions"
+  - type: doi
+    value: 10.5281/zenodo.24540438
+    description: "The code and the source registry on Zenodo, version 0.3.0"
 repository-code: "https://github.com/obadaKraishan/commonswire"
 keywords:
   - news
