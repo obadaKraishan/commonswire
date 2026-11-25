@@ -1529,6 +1529,33 @@ def wiki_variables(wikitext: str, host: str = "en.wikinews.org") -> dict[str, ob
     }
 
 
+def cmd_tracked_addresses(args: argparse.Namespace) -> int:
+    """The article addresses in the tracked log and evidence files, as counts (never shown);
+    with --rewrite, their ids in their place (commonswire.addresses)."""
+    from commonswire.addresses import find, rewrite, summary_json
+
+    root = Path(args.root)
+    if args.rewrite:
+        raw = root / "data" / "raw"
+        if not raw.exists():
+            print("data/raw is missing. Mount the data drive and try again.", file=sys.stderr)
+            return 2
+        save_to = Path(args.save_to) if args.save_to else raw / "logs" / f"addresses-{_today()}"
+        try:
+            result = rewrite(root, save_to)
+        except FileExistsError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(summary_json(result))
+        print(f"the files as they were, and the map, are in {save_to} (never tracked)")
+        return 0 if result["left"] == 0 else 1
+    found = find(root)
+    for line in found.lines():
+        print(line)
+    print(f"{found.total} article addresses in the tracked files")
+    return 0 if found.total == 0 else 1
+
+
 def cmd_changes(args: argparse.Namespace) -> int:
     """The record of changes of published versions, from their files alone (no requests)."""
     import json
@@ -1899,6 +1926,22 @@ def build_parser() -> argparse.ArgumentParser:
     ch.add_argument("versions", nargs="+", help="the published versions' folders, oldest first")
     ch.add_argument("--out", required=True, help="the CSV to write")
     ch.set_defaults(func=cmd_changes)
+
+    ta = sub.add_parser(
+        "tracked-addresses",
+        help="count the article addresses left in the tracked log and evidence files (or, once, "
+        "put their ids in their place)",
+    )
+    ta.add_argument(
+        "--rewrite",
+        action="store_true",
+        help="put each article's id in place of its address, after saving the files and the map",
+    )
+    ta.add_argument(
+        "--save-to",
+        help="where the files as they were and the map go (default: data/raw/logs/addresses-DATE)",
+    )
+    ta.set_defaults(func=cmd_tracked_addresses)
 
     ur = sub.add_parser(
         "update-route",

@@ -233,7 +233,11 @@ def fetch_evidence(
     Pages already recorded for the same date are skipped, so a run can be resumed.
     ``extra_urls`` adds pages to read for named sources (a second pass after reading).
     """
+    from commonswire.addresses import is_article_address, kept_addresses
+
     pages_csv = paths.tracked / "pages.csv"
+    # An article page read as evidence is recorded by its id, never its address.
+    kept = kept_addresses(paths.root) | {_canon_or(c.homepage) for c in candidates}
     done = {
         (r["checked_on"], r["source_id"], r["url"])
         for r in read_rows(pages_csv)
@@ -261,12 +265,14 @@ def fetch_evidence(
         )
         while queue:
             role, url = queue.pop(0)
-            if (paths.checked_on, cand.source_id, url) in done:
+            key = _recorded_as(url, kept, is_article_address)
+            if (paths.checked_on, cand.source_id, key) in done:
                 continue
             index += 1
-            row, body = _fetch_page(client, cand, paths, role, url, index)
+            row, body = _fetch_page(client, cand, paths, role, url, index, kept=kept)
+            final = str(row.pop("_final_address", row["final_url"]))
             _append(pages_csv, PAGE_FIELDS, [row])
-            done.add((paths.checked_on, cand.source_id, url))
+            done.add((paths.checked_on, cand.source_id, key))
             outcome = str(row["outcome"])
             counts[outcome] = counts.get(outcome, 0) + 1
             if outcome == "budget":
@@ -274,12 +280,11 @@ def fetch_evidence(
             if body is None:
                 continue
             html = body.decode("utf-8", errors="replace")
-            final = str(row["final_url"])
             cc_rows = [
                 {
                     "checked_on": paths.checked_on,
                     "source_id": cand.source_id,
-                    "page_url": final,
+                    "page_url": row["final_url"],
                     "license_url": lic,
                     "link_text": text,
                 }
@@ -321,6 +326,22 @@ def _yes(flag: bool) -> str:
     return "yes" if flag else "no"
 
 
+def _canon_or(url: str) -> str:
+    from commonswire.schema import canonical_url
+
+    try:
+        return canonical_url(url)
+    except ValueError:
+        return url
+
+
+def _recorded_as(url: str, kept: set[str], is_article: Callable[[str, set[str]], bool]) -> str:
+    """What the tracked files record for a page: an article's id, else its address."""
+    from commonswire.schema import article_id
+
+    return article_id(url) if is_article(url, kept) else url
+
+
 def _fetch_page(
     client: PoliteClient,
     cand: Candidate,
@@ -328,13 +349,22 @@ def _fetch_page(
     role: str,
     url: str,
     index: int,
+    *,
+    kept: set[str] | None = None,
 ) -> tuple[dict[str, object], bytes | None]:
+    """One evidence page, read and saved once. An article's page (``commonswire.addresses``)
+    is logged and recorded by its id, and its snapshot named after it; a row then carries the
+    page's real final address under ``_final_address`` for the caller, never written."""
+    from commonswire.addresses import is_article_address
+
+    kept = kept or set()
+    asked = _recorded_as(url, kept, is_article_address)
     row: dict[str, object] = {
         "checked_on": paths.checked_on,
         "source_id": cand.source_id,
         "role": role,
-        "url": url,
-        "final_url": url,
+        "url": asked,
+        "final_url": asked,
         "status": "",
         "bytes": 0,
         "sha256": "",
@@ -342,7 +372,8 @@ def _fetch_page(
         "file": "",
     }
     try:
-        resp = client.get(url, note=f"evidence:{cand.source_id}")
+        log_as = asked if asked != url else ""
+        resp = client.get(url, note=f"evidence:{cand.source_id}", log_as=log_as)
     except Disallowed:
         row["outcome"] = "disallowed"
         return row, None
@@ -355,11 +386,13 @@ def _fetch_page(
     except FetchError:
         row["outcome"] = "error"
         return row, None
-    row.update(final_url=resp.url, status=resp.status, bytes=len(resp.body))
+    final = _recorded_as(resp.url, kept, is_article_address)
+    row.update(final_url=final, status=resp.status, bytes=len(resp.body))
     if resp.status != 200:
         row["outcome"] = "not_found" if resp.status in (404, 410) else f"http_{resp.status}"
         return row, None
-    name = f"{index:02d}-{_slug(resp.url)}.html"
+    row["_final_address"] = resp.url
+    name = f"{index:02d}-{final if final != resp.url else _slug(resp.url)}.html"
     _save_once(paths.snapshots / cand.source_id / name, resp.body)
     row.update(
         sha256=hashlib.sha256(resp.body).hexdigest(),
