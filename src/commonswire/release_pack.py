@@ -315,8 +315,10 @@ def provenance(manifest: dict, registry: dict | None = None) -> str:
         for s in manifest["sources"]:
             top = registry[s].edition_of or s if s in registry else s
             groups[top] = groups.get(top, 0) + 1
+        from commonswire.card03 import pub_name
+
         named = ", ".join(
-            f"{registry[p].name if p in registry else p}"
+            f"{pub_name(registry, p) if p in registry else p}"
             + (f" ({n} sites or editions)" if n > 1 else "")
             for p, n in groups.items()
         )

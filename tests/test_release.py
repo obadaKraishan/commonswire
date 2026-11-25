@@ -485,6 +485,7 @@ def test_the_series_0_3_card_covers_languages_licenses_rules_and_how_to_cite(tmp
     assert order == sorted(order)
     assert citation.apa("9.9.0") in " ".join(cite.split())
     assert raw_html(text) == []
+    assert "Alpha News's" not in text and "(English)'s" not in text
     for leftover in ("{_n(", "{f[", "{release", "{HF_", "{citation", "{chr(", "type: ignore"):
         assert leftover not in text, leftover
     prose = [x for x in text.splitlines() if not x.startswith("|") and "https://" not in x]
@@ -492,6 +493,27 @@ def test_the_series_0_3_card_covers_languages_licenses_rules_and_how_to_cite(tmp
     lic = (out / "LICENSES.md").read_text()
     assert "**CC BY 4.0** (`by`)" in lic and "CC BY 2.5, 3.0 and 4.0" not in lic
     assert "| `by-sa` | CC BY-SA 4.0 (2) | 2 |" in lic
+
+
+def test_the_card_names_publishers_and_editions_plainly(tmp_path):
+    from commonswire.card03 import _edition_label, _possessive, pub_name
+
+    assert _possessive("Global Voices") == "Global Voices'" and _possessive("Factly") == "Factly's"
+    reg = load_sources(
+        write_csv(
+            tmp_path,
+            [
+                row(source_id="wikinews_en", name="Wikinews (English)",
+                    homepage="https://en.wiki.example/"),
+                row(source_id="wikinews_fr", name="Wikinews (fr)", languages="fr",
+                    homepage="https://fr.wiki.example/",
+                    edition_of="wikinews_en", status="pending", reason_code="partial_license",
+                    reason="Invented question?"),
+            ],
+        )
+    )  # fmt: skip
+    assert pub_name(reg, "wikinews_en") == "Wikinews"
+    assert _edition_label(reg, "wikinews_fr") == "Wikinews in French"
 
 
 def test_verify_finds_raw_html_in_a_card(tmp_path, series):
