@@ -269,6 +269,28 @@ sites collected, one site at a time. The first dry run of series 0.3 is below.
 **Copies.** A weekly run never drops a released row as a copy of another source's row (the
 Arabic Wikinews rule of series 0.3): it stops and names the rows for the maintainer.
 
+### The first dry run of series 0.3 (2026-11-25)
+From the local 0.3.0, as if it were published, from this Mac, capped at 1,500 requests and
+500 MB (`--max-requests`, `--max-mb`), one source at a time:
+
+- **596 requests, 35.3 MB, 76 minutes** (14:14 to 15:30 UTC). 54 sources answered, the seven
+  Wikinews editions were carried as closed, and SciDev.Net's sitemap timed out after four tries
+  (5 requests): the run stopped for that, as it should, with SciDev.Net's rows carried over.
+  No refusal.
+- **0.3.0 → 0.3.1:** 33 new rows, 5 changed, 0 removed, 0 taken down (297,287 → 297,316 rows);
+  44,211 held; 48 rows gained an other-language version.
+- **The 46 language sites:** 284 requests and 22.3 MB of the run. Of 80 new posts, 18 were
+  linked to their English version by fingerprint and 23 by their own page (62 pages read);
+  39 had none. 14 new rows were released and 66 held.
+- **Africa Is a Country** made its 28-day removal walk: 128 listing pages, 2,521 stories
+  listed, no released row missing.
+- **The count check:** the six English WordPress sources' 80 years compared with 0.3.0's
+  (no drop, no rise, no request spent on drops); 47 baselines recorded (each language site's
+  total, and Balkan Diskurs in Bosnian per year); 145 count requests in all.
+
+The weekly workflow's limit (180 minutes) leaves room for this run on GitHub's runner, with
+the download of the published version and the build.
+
 ### The first dry run (2026-11-14)
 One live run on the maintainer's machine, from the published 0.2.0 to an unpublished 0.2.1,
 with `--dry-run`. Version 0.2.0 had been collected about 18 hours earlier, so "new" here
