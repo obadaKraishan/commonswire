@@ -2,8 +2,9 @@
 
 Every figure the 0.3.0 card and the method give, with the file it comes from and that
 file's date. Counts only: no article text, title, name or address. The files of the build
-are those of version 0.3.0 as built on 2026-11-25 (not yet published on that date); the
-figures are recomputed from them by a script, never typed.
+are those of version 0.3.0 as built on 2026-11-25 and published the same day (tag `v0.3.0`;
+the published files equal the build's by SHA-256); the figures are recomputed from them by a
+script, never typed.
 
 
 ## Release 0.3.0

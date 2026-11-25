@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 - The Zenodo DOI of the code release 0.3.0 (`10.5281/zenodo.24540438`) is in `CITATION.cff`
   and the README's "How to cite", beside the DOI of all versions (`10.5281/zenodo.24231835`),
   which the dataset card cites.
+- `docs/paper-facts.md` says that 0.3.0 was published on the day it was built, with the files
+  of the build; its figures are unchanged.
 
 ## [0.3.0] - 2026-11-25
 
