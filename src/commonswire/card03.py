@@ -25,6 +25,7 @@ from commonswire.release_text import (
     HELD_TEXT,
     HF_ID,
     ISSUE_FORM,
+    SHORT_REASONS,
     SHORT_TEXT,
     _join,
     _n,
@@ -36,7 +37,7 @@ from commonswire.release_text import (
     language_tags,
 )
 from commonswire.sources import PUBLIC_DOMAIN, Source, license_label
-from commonswire.wikieditions import NOTICE_KINDS, OWN_NOTICE
+from commonswire.wikieditions import OWN_NOTICE
 
 COMMUNITY = f"{citation.HF_URL}/discussions"
 #: The English names of the row languages (BCP 47 tags as the rows give them).
@@ -146,13 +147,28 @@ def _publisher(registry: dict[str, Source], s: str) -> str:
     return registry[s].edition_of or s
 
 
+def pub_name(registry: dict[str, Source], p: str) -> str:
+    """A publisher's name as the card writes it (its main site's name, without the language
+    a registry name may carry: "Wikinews (English)" is "Wikinews")."""
+    return registry[p].name.removesuffix(" (English)")
+
+
+def _possessive(name: str) -> str:
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
+def _language_of(registry: dict[str, Source], s: str) -> str:
+    lang = registry[s].languages[0] if registry[s].languages else ""
+    return LANGUAGE_NAMES.get(lang, lang)
+
+
 def _edition_label(registry: dict[str, Source], s: str) -> str:
-    """A source as the card's tables name it: its name, with the language of an edition."""
+    """A source as the card names it: its publisher, with the language of an edition
+    ("Global Voices in French")."""
     src = registry[s]
     if not src.edition_of:
-        return src.name
-    lang = src.languages[0] if src.languages else ""
-    return f"{registry[src.edition_of].name}, {LANGUAGE_NAMES.get(lang, lang)}"
+        return pub_name(registry, s)
+    return f"{pub_name(registry, src.edition_of)} in {_language_of(registry, s)}"
 
 
 def card(
@@ -198,7 +214,7 @@ def card(
     if share >= 0.4:
         sites = len(publishers[largest])
         largest_line = _wrap(
-            f"- **{registry[largest].name} is "
+            f"- **{pub_name(registry, largest)} is "
             + ("most of it" if share > 0.5 else "the largest part of it")
             + f"** ({_n(pub_rows[largest])} of {_n(total)} rows, {round(100 * share)}%, from "
             f"{_n(sites)} {'site' if sites == 1 else 'sites'}): results over the whole corpus "
@@ -210,7 +226,7 @@ def card(
         if r["published_at"] >= since:
             recent[_publisher(registry, r["source_id"])] += 1
     flows = ", ".join(
-        f"{registry[p].name} {recent[p] / FLOW_DAYS:.1f}"
+        f"{pub_name(registry, p)} {recent[p] / FLOW_DAYS:.1f}"
         for p in sorted(publishers, key=lambda p: (-recent[p], p))
         if recent[p]
     )
@@ -259,7 +275,7 @@ def card(
                 lasts.append(table[s]["last"])
         languages = sorted({x for s in ss for x in registry[s].languages[:1]})
         pub_lines.append(
-            f"| {registry[p].name} | {registry[p].kind} | {_n(len(ss))} | "
+            f"| {pub_name(registry, p)} | {registry[p].kind} | {_n(len(ss))} | "
             f"{', '.join(f'`{x}`' for x in languages)} | "
             + "; ".join(f"{k} ({_n(v)})" for k, v in sorted(lic.items()))
             + f" | {_n(pub_rows[p])} | {min(firsts, default='')} to {max(lasts, default='')} |"
@@ -300,7 +316,9 @@ def card(
             short_lines += (
                 _wrap(
                     f"- {round(100 * n / tot)}% of the {_edition_label(registry, s)} rows "
-                    f"({_n(n)}) have fewer than {SHORT_TEXT} characters of text; the median row "
+                    f"({_n(n)}) have fewer than {SHORT_TEXT} characters of text"
+                    + (f": {SHORT_REASONS[s]}" if s in SHORT_REASONS else "")
+                    + "; the median row "
                     f"has {f['median_words'][s]} words. Filter by length if you need full "  # type: ignore[index]
                     "stories."
                 )
@@ -321,7 +339,9 @@ def card(
     )
     license_bullet = _wrap(
         "- **License:** each article keeps its publisher's license ("
-        + _join([license_label(k) for k in sorted(by_license)])
+        + _join(
+            [license_label(k).replace("Public domain", "public domain") for k in sorted(by_license)]
+        )
         + "), on its row; see `LICENSES.md`."
     )
     variables_bullet = _wrap(
@@ -355,7 +375,7 @@ def card(
     by_size = sorted(publishers, key=lambda p: (-pub_rows[p], p))
     mix_bullet = _wrap(
         "- The publishers are a small, uneven set: "
-        + _join([f"{registry[p].name} ({registry[p].kind})" for p in by_size])
+        + _join([f"{pub_name(registry, p)} ({registry[p].kind})" for p in by_size])
         + ". Their mix of countries and topics is not that of mainstream news."
     )
     bylined = int(f["with_byline"])  # type: ignore[call-overload]
@@ -656,10 +676,13 @@ def _changes_section(
             if p.startswith("wikinews")
             else ""
         )
+        word = "site" if p == "globalvoices" else "edition"
+        which = f", in {_join([_language_of(registry, s) for s in ss])}" if len(ss) <= 6 else ""
         lines.append(
-            f"- **{registry[p].name}'s language editions:** {_n(len(ss))} "
-            f"{'site' if len(ss) == 1 else 'sites'} ({_rows(sum(by_src.get(s, 0) for s in ss))})"
-            f"{rule}."
+            f"- **{_possessive(pub_name(registry, p))} language "
+            f"{'edition' if len(ss) == 1 else 'editions'}:** "
+            f"{_n(len(ss))} {word if len(ss) == 1 else word + 's'}{which} "
+            f"({_rows(sum(by_src.get(s, 0) for s in ss))}){rule}."
         )
     lines.append(
         "- **New columns:** `publisher_section`, `publisher_categories`, `publisher_tags`, "
@@ -681,6 +704,12 @@ def _changes_section(
             "whose own license or copyright notice differs from their date's license (the rule "
             "below). Their ids are in `changes.csv` as `withdrawn`; drop them from your copy."
         )
+    for s, n in sorted(release.checks.copies.items()):
+        if n and s not in before:
+            lines.append(
+                f"- **{_n(n)} rows of {_edition_label(registry, s)} are left out as copies** of "
+                "another source's rows (the rule below)."
+            )
     lines.append(
         f"- **Near-duplicates across sources:** {_n(int(f['near_pairs']))} pairs in this version."  # type: ignore[call-overload]
     )
@@ -719,7 +748,7 @@ def _rules_section(
     if ruled:
         held_rule = {k: v for k, v in held_reasons.items() if k in _LINGUA_SHORT}
         site_lines = "\n".join(
-            f"| `{s}` | {_edition_label(registry, s)} | {_n(by_src.get(s, 0))} | "
+            f"| `{s}` | {_language_of(registry, s)} | {_n(by_src.get(s, 0))} | "
             f"{_n(held_pairs.get((s, NO_ENGLISH), 0))} | "
             f"{_n(held_pairs.get((s, ENGLISH_NOT_RELEASED), 0))} |"
             for s in sorted(ruled, key=lambda s: (-by_src.get(s, 0), s))
@@ -761,7 +790,8 @@ def _rules_section(
             if x in wiki and r.startswith(OWN_NOTICE):
                 k = r[len(OWN_NOTICE) :].strip(" ()")
                 kinds[k or "other"] += n
-        kind_text = "; ".join(f"{_n(kinds[k])} {k}" for k in NOTICE_KINDS if kinds.get(k))
+        order = ("another license", "public domain", "a third party's copyright", "other")
+        kind_text = ", ".join(f"{_n(kinds[k])} {k}" for k in order if kinds.get(k))
         out.append(
             "### Wikinews: licenses by date, and each page's own notice\n"
             + _wrap(
@@ -769,7 +799,7 @@ def _rules_section(
                 "the license of its date (for an edition, its page's creation date). A date the "
                 "page does not settle is held. A page that carries a license or copyright notice "
                 "of its own that differs from its date's license is held too"
-                + (f" ({kind_text})" if kind_text else "")
+                + (f" (by the kind of notice: {kind_text})" if kind_text else "")
                 + "."
             )
             + "\n\n| Edition | Licenses by date | Released | Held: date not settled | Held: own "
@@ -783,8 +813,8 @@ def _rules_section(
         for s, n in sorted(copies.items()):
             twin = release_module.REPUBLISHED_COPIES.get(s, "")
             parts.append(
-                f"{_n(n)} rows of {_edition_label(registry, s)} are near-copies of "
-                f"{_edition_label(registry, twin) if twin in registry else 'another source'} rows"
+                f"{_n(n)} rows of {_edition_label(registry, s)} are near-copies of rows of "
+                f"{_edition_label(registry, twin) if twin in registry else 'another source'}"
             )
         out.append(
             "### Copies of another source's articles\n"
