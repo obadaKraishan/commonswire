@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import BinaryIO
 from urllib.parse import quote
 
-from commonswire.wikidump import DumpArticle, _local, wiki_to_text
+from commonswire.wikidump import _REF, DumpArticle, _local, _remove_balanced, wiki_to_text
 
 DUMPS = "https://dumps.wikimedia.org"
 _TEMPLATE = re.compile(r"\{\{\s*([^{}|\n]{1,60}?)\s*[|}]")
@@ -69,8 +69,42 @@ class EditionMarkers:
     closing: re.Pattern[str] | None = None
 
 
-#: Set edition by edition from its template census; an edition not listed is not read.
-EDITION_MARKERS: dict[str, EditionMarkers] = {}
+def _markers(published: str, closing: str, not_published: str = "") -> EditionMarkers:
+    return EditionMarkers(
+        published=re.compile(rf"\{{\{{\s*(?:{published})\s*[|}}]", re.I),
+        not_published=re.compile(rf"\{{\{{\s*(?:{not_published})\s*[|}}]", re.I)
+        if not_published
+        else None,
+        closing=re.compile(rf"^\s*==\s*(?:{closing})\s*==\s*$", re.I | re.M),
+    )
+
+
+#: Set edition by edition from its template census (dumps of 2026-11-25; counts are article
+#: pages carrying the template); an edition not listed is not read. Swedish has no template
+#: on most of its pages ("publicerad" on 186 of 3,317), so it is not read yet.
+EDITION_MARKERS: dict[str, EditionMarkers] = {
+    # "publication" 19,586 and "archive" 10,356 of 24,220 article pages
+    "wikinews_fr": _markers("publication|archive", "sources?|voir aussi"),
+    # "publish" 18,602 of 18,708; "develop" 284 (drafts)
+    "wikinews_zh": _markers(
+        "publish",
+        "消息來源|消息来源|資料來源|资料来源|相關新聞|相关新闻|伸延閱讀|延伸閱讀|延伸阅读|参见|參見",
+        "develop",
+    ),
+    # "نشر" (publish) 6,941 of 7,831
+    "wikinews_ar": _markers(
+        "نشر", "مصادر|المصادر|مصدر|انظر أيضاً|انظر أيضا|أخبار ذات الصلة|اقرأ أيضا"
+    ),
+    # "δημοσίευση" (publication) 2,982 and "αρχειοθετημένα" (archived) 3,013 of 3,103
+    "wikinews_el": _markers(
+        "δημοσίευση|αρχειοθετημένα",
+        "πηγές|πηγή|παραπομπές|σχετικά νέα|δείτε επίσης|εξωτερικοί σύνδεσμοι",
+    ),
+    # "publicare" 1,175 and "arhivare" 704 of 1,710
+    "wikinews_ro": _markers("publicare|arhivare", "referințe|sursă|surse|vezi și"),
+    # "발행" (publication) 819 and "보존" (preservation) 483 of 851
+    "wikinews_ko": _markers("발행|보존", "출처|관련 기사|같이 보기|같이보기"),
+}
 
 
 def _template_name(raw: str) -> str:
@@ -260,7 +294,9 @@ def page_notices(wikitext: str) -> list[str]:
             continue
         m = _CC_VERSIONED.search(name.replace("_", " "))
         found.append(_cc_spdx(m.group(1), m.group(2)) if m else "unknown")
-    plain = _TEMPLATE.sub(" ", text)
+    # Statements count only in the page's own text: outside any template (an image or source
+    # template names a photo's or a source's license) and outside references.
+    plain = _remove_balanced(_REF.sub(" ", text), "{{", "}}")
     for m in _CC_VERSIONED.finditer(plain):
         found.append(_cc_spdx(m.group(1), m.group(2)))
     if _RESERVED.search(plain):

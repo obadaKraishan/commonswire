@@ -731,7 +731,7 @@ def cmd_wikinews_edition(args: argparse.Namespace) -> int:
         json.dumps(info, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(
-        f"{sid}: kept {kept} ({held} held: date not placed); {dict(licenses)}; skipped "
+        f"{sid}: kept {kept} ({held} held); {dict(licenses)}; skipped "
         f"{dict(skipped)}; validate: {len(check.errors)} errors"
     )
     for msg in check.errors[:5]:

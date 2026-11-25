@@ -172,6 +172,7 @@ def test_cli_census_and_rows_of_an_edition(tmp_path, monkeypatch, capsys):
     assert main([*base, "--census"]) == 0
     census = json.loads((root / "data/evidence/wikinews/wikinews_ko.census.json").read_text())
     assert census["article_pages"] == 4 and census["templates"]["발행"] == 3
+    monkeypatch.delitem(wikieditions.EDITION_MARKERS, "wikinews_ko", raising=False)
     assert main(base) == 2  # no markers yet
     monkeypatch.setitem(
         wikieditions.EDITION_MARKERS,
@@ -224,6 +225,14 @@ def test_page_notices_name_the_licenses_of_templates_and_statements():
     assert page_notices("Copyright 2010 An invented agency.") == ["rights-reserved"]
     # a story about copyright is not a notice
     assert page_notices("The invented court ruled on a copyright case.") == []
+
+
+def test_a_templates_or_a_references_license_is_not_the_pages_own():
+    text = (
+        "Mots inventés. {{Image source|[[Fichier:X.jpg]] Une photo inventée (CC BY 3.0) |"
+        "auteur = Quelqu'un}} Suite.<ref>Une source inventée, sous CC BY-SA 2.0.</ref> Fin."
+    )
+    assert page_notices(text) == []
 
 
 def test_an_images_notice_is_not_the_pages_own():
