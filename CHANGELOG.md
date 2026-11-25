@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The Zenodo DOI of the code release 0.3.0 (`10.5281/zenodo.24540438`) is in `CITATION.cff`
+  and the README's "How to cite", beside the DOI of all versions (`10.5281/zenodo.24231835`),
+  which the dataset card cites.
+
 ## [0.3.0] - 2026-11-25
 
 The code release made with version 0.3.0 of the dataset (published on Hugging Face and Kaggle

@@ -130,7 +130,9 @@ The code and the source registry are archived on Zenodo, with no article text:
 > <https://doi.org/10.5281/zenodo.24231835>
 
 This DOI stands for all versions and resolves to the latest; each version also has its own DOI,
-listed on the Zenodo record. GitHub's "Cite this repository" reads `CITATION.cff`.
+listed on the Zenodo record. Version 0.3.0's is
+<https://doi.org/10.5281/zenodo.24540438>. GitHub's "Cite this repository" reads
+`CITATION.cff`.
 
 ## Takedowns and corrections
 Publishers, writers and people named in an article can ask for it to be removed or corrected
