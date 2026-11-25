@@ -390,6 +390,10 @@ class PoliteClient:
     max_retries: int = MAX_RETRIES
     jitter: Callable[[], float] = random.random
     bytes_used: int = 0
+    #: Requests this client may send (every attempt counts, a saved answer does not); None
+    #: for no limit.
+    request_budget: int | None = None
+    requests_sent: int = 0
     #: Saved answers to serve instead of sending (``AnswerCache``); None sends every request.
     cache: AnswerCache | None = None
     _robots: dict[str, RobotsRule] = field(default_factory=dict)
@@ -485,7 +489,13 @@ class PoliteClient:
         attempt = 0
         error: Exception | None = None
         while True:
+            if self.request_budget is not None and self.requests_sent >= self.request_budget:
+                raise BudgetExceeded(
+                    f"the request budget of {self.request_budget:,} requests is used up; "
+                    "ask before sending more"
+                )
             with self.pacer.slot(host, delay):
+                self.requests_sent += 1
                 try:
                     raw = self.transport(url, headers, TIMEOUT, max_bytes)
                 except requests.RequestException as exc:

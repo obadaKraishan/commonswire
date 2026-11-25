@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from commonswire.licensing import LICENSE_SCHEDULES, license_on
+from commonswire.licensing import LICENSE_SCHEDULES, UNPLACED, license_on
 from commonswire.schema import Article
 from commonswire.sources import PUBLIC_DOMAIN, Source, render_credit
 
@@ -93,7 +93,14 @@ def _registry_problems(art: Article, registry: Mapping[str, Source]) -> list[str
         out.append(f"source {art.source_id} is {src.status}, not include; its articles stay out")
     if src.source_id in LICENSE_SCHEDULES:
         expected_license = license_on(src.source_id, art.published_at, src.license)
-        if art.license != expected_license:
+        if expected_license == UNPLACED:
+            # A date the source's table does not settle: the row must be held.
+            if art.releasable:
+                out.append(
+                    f"the license of an article of {art.published_at.date()} is not settled by "
+                    "the source's license table, so the row must be held"
+                )
+        elif art.license != expected_license:
             out.append(
                 f"license {art.license} is wrong for an article of {art.published_at.date()}; "
                 f"the source's license then was {expected_license}"

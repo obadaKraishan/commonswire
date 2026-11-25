@@ -1,0 +1,28 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 3029,
+    "held:license date not placed": 23
+  },
+  "files": {
+    "articles": {
+      "bytes": 2551286,
+      "checked": true,
+      "md5": "196e11b3572253fb65d4f0e69e49e124"
+    },
+    "stubs": {
+      "bytes": 4568645,
+      "checked": true,
+      "md5": "19d00416abc3dd0dc6a1d4688bfaaae9"
+    }
+  },
+  "held": 23,
+  "kept": 3052,
+  "run": "2026-11-25",
+  "skipped": {
+    "not_an_article_namespace": 5437,
+    "not_marked_published": 51,
+    "redirect": 301
+  },
+  "source_id": "wikinews_el",
+  "validate_errors": 0
+}

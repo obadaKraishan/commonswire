@@ -326,3 +326,211 @@ def test_cli_backfill_check_sends_nothing_and_names_gaps(tmp_path, capsys):
     assert main(args) == 1
     out = capsys.readouterr().out
     assert "2 of 3 pages" in out and "missing pages: 2;" in out and "NOT complete" in out
+
+
+def test_backfill_with_tags_asks_for_tag_ids_and_saves_tag_names(tmp_path):
+    from commonswire.backfill import build_rows
+
+    post = backfill_post(1)
+    post["tags"] = [5, 6]
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "User-agent: *\nCrawl-delay: 10\n"))
+    t.add(
+        f"{GV}/wp-json/wp/v2/categories?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 1, "name": "World"}])),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 5, "name": "Invented tag"}, {"id": 6, "name": "Another"}])),
+    )
+    fields = (GlobalVoicesFetcher.backfill_fields + ",tags").replace(",", "%2C")
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page=1&orderby=date&order=asc&_fields={fields}",
+        (200, json.dumps([post]), {"X-WP-Total": "1", "X-WP-TotalPages": "1"}),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1", with_tags=True)
+    assert p.finished and p.tag_pages == 1 and (folder / "tags-p0001.json").exists()
+    fetcher.byline_map = {7: ("A. Writer",)}
+    build_rows(fetcher, folder, tmp_path / "rows.jsonl")
+    row = json.loads((tmp_path / "rows.jsonl").read_text().splitlines()[0])
+    assert row["publisher_tags"] == ["Invented tag", "Another"]
+    # series 0.1 and 0.2 ask for the same fields as before
+    assert "tags" not in fetcher.backfill_url(1) and "tags" in fetcher.backfill_url(
+        1, with_tags=True
+    )
+    assert fetcher.tags_only_url(2).endswith("_fields=id%2Ctags")
+
+
+def test_the_bosnian_edition_drops_bosnian_republication_notes(tmp_path):
+    from commonswire.fetchers.wordpress import BalkanDiskursBosnianFetcher
+
+    src = parse_row(
+        row(
+            source_id="balkandiskurs_bs",
+            name="Balkan Diskurs (Bosnian)",
+            homepage="https://balkandiskurs.com/",
+            languages="bs",
+            edition_of="balkandiskurs",
+        )
+    )
+    f, _, _ = make(tmp_path, FakeTransport(), cls=BalkanDiskursBosnianFetcher, source=src)
+    assert f.language == "bs" and f.api_base == "https://balkandiskurs.com"
+    own = f.item_from_post(wp_post(1, body="<p>Izmišljen tekst o izmišljenom mostu.</p>"))
+    assert f.third_party_reason(own) is None
+    note = "<p>Izmišljen tekst.</p><p>Tekst je preuzet sa izmišljenog portala.</p>"
+    assert f.third_party_reason(f.item_from_post(wp_post(2, body=note))) == "republication_note"
+    first = "<p>Ovaj članak je originalno objavljen na drugom portalu.</p><p>Tekst.</p>"
+    assert f.third_party_reason(f.item_from_post(wp_post(3, body=first))) == "republication_note"
+
+
+def test_a_lingua_fetcher_takes_its_language_and_versions(tmp_path):
+    from commonswire.fetchers.wordpress import LINGUA_FETCHERS
+
+    src = parse_row(
+        row(
+            source_id="globalvoices_zht",
+            name="Global Voices (zht)",
+            homepage="https://zht.globalvoices.org/",
+            languages="zh-Hant",
+            edition_of="globalvoices",
+        )
+    )
+    cls = LINGUA_FETCHERS["globalvoices_zht"]
+    f, _, _ = make(tmp_path, FakeTransport(), cls=cls, source=src)
+    post = wp_post(1)
+    post["link"] = "https://zht.globalvoices.org/2026/11/02/12345/"
+    f.versions = {
+        canonical_url(post["link"]): {
+            "other_versions": [f"{GV}/2026/11/01/invented-story-1/"],
+            "original_url": f"{GV}/2026/11/01/invented-story-1/",
+        }
+    }
+    item = f.item_from_post(post)
+    assert item.language == "zh-Hant"
+    a = f.build(item, item.published_at)
+    assert a.other_versions == (f"{GV}/2026/11/01/invented-story-1/",)
+    assert a.original_url == f"{GV}/2026/11/01/invented-story-1/"
+
+
+def test_backfill_tags_saves_tag_ids_then_only_the_names_used(tmp_path):
+    from commonswire.backfill import backfill_tags, build_rows, load_post_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (200, "User-agent: *\nCrawl-delay: 10\n"))
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page=1&orderby=date&order=asc&_fields=id%2Ctags",
+        (
+            200,
+            json.dumps([{"id": 1, "tags": [9, 4]}, {"id": 2, "tags": []}]),
+            {"X-WP-Total": "2", "X-WP-TotalPages": "1"},
+        ),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?include=4%2C9&per_page=100&_fields=id%2Cname",
+        (200, json.dumps([{"id": 4, "name": "Four"}, {"id": 9, "name": "Nine"}])),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf" / "globalvoices" / "r1-tags"
+    p = backfill_tags(fetcher, client, folder, run="r1")
+    assert p.finished and p.pages_saved == 1 and p.tag_pages == 1
+    assert load_post_tags(folder) == {1: (9, 4), 2: ()}
+    before = len(t.calls)
+    assert backfill_tags(fetcher, client, folder, run="r1").requests_this_run == 0
+    assert len(t.calls) == before
+    # the build joins them by post id
+    run = tmp_path / "bf" / "globalvoices" / "r1"
+    run.mkdir(parents=True)
+    post = backfill_post(1)
+    post["id"] = 1
+    (run / "posts-p00001.json").write_text(json.dumps([post]))
+    fetcher.byline_map = {7: ("A. Writer",)}
+    build_rows(fetcher, run, tmp_path / "rows.jsonl")
+    row = json.loads((tmp_path / "rows.jsonl").read_text().splitlines()[0])
+    assert row["publisher_tags"] == ["Nine", "Four"]
+
+
+def test_backfill_tags_stops_at_its_request_limit(tmp_path):
+    from commonswire.backfill import backfill_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    for page in (1, 2):
+        t.add(
+            f"{GV}/wp-json/wp/v2/posts?per_page=100&page={page}&orderby=date&order=asc"
+            "&_fields=id%2Ctags",
+            (
+                200,
+                json.dumps([{"id": page, "tags": [page]}]),
+                {"X-WP-Total": "2", "X-WP-TotalPages": "2"},
+            ),
+        )
+    fetcher, client, _ = make(tmp_path, t)
+    p = backfill_tags(fetcher, client, tmp_path / "x-tags", run="x", max_requests=1)
+    assert not p.finished and p.stopped == "stopped after 1 requests, as asked"
+
+
+def test_backfill_tags_of_only_some_posts_by_id(tmp_path):
+    from commonswire.backfill import backfill_tags, load_post_tags
+
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    t.add(
+        f"{GV}/wp-json/wp/v2/posts?include=3%2C5&per_page=100&_fields=id%2Ctags",
+        (200, json.dumps([{"id": 3, "tags": [8]}, {"id": 5, "tags": []}])),
+    )
+    t.add(
+        f"{GV}/wp-json/wp/v2/tags?include=8&per_page=100&_fields=id%2Cname",
+        (200, json.dumps([{"id": 8, "name": "Eight"}])),
+    )
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "r-tags"
+    p = backfill_tags(fetcher, client, folder, run="r", only_ids=[5, 3, 3])
+    assert p.finished and p.pages_saved == 1 and p.total_posts == 2
+    assert load_post_tags(folder) == {3: (8,), 5: ()}
+
+
+def _notice_site(page2_body):
+    t = FakeTransport().add(f"{GV}/robots.txt", (404, ""))
+    t.add(
+        f"{GV}/wp-json/wp/v2/categories?per_page=100&page=1&_fields=id%2Cname",
+        (200, json.dumps([{"id": 1, "name": "World"}])),
+    )
+    fields = GlobalVoicesFetcher.backfill_fields.replace(",", "%2C")
+    base = (
+        f"{GV}/wp-json/wp/v2/posts?per_page=100&page={{}}&orderby=date&order=asc&_fields={fields}"
+    )
+    head = {"X-WP-Total": "3", "X-WP-TotalPages": "3"}
+    t.add(base.format(1), (200, json.dumps([backfill_post(1)]), head))
+    t.add(base.format(2), (200, page2_body, head))
+    t.add(base.format(3), (200, json.dumps([backfill_post(3)]), head))
+    return t
+
+
+def test_a_page_that_is_not_json_is_kept_once_and_stops_the_run(tmp_path):
+    t = _notice_site("<b>Warning</b>: an invented notice, and no posts at all")
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert not p.finished and "not JSON" in p.stopped and "page 2" in p.stopped
+    assert (folder / "posts-p00002.notjson").exists()
+    assert not (folder / "posts-p00002.json").exists()
+
+
+def test_a_notice_before_the_json_is_kept_unchanged_and_its_posts_read(tmp_path):
+    from commonswire.backfill import page_files, posts_of
+
+    body = "<div class='error'><p>Invented plugin notice</p></div>" + json.dumps([backfill_post(2)])
+    t = _notice_site(body)
+    fetcher, client, _ = make(tmp_path, t)
+    folder = tmp_path / "bf"
+    p = backfill_wordpress(fetcher, client, folder, run="r1")
+    assert p.finished and p.notice_pages == 1 and p.pages_saved == 3
+    kept = folder / "posts-p00002.notjson"
+    assert kept.read_text() == body  # the answer as given
+    assert [x.name for x in page_files(folder)][1] == "posts-p00002.notjson"
+    assert check_backfill(folder)["complete"] and check_backfill(folder)["posts"] == 3
+    before = len(t.calls)
+    assert backfill_wordpress(fetcher, client, folder, run="r1").requests_this_run == 0
+    assert len(t.calls) == before  # a kept notice page is never asked for again
+    fetcher.byline_map = {7: ("A. Writer",)}
+    result = build_rows(fetcher, folder, tmp_path / "rows.jsonl")
+    assert result.seen == 3
+    assert posts_of(b"[1") is None and posts_of(b"<p>no array</p>") is None

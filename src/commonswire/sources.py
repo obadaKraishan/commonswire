@@ -43,6 +43,7 @@ SOURCE_FIELDS = [
     "homepage",
     "country",
     "languages",
+    "edition_of",
     "license",
     "license_url",
     "terms_url",
@@ -67,13 +68,16 @@ SOURCE_FIELDS = [
 ]
 #: The registry's columns before ``reason_code`` was added. Versions 0.1.x and 0.2.x ship a
 #: ``sources.csv`` with this header, so it is still read; its rows have no reason code.
-LEGACY_FIELDS = [f for f in SOURCE_FIELDS if f != "reason_code"]
+LEGACY_FIELDS = [f for f in SOURCE_FIELDS if f not in ("reason_code", "edition_of")]
 
 #: Why a source has its status: one code per row, from this fixed list (the free-text
 #: ``reason`` stays). The status each code goes with is in :data:`CODE_STATUS`.
 REASON_CODES: dict[str, str] = {
     "license_allows": "a license or public-domain statement allows unchanged redistribution, "
     "and nothing on the publisher's pages conflicts",
+    "released_with_english": "a license allows unchanged redistribution, and third-party "
+    "material is told on the English pages: a row is released only when its English version "
+    "is a released row of the corpus (the Lingua rule, the maintainer's of 2026-11-23)",
     "nc_or_nd": "a NonCommercial or NoDerivatives license, silent on bulk use",
     "bulk_clause": "a clause against systematic, wholesale, bulk or automatic republishing",
     "tracker_required": "republishing requires a tracking pixel or counter",
@@ -89,10 +93,13 @@ REASON_CODES: dict[str, str] = {
     "third_party_unclear": "no way to tell the publisher's own articles from third-party ones",
     "refused_requests": "the site refused scripted requests, so its pages could not be read",
     "site_unavailable": "the site was not there to read (suspended or gone)",
+    "statement_unread": "the license statement is in a language this project could not read "
+    "with confidence (or shows a broken template), so the maintainer decides",
 }
 #: The status each reason code goes with.
 CODE_STATUS: dict[str, str] = {
     "license_allows": "include",
+    "released_with_english": "include",
     "bulk_clause": "exclude",
     "tracker_required": "exclude",
     "terms_forbid_automation": "exclude",
@@ -107,6 +114,7 @@ CODE_STATUS: dict[str, str] = {
     "third_party_unclear": "pending",
     "refused_requests": "pending",
     "site_unavailable": "pending",
+    "statement_unread": "pending",
 }
 
 QUOTE_FIELDS = ("quote_license", "quote_bulk", "quote_attribution", "quote_terms")
@@ -198,6 +206,9 @@ class Source(BaseModel):
     credit_line: str = ""
     status: Status
     reason_code: str = ""
+    #: For a language edition: the source id of the publisher's main row (each edition is
+    #: ruled on its own pages; the main row's verdict is never carried over).
+    edition_of: str = ""
     reason: str = ""
     notes: str = ""
 
@@ -469,6 +480,10 @@ def reason_code_problems(src: Source) -> list[str]:
         ),
         "no_license": (src.license_family == "none", "license NOASSERTION (no license named)"),
         "refused_requests": (src.robots == "blocked", "robots blocked"),
+        "released_with_english": (
+            bool(src.edition_of),
+            "edition_of: the rule ties an edition to its publisher's English version",
+        ),
     }
     ok, what = needs.get(code, (True, ""))
     if not ok:
@@ -500,6 +515,14 @@ def validate_sources(path: Path, today: date | None = None) -> tuple[list[Source
         if coded:
             problems += [f"{label}: {m}" for m in reason_code_problems(src)]
         sources.append(src)
+    ids = {s.source_id for s in sources}
+    for src in sources:
+        if src.edition_of and src.edition_of not in ids:
+            problems.append(
+                f"{src.source_id}: edition_of names {src.edition_of!r}, not in the registry"
+            )
+        if src.edition_of == src.source_id:
+            problems.append(f"{src.source_id}: edition_of names the row itself")
     return sources, problems
 
 

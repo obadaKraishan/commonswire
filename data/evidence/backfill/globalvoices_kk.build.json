@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2020-09-20",
+  "kept": 17,
+  "last": "2026-02-21",
+  "raw_bytes": 521447,
+  "raw_files": 5,
+  "releasable": 16,
+  "releasable_after_daily": 16,
+  "rows_after_daily": 17,
+  "rows_bytes": 186637,
+  "run": "2026-11-23",
+  "seen": 17,
+  "source_id": "globalvoices_kk",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

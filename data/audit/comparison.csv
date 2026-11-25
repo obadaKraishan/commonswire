@@ -1,0 +1,152 @@
+source_id,name,kind,homepage,common_pile_named_in,common_pile_tag,common_pile_documents,common_pile_data_date,open_newswire_tag,open_newswire_active,open_newswire_data_date,license_here,class_here,status,reason_code,checked_on,lists_agree
+360info,360info,news,https://360info.org/,card;code;data;paper,CC-BY,1673,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,include,license_allows,2026-11-16,yes
+africasacountry,Africa Is a Country,news,https://africasacountry.com/,card;code-commented-out;paper,CC-BY,,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,include,license_allows,2026-11-16,yes
+agenciabrasil,Agência Brasil,state-agency,https://agenciabrasil.ebc.com.br/,,,,,Attribution+,1,2025-11-11,NOASSERTION,none,pending,no_license,2026-11-13,no
+aljumhuriya,Al-Jumhuriya,news,https://www.aljumhuriya.net/en/,,,,,CC BY,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-16,unread
+altnews,Alt News,fact-check,https://www.altnews.in/,card;code;data;paper,CC-BY,4172,2024-05-27,CC BY,1,2025-11-11,CC-BY-3.0,by,include,license_allows,2026-11-16,yes
+altnews_hi,Alt News (Hindi),fact-check,https://www.altnews.in/hindi/,,,,,,,,CC-BY-3.0,by,pending,conflicting_statements,2026-11-17,
+azmirror,Arizona Mirror (States Newsroom),news,https://azmirror.com/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+balkandiskurs,Balkan Diskurs,news,https://balkandiskurs.com/en/,card;code;data;paper,CC-BY,1385,2024-05-27,CC BY,1,2025-11-11,CC-BY-3.0,by,include,license_allows,2026-11-16,yes
+balkandiskurs_bs,Balkan Diskurs (Bosnian),news,https://balkandiskurs.com/,,,,,,,,CC-BY-3.0,by,include,license_allows,2026-11-17,
+calmatters,CalMatters,news,https://calmatters.org/,,,,,,,,NOASSERTION,none,exclude,terms_forbid_automation,2026-11-13,
+caravanserai,Caravanserai,state-agency,https://central.asia-news.com/en_GB/,code-commented-out,Public Domain,,2024-05-27,Public Domain,1,2025-11-11,NOASSERTION,none,pending,site_unavailable,2026-11-16,unread
+chalkbeat,Chalkbeat,news,https://www.chalkbeat.org/,,,,,CC BY-NC-ND,1,2025-11-11,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,yes
+commondreams,Common Dreams,news,https://www.commondreams.org/,,,,,,,,CC-BY-NC-ND-3.0,nc-nd,exclude,bulk_clause,2026-11-13,
+democracynow,Democracy Now!,news,https://www.democracynow.org/,,,,,,,,CC-BY-NC-ND-3.0-US,nc-nd,pending,nc_or_nd,2026-11-13,
+dodnews,DOD News,official,https://www.defense.gov/News/,,,,,,,,NOASSERTION,none,pending,refused_requests,2026-11-16,
+educeleb,EduCeleb,news,https://educeleb.com/,code;data,CC-BY-SA,5280,2024-05-27,CC BY-SA,1,2025-11-11,LicenseRef-all-rights-reserved,closed,exclude,rights_reserved,2026-11-16,no
+eff,EFF Deeplinks,advocacy,https://www.eff.org/deeplinks,,,,,,,,CC-BY-4.0,by,include,license_allows,2026-11-13,
+factly,Factly,fact-check,https://factly.in/,card;code;data;paper,CC-BY,11380,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,include,license_allows,2026-11-16,yes
+fides,Agenzia Fides,church-agency,https://www.fides.org/en,card;code-commented-out;paper,CC-BY,,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,pending,third_party_unclear,2026-11-16,yes
+floridaphoenix,Florida Phoenix (States Newsroom),news,https://floridaphoenix.com/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+freedompress,Freedom of the Press Foundation,advocacy,https://freedom.press/,card;code;data;paper,CC-BY,1060,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,include,license_allows,2026-11-16,yes
+georgiarecorder,Georgia Recorder (States Newsroom),news,https://georgiarecorder.com/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+globalvoices,Global Voices,news,https://globalvoices.org/,card;code;data;paper,CC-BY,102552,2024-05-27,CC BY,1,2025-11-11,CC-BY-3.0,by,include,license_allows,2026-11-16,yes
+globalvoices_am,Global Voices (am),news,https://am.globalvoices.org/,,,,,,,,CC-BY-3.0,by,pending,statement_unread,2026-11-17,
+globalvoices_ar,Global Voices (ar),news,https://ar.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_aym,Global Voices (ay),news,https://aym.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_bg,Global Voices (bg),news,https://bg.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_bn,Global Voices (bn),news,https://bn.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ca,Global Voices (ca),news,https://ca.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_cs,Global Voices (cs),news,https://cs.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_da,Global Voices (da),news,https://da.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_de,Global Voices (de),news,https://de.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_el,Global Voices (el),news,https://el.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_eo,Global Voices (eo),news,https://eo.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_es,Global Voices (es),news,https://es.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_fa,Global Voices (fa),news,https://fa.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_fil,Global Voices (fil),news,https://fil.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_fr,Global Voices (fr),news,https://fr.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_he,Global Voices (he),news,https://he.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_hi,Global Voices (hi),news,https://hi.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_hr,Global Voices (hr),news,https://hr.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_hu,Global Voices (hu),news,https://hu.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_id,Global Voices (id),news,https://id.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ig,Global Voices (ig),news,https://ig.globalvoices.org/,,,,,,,,CC-BY-3.0,by,pending,statement_unread,2026-11-17,
+globalvoices_it,Global Voices (it),news,https://it.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_jp,Global Voices (ja),news,https://jp.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_kk,Global Voices (kk),news,https://kk.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_km,Global Voices (km),news,https://km.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ko,Global Voices (ko),news,https://ko.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ku,Global Voices (ku),news,https://ku.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_mg,Global Voices (mg),news,https://mg.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_mk,Global Voices (mk),news,https://mk.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_my,Global Voices (my),news,https://my.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ne,Global Voices (ne),news,https://ne.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_nl,Global Voices (nl),news,https://nl.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_or,Global Voices (or),news,https://or.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_pa,Global Voices (pa),news,https://pa.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_pl,Global Voices (pl),news,https://pl.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_pt,Global Voices (pt),news,https://pt.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ro,Global Voices (ro),news,https://ro.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ru,Global Voices (ru),news,https://ru.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_sat,Global Voices (sat),news,https://sat.globalvoices.org/,,,,,,,,CC-BY-3.0,by,pending,statement_unread,2026-11-17,
+globalvoices_sq,Global Voices (sq),news,https://sq.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_sr,Global Voices (sr),news,https://sr.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_sv,Global Voices (sv),news,https://sv.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_sw,Global Voices (sw),news,https://sw.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_tet,Global Voices (tet),news,https://tet.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_tr,Global Voices (tr),news,https://tr.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_uk,Global Voices (uk),news,https://uk.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_ur,Global Voices (ur),news,https://ur.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_uz,Global Voices (uz),news,https://uz.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_yo,Global Voices (yo),news,https://yo.globalvoices.org/,,,,,,,,CC-BY-3.0,by,pending,statement_unread,2026-11-17,
+globalvoices_zhs,Global Voices (zh-Hans),news,https://zhs.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+globalvoices_zht,Global Voices (zh-Hant),news,https://zht.globalvoices.org/,,,,,,,,CC-BY-3.0,by,include,released_with_english,2026-11-17,
+grist,Grist,news,https://grist.org/,,,,,Attribution+,1,2025-11-11,NOASSERTION,none,exclude,tracker_required,2026-11-13,no
+healthbeat,Healthbeat,news,https://www.healthbeat.org/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+inn,Institute for Nonprofit News,portal,https://inn.org/,,,,,,,,LicenseRef-member-newsrooms,closed,exclude,third_party_portal,2026-11-13,
+insideclimatenews,Inside Climate News,news,https://insideclimatenews.org/,,,,,,,,CC-BY-NC-ND-3.0,nc-nd,exclude,bulk_clause,2026-11-13,
+kffhealthnews,KFF Health News,news,https://kffhealthnews.org/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+libertytvradio,Liberty TV Radio,news,https://libertytvradio.com/,code;data,CC-BY-SA,10358,2024-05-27,CC BY-SA,1,2025-11-11,CC-BY-SA-4.0,by-sa,pending,conflicting_statements,2026-11-16,yes
+marshallproject,The Marshall Project,news,https://www.themarshallproject.org/,,,,,CC BY-NC-ND,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-13,unread
+marylandmatters,Maryland Matters,news,https://marylandmatters.org/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+meduza_en,Meduza (English),news,https://meduza.io/en,card;code-commented-out;paper,CC-BY,,2024-05-27,CC BY,1,2025-11-11,CC-BY-4.0,by,pending,partial_license,2026-11-16,yes
+mehrnews,Mehr News Agency,state-agency,https://en.mehrnews.com/,,,,,CC BY,0,2025-11-11,LicenseRef-all-rights-reserved,closed,exclude,rights_reserved,2026-11-16,no
+mekongeye,Mekong Eye,news,https://www.mekongeye.com/,card;code;data;paper,CC-BY,425,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-16,unread
+milwaukeenns,Milwaukee Neighborhood News Service,news,https://milwaukeenns.org/,card;code;data;paper,CC-BY,26867,2024-05-27,CC BY,1,2025-11-11,CC-BY-ND-4.0,nc-nd,exclude,bulk_clause,2026-11-16,no
+minorityafrica,Minority Africa,news,https://minorityafrica.org/,card;code;data;paper,CC-BY,197,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,pending,no_license,2026-11-16,no
+mississippitoday,Mississippi Today,news,https://mississippitoday.org/,,,,,CC BY-NC-ND,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-13,unread
+mongabay,Mongabay,news,https://news.mongabay.com/,,,,,CC BY-ND,1,2025-11-11,CC-BY-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,yes
+nasa,NASA News,official,https://www.nasa.gov/news/,,,,,,,,public-domain,pd,pending,partial_license,2026-11-16,
+newcanadianmedia,New Canadian Media,news,https://www.newcanadianmedia.ca/,card;code;data;paper,CC-BY,3055,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-16,unread
+nih,NIH News Releases,official,https://www.nih.gov/news-events/news-releases,,,,,,,,public-domain,pd,include,license_allows,2026-11-13,
+ohiocapitaljournal,Ohio Capital Journal (States Newsroom),news,https://ohiocapitaljournal.com/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,
+opendemocracy,openDemocracy,news,https://www.opendemocracy.net/en/,,,,,,,,CC-BY-NC-4.0,nc-nd,exclude,bulk_clause,2026-11-13,
+oxpeckers,Oxpeckers,news,https://oxpeckers.org/,card;code;data;paper,CC-BY-SA,432,2024-05-27,CC BY-SA,1,2025-11-11,CC-BY-SA-4.0,by-sa,pending,third_party_unclear,2026-11-16,yes
+pakistanforward,Pakistan Forward,state-agency,https://pakistan.asia-news.com/en_GB/,,,,,Public Domain,1,2025-11-11,NOASSERTION,none,pending,site_unavailable,2026-11-16,unread
+panarmenian,PanARMENIAN.Net,news,https://www.pan.am/en/,,,,,CC BY,1,2025-11-11,CC-BY-4.0,by,pending,conflicting_statements,2026-11-16,yes
+projectmultatuli,Project Multatuli,news,https://projectmultatuli.org/en/,,,,,CC BY,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-16,unread
+propastop,Propastop,fact-check,https://www.propastop.org/en/,card;code;data;paper,CC-BY-SA,1212,2024-05-27,CC BY-SA,1,2025-11-11,CC-BY-SA-3.0,by-sa,pending,partial_license,2026-11-16,yes
+propublica,ProPublica,news,https://www.propublica.org/,,,,,CC BY-NC-ND,1,2025-11-11,CC-BY-NC-ND-3.0-US,nc-nd,exclude,bulk_clause,2026-11-13,yes
+salaamtimes,Salaam Times,state-agency,https://afghanistan.asia-news.com/en_GB/,,,,,Public Domain,1,2025-11-11,public-domain,pd,include,license_allows,2026-11-16,yes
+scidevnet,SciDev.Net,news,https://www.scidev.net/global/,card;code-commented-out;paper,CC-BY,,2024-05-27,CC BY,1,2025-11-11,CC-BY-2.0,by,include,license_allows,2026-11-16,yes
+sdnewswatch,South Dakota News Watch,news,https://www.sdnewswatch.org/,,,,,,,,CC-BY-SA-4.0,by-sa,pending,extra_conditions,2026-11-16,
+sinc,SINC,state-agency,https://www.agenciasinc.es/en,,,,,CC BY,1,2025-11-11,CC-BY-4.0,by,exclude,bulk_clause,2026-11-16,yes
+sojoexchange,The Solutions Journalism Exchange,portal,https://sojoexchange.solutionsjournalism.org/,card;code;data;paper,CC-BY,5,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,exclude,bulk_clause,2026-11-16,no
+stategov,US Department of State press releases,official,https://www.state.gov/,,,,,,,,NOASSERTION,none,pending,refused_requests,2026-11-16,
+stateline,Stateline,news,https://stateline.org/,,,,,CC BY-NC-ND,1,2025-11-11,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,yes
+statesnewsroom,States Newsroom,news,https://statesnewsroom.com/,,,,,,,,NOASSERTION,none,pending,no_license,2026-11-13,
+tasnim,Tasnim News Agency (English),state-agency,https://www.tasnimnews.com/en,card;code-commented-out;paper,CC-BY,,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-16,unread
+texastribune,The Texas Tribune,news,https://www.texastribune.org/,,,,,Attribution+,0,2025-11-11,NOASSERTION,none,exclude,tracker_required,2026-11-13,no
+the19th,The 19th,news,https://19thnews.org/,,,,,CC BY-NC-ND,1,2025-11-11,NOASSERTION,none,pending,refused_requests,2026-11-13,unread
+theconversation,The Conversation (US),news,https://theconversation.com/us,,,,,CC BY-ND,1,2025-11-11,CC-BY-ND-4.0,nc-nd,exclude,bulk_clause,2026-11-13,yes
+thepublicrecord,The Public Record,news,https://thepublicrecord.ca/,card;code;data;paper,CC-BY-SA,1727,2024-05-27,CC BY-SA,1,2025-11-11,CC-BY-SA-4.0,by-sa,include,license_allows,2026-11-16,yes
+truthout,Truthout,news,https://truthout.org/,,,,,,,,CC-BY-NC-ND-4.0,nc-nd,exclude,bulk_clause,2026-11-13,
+undark,Undark,news,https://undark.org/,,,,,,,,NOASSERTION,none,exclude,bulk_clause,2026-11-13,
+voa,Voice of America,state-agency,https://www.voanews.com/,,,,,Public Domain,1,2025-11-11,public-domain,pd,exclude,bulk_clause,2026-11-16,yes
+votebeat,Votebeat,news,https://www.votebeat.org/,,,,,CC BY-NC-ND,0;1,2025-11-11,CC-BY-NC-ND-4.0,nc-nd,pending,nc_or_nd,2026-11-13,yes
+wikinews_ar,Wikinews (ar),news,https://ar.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_bs,Wikinews (bs),news,https://bs.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_ca,Wikinews (ca),news,https://ca.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_cs,Wikinews (cs),news,https://cs.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_de,Wikinews (de),news,https://de.wikinews.org/,,,,,,,,CC-BY-2.5,by,pending,third_party_unclear,2026-11-17,
+wikinews_el,Wikinews (el),news,https://el.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_en,Wikinews (English),news,https://en.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-13,
+wikinews_eo,Wikinews (eo),news,https://eo.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_es,Wikinews (es),news,https://es.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_fa,Wikinews (fa),news,https://fa.wikinews.org/,,,,,,,,CC-BY-SA-4.0,by-sa,pending,conflicting_statements,2026-11-17,
+wikinews_fi,Wikinews (fi),news,https://fi.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_fr,Wikinews (fr),news,https://fr.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_guw,Wikinews (guw),news,https://guw.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_he,Wikinews (he),news,https://he.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_hu,Wikinews (hu),news,https://hu.wikinews.org/,,,,,,,,CC-BY-3.0,by,pending,partial_license,2026-11-17,
+wikinews_it,Wikinews (it),news,https://it.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_ja,Wikinews (ja),news,https://ja.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_ko,Wikinews (ko),news,https://ko.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_li,Wikinews (li),news,https://li.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_nl,Wikinews (nl),news,https://nl.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_no,Wikinews (no),news,https://no.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_pl,Wikinews (pl),news,https://pl.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_pt,Wikinews (pt),news,https://pt.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_ro,Wikinews (ro),news,https://ro.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_ru,Wikinews (ru),news,https://ru.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_shn,Wikinews (shn),news,https://shn.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_sq,Wikinews (sq),news,https://sq.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_sr,Wikinews (sr),news,https://sr.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_sv,Wikinews (sv),news,https://sv.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+wikinews_ta,Wikinews (ta),news,https://ta.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_tr,Wikinews (tr),news,https://tr.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_uk,Wikinews (uk),news,https://uk.wikinews.org/,,,,,,,,CC-BY-4.0,by,pending,partial_license,2026-11-17,
+wikinews_zh,Wikinews (zh),news,https://zh.wikinews.org/,,,,,,,,CC-BY-2.5,by,include,license_allows,2026-11-17,
+zimfact,ZimFact,fact-check,https://zimfact.org/,card;code;data;paper,CC-BY,528,2024-05-27,CC BY,1,2025-11-11,NOASSERTION,none,pending,site_unavailable,2026-11-16,unread

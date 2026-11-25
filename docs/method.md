@@ -12,13 +12,98 @@ been run.
   `data/sources.csv`.
 - **Out of scope:** third-party material (wire copy, partner stories, syndicated pieces) is
   dropped before any coding and counted per source.
-- **Languages:** to be decided for version 1: English only, or every language the clean sources
-  publish (Global Voices publishes in more than 40).
+- **Sources:** every publisher's rights are read on its own pages under the clean-source rule
+  (`docs/rights-audit.md`, `docs/sources.md`); only news and fact-checking publishers whose
+  status is `include` are collected. Official, advocacy, state and church agencies get a
+  verdict but are not collected unless the maintainer decides so.
+- **Routes:** a publisher's API where it gives its articles (WordPress), a dump (Wikinews),
+  or its article pages, found from its sitemap (SciDev.Net) or its listing pages (Africa Is a
+  Country), each page saved once and replayed with no request.
+- **Third-party and sponsored pieces:** left out and counted. Besides partner categories,
+  republication notes and other holders' copyright lines, SciDev.Net's "Supported content"
+  pages (most name a funder) are kept only with SciDev.Net's own byline, the site's license
+  line and no other holder named.
+- **Languages:** from series 0.3, the language editions ruled `include`, each on its own pages
+  (section 1.1). Factly's Telugu stories are Factly rows labelled `te`.
+
+### 1.1 Language editions (series 0.3 on)
+- **Each edition is a source of its own** (`edition_of` in the registry), ruled on its own
+  pages; the main row's verdict is never carried over.
+- **Global Voices' language sites: the Lingua rule.** Their footers and the publisher's policy,
+  which names "our sites", settle the license (CC BY 3.0). A language-site row is released only
+  when its English version is a released row of the corpus, because the English pages are
+  where republished partner pieces are detected; every other row is held and counted, by
+  edition (`released_with_english` in the registry; `commonswire.lingua`).
+- **The link to the English version.** A language-site page lists the post's other-language
+  versions, but neither the site's API nor its listings carry that list, so reading it would
+  take one page per post. A translation keeps the links and images of the post it translates,
+  so the link is found from the bodies the API gives:
+  - each body's fingerprint is its links to other sites, its links to English Global Voices
+    articles (by date and slug) and its image file names (without WordPress's size suffix);
+  - it is matched against the fingerprints of every saved English body, counting only parts
+    found in at most 40 English posts;
+  - a match must share at least 3 parts, cover at least a quarter of the two fingerprints
+    together, and share at least twice as many parts as the next candidate. Anything less is
+    no match, and the row is held.
+- **How well it agrees with the pages' own links** (a study of 2026-11-23, 297 requests):
+  - 105 language-site pages (5 sites) were read; 104 name an English version and 93 of those
+    are in the English archive (42 under an older address);
+  - the route agrees with the page on 76, never names another post, and finds no match for 17
+    (10 bodies with fewer than 3 parts), so it found 82% of them and was wrong on none;
+  - 89 English pages were read; of the 69 reached from a language-site page, 42 list that post
+    back by address, 27 under an older address of the same site, and none lists nothing;
+  - from the English side, the route agrees on 44 of the 45 listed versions whose bodies were
+    at hand (the 45th's English post is not in the archive).
+- **The listing.** Writers and translators come from each language site's own listing, as for
+  the English site (the labels are learned from the listing itself). A listing page is read
+  only when it may show a story the rule could release; held rows are counted from the API's
+  listing.
+- **Other-language versions.** `other_versions` lists the addresses linked through the same
+  English post. The English version is not assumed to be the original: `original_url` is set
+  only where exactly one version in the group credits no translator.
+- **Wikinews' editions: licenses by date.** Each edition's copyright page dates its licenses
+  differently. An article takes the license of its creation date (its first revision in the
+  dump), from its edition's table (`commonswire.licensing`); a date the table does not place is
+  held and counted. A page that carries a license or copyright notice of its own that
+  differs from that license is held and counted too (an image's caption is the image's
+  notice, not the page's; a license named inside a template or a reference is not the page's
+  either). An edition's published articles are those carrying its own publication template,
+  read from a count of its article pages' templates; its text ends at its own closing
+  headings ("Sources", "Πηγές", "출처", ...). Chinese headline digests, made only of templates,
+  have no text of their own and are skipped. Editions whose page gives no usable table stay
+  `pending`.
+- **Balkan Diskurs (Bosnian)** is read like the English edition (API, then each article page for
+  its byline); the two editions name each other in their pages' `hreflang` tags.
 
 ## 2. Variables
 Every coded value is stored on its row with its provenance: the codebook version, the model and
 its license, the prompt version, the time it was coded, and whether a person checked it
 (`Coding` in `schema.py`). Published coded values use Apache-2.0 or MIT models.
+
+### 2.0 Variables that need no model (series 0.3 on)
+Read from each article as its publisher gave it, with no model and no judgment:
+
+- **The publisher's own labels, as written:** `publisher_section`, `publisher_categories`,
+  `publisher_tags`. They come from a WordPress site's categories (the first one is the
+  section) and tags; SciDev.Net's breadcrumb; Africa Is a Country's article header; and
+  Wikinews' categories. A label the saved answer does not carry stays empty, never guessed.
+  The WordPress archives saved without post tags had them read once (`commonswire
+  backfill-tags`: post ids with tag ids, then the names used); new archives and the weekly
+  runs ask for them.
+- **Links:** `n_links`, `n_links_external`, `link_hosts`, counted from the body.
+  - Relative links are resolved against the article's own address.
+  - Anchors, mail, telephone, script and data links, and addresses with no valid host, are
+    not counted.
+  - A host is external when it is neither the source's host nor a subdomain of it.
+  - Wikinews' links come from its wikitext.
+  - A row whose body is not known has null counts.
+- **`other_versions`:** the addresses of the article's versions in other languages, as the
+  publisher links them (section 1.1).
+- **`original_url`:** for a translation, the version it was made from, set only where exactly
+  one version of the group credits no translator (section 1.1).
+- **`language`:** the publisher's own label where it gives one per article (Factly's
+  "Telugu" and "English" categories). Elsewhere it is the source's language; a category named
+  after a language is a topic there, not the post's language.
 
 ### 2.1 Topic
 - **Scheme: IPTC Media Topics**, the news industry's own subject taxonomy, maintained by the
@@ -128,7 +213,13 @@ human-human alpha.
 
 ## 4. Update rules
 - **New:** each weekly update adds the articles of the last 30 days that the previous version
-  does not have (by the source's API), after the third-party filter.
+  does not have (by the source's API), after the third-party filter. Sources read from their
+  article pages (series 0.3) have a route of their own: SciDev.Net's newest sitemap (the
+  articles changed since the previous version), and Africa Is a Country's listing pages 1 and
+  2 (the stories the previous version does not have). Each page is read once.
+- **New series:** a source enters only with a new series (0.3.0 after 0.2.N), built by
+  `commonswire release build-from` from the latest published version plus the new sources'
+  rows, so whatever the weekly updates added is kept.
 - **Changed:** an article whose text hash differs from the stored one is marked `changed`, its
   new text replaces the old in the next release, and its coded variables are coded again.
   Sources that report edits (for example a modified date in their API) are checked first.

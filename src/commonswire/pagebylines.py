@@ -75,6 +75,10 @@ SITE_MARKUP: dict[str, BylineMarkup] = {
     "balkandiskurs": BylineMarkup(
         frozenset({"byline", "vcard"}), within="single-meta", name_tag="a", metadata_fallback=False
     ),
+    # The Bosnian edition uses the same theme (profile links under /profile/).
+    "balkandiskurs_bs": BylineMarkup(
+        frozenset({"byline", "vcard"}), within="single-meta", name_tag="a", metadata_fallback=False
+    ),
     # <div class="post-meta-authors"><div class="post-authors"><span>Authors</span>
     # <strong>NAME</strong><br>AFFILIATION ...; the editors are in "post-meta-editors".
     "360info": BylineMarkup(frozenset({"post-meta-authors"}), name_tag="strong"),

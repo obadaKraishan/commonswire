@@ -184,3 +184,33 @@ def test_snapshot_helpers_without_a_drive(tmp_path):
     assert snapshot_files(tmp_path, "x") == []
     assert page_texts(tmp_path, "x") == {}
     assert read_rows(tmp_path / "none.csv") == []
+
+
+def test_an_article_read_as_evidence_is_recorded_and_logged_by_its_id(tmp_path):
+    """An article page read for its license footer: pages.csv, license_links.csv, the
+    request log and the snapshot's name carry its id, never its address."""
+    from commonswire.schema import article_id
+
+    story = "https://news.example.org/2026/11/02/an-invented-headline/"
+    t = site().add(
+        story,
+        (200, '<p>Words.</p><a rel="license" href="https://creativecommons.org/licenses/by/4.0/">'
+              "CC BY</a>"),
+    )  # fmt: skip
+    client, _ = make_test_client(tmp_path, t)
+    paths = EvidencePaths(tmp_path, "2026-11-13")
+    cands = read_candidates(write_candidates(tmp_path, candidate_rows()))
+    fetch_evidence(client, cands, paths, max_policy_pages=0, extra_urls={"examplenews": [story]})
+    rid = article_id(story)
+    pages = read_rows(tmp_path / "data" / "evidence" / "pages.csv")
+    row = next(r for r in pages if r["role"] == "extra")
+    assert row["url"] == row["final_url"] == rid and row["file"].endswith(f"-{rid}.html")
+    links = read_rows(tmp_path / "data" / "evidence" / "license_links.csv")
+    assert rid in {r["page_url"] for r in links}
+    log = (tmp_path / "usage_log.csv").read_text()
+    assert "an-invented-headline" not in log and rid in log
+    assert "an-invented-headline" not in (tmp_path / "data" / "evidence" / "pages.csv").read_text()
+    # A second run on the same date asks for nothing new.
+    before = len(t.calls)
+    fetch_evidence(client, cands, paths, max_policy_pages=0, extra_urls={"examplenews": [story]})
+    assert len(t.calls) == before

@@ -1,0 +1,33 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {
+    "invalid:Value error, text is empty; only a removed article may have no text": 3,
+    "invalid:Value error, text still holds HTML tags; give plain text": 9,
+    "invalid:title": 3,
+    "third_party:republication_note": 2,
+    "third_party:wire_byline": 6
+  },
+  "first": "2006-03-24",
+  "kept": 10677,
+  "last": "2026-11-23",
+  "raw_bytes": 132348424,
+  "raw_files": 111,
+  "releasable": 10558,
+  "releasable_after_daily": 10558,
+  "rows_after_daily": 10677,
+  "rows_bytes": 90799494,
+  "run": "2026-11-23",
+  "seen": 10700,
+  "source_id": "globalvoices_it",
+  "validate_errors": 0,
+  "validate_warnings": 24
+}

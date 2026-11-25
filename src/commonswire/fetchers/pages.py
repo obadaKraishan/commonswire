@@ -220,6 +220,7 @@ class SciDevNetFetcher(PageFetcher):
             and not IMAGE_CREDIT.search(para)
         ]
         parts = urlsplit(url).path.strip("/").split("/")
+        crumb = re.search(r'<span class="breadcrumb_last"[^>]*>(.*?)</span>', html, re.S | re.I)
         return Item(
             url=url,
             title=title,
@@ -236,6 +237,8 @@ class SciDevNetFetcher(PageFetcher):
                 "byline_own": bool(targets) and all(self.OWN_AUTHOR_PAGE.match(t) for t in targets),
                 "license_line": self.LICENSE_LINE in _text(html),
                 "other_licenses": licenses_outside_captions(body),
+                # The section's label as the site prints it (its breadcrumb).
+                "publisher_section": _text(crumb.group(1)) if crumb else "",
             },
         )
 
@@ -279,6 +282,21 @@ class AfricaIsACountryFetcher(PageFetcher):
             re.S | re.I,
         )
         authors, itself = self.names(raw)
+        # The article's categories, as its header links them.
+        categories = list(
+            dict.fromkeys(
+                c
+                for c in (
+                    _text(x)
+                    for x in re.findall(
+                        r"""<a\b[^>]*href=["'][^"']*/category/[^"']*["'][^>]*>(.*?)</a>""",
+                        head,
+                        re.S | re.I,
+                    )
+                )
+                if c
+            )
+        )
         return Item(
             url=url,
             title=title,
@@ -287,6 +305,7 @@ class AfricaIsACountryFetcher(PageFetcher):
             language="en",
             authors=authors,
             hints={
+                "categories": categories,
                 "byline_is_source": itself,
                 "elsewhere": published_elsewhere(article_text(body, self.embed_classes)),
             },

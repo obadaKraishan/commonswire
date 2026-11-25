@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2010-06-14",
+  "kept": 621,
+  "last": "2023-05-26",
+  "raw_bytes": 6346167,
+  "raw_files": 11,
+  "releasable": 618,
+  "releasable_after_daily": 618,
+  "rows_after_daily": 621,
+  "rows_bytes": 3809607,
+  "run": "2026-11-23",
+  "seen": 621,
+  "source_id": "globalvoices_hu",
+  "validate_errors": 0,
+  "validate_warnings": 32
+}

@@ -451,7 +451,8 @@ def test_a_week_of_new_changed_removed_and_credited_rows(tmp_path):
     assert res.rows_after == res.rows_before + 4 - 1
     readme = (tmp_path / "next" / "README.md").read_text()
     assert "## This update" in readme and "4 new rows, 4 changed, 1 removed" in readme
-    assert "3 more rows are held back" in readme and "4 were dropped" in readme
+    assert "### Bylines\n3 rows are held back because the source asks" in readme
+    assert "4 were dropped in this version" in " ".join(readme.split())
     # No request to the closed source; the removal checks are logged by id, not address.
     assert not [c for c in w.site.calls if "wikinews" in c]
     with (tmp_path / "work" / "usage_log.csv").open(encoding="utf-8") as fh:
@@ -534,6 +535,67 @@ def test_stops_before_any_request(tmp_path, monkeypatch, change, reason):
     assert res.status == "stopped"
     assert any(reason in r for r in res.stop_reasons), res.stop_reasons
     assert w.site.calls == []
+
+
+def test_the_registry_is_the_series_own(tmp_path, monkeypatch):
+    """A series whose registry is frozen updates with its copy, so data/sources.csv can hold
+    the next series' registry; the published version's number picks the series."""
+    from commonswire.update import FROZEN_REGISTRIES, registry_for
+
+    assert registry_for(tmp_path, "0.2.4") == tmp_path / FROZEN_REGISTRIES[(0, 2)]
+    assert registry_for(tmp_path, "0.3.1") == tmp_path / "data" / "sources.csv"
+    w = World(tmp_path)
+    frozen = tmp_path / "frozen" / "sources.csv"
+    frozen.parent.mkdir()
+    frozen.write_bytes(w.reg_path.read_bytes())
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "data" / "sources.csv").write_text("source_id\nnext_series_only\n")
+    monkeypatch.setitem(FROZEN_REGISTRIES, (9, 9), "frozen/sources.csv")
+    res = w.run(registry_path=None)
+    assert res.status == "ready", res.stop_reasons
+    assert (tmp_path / "next" / "sources.csv").read_bytes() == frozen.read_bytes()
+
+
+def test_the_registry_of_the_next_series_stops_a_frozen_series(tmp_path, monkeypatch):
+    from commonswire.update import FROZEN_REGISTRIES
+
+    w = World(tmp_path)
+    (tmp_path / "frozen").mkdir()
+    (tmp_path / "frozen" / "sources.csv").write_text("source_id\nnext_series_only\n")
+    monkeypatch.setitem(FROZEN_REGISTRIES, (9, 9), "frozen/sources.csv")
+    res = w.run(registry_path=None)
+    assert any("frozen/sources.csv) differs" in r for r in res.stop_reasons), res.stop_reasons
+    assert w.site.calls == []
+
+
+def test_an_update_never_begins_a_series(tmp_path, monkeypatch):
+    monkeypatch.setitem(rel.SERIES, (9, 10), SOURCES)
+    w = World(tmp_path)
+    res = w.run(version="9.10.0")
+    assert res.status == "stopped"
+    assert any("begins a new series" in r for r in res.stop_reasons), res.stop_reasons
+    assert w.site.calls == []
+
+
+def test_a_released_row_that_would_become_a_copy_stops_the_run(tmp_path, monkeypatch):
+    """A weekly run never drops a released row as a copy of another source's row (series 0.3's
+    republished-copies rule): it stops for the maintainer."""
+    w = World(tmp_path)
+    w.week_later()
+    monkeypatch.setattr(rel, "REPUBLISHED_COPIES", {"factly": "globalvoices"})
+    res = w.run()
+    assert res.status == "stopped"
+    assert any("left out as copies" in r for r in res.stop_reasons), res.stop_reasons
+
+
+def test_a_runs_request_cap_skips_the_sources_past_it(tmp_path):
+    w = World(tmp_path)
+    w.week_later()
+    res = w.run(max_requests=3)
+    assert res.status == "stopped"
+    over = [s for s, u in res.sources.items() if u.status == "over_budget"]
+    assert over and all("request budget" in res.sources[s].note for s in over)
+    assert len(w.site.calls) <= 3
 
 
 def test_a_refusing_source_is_skipped_and_named(tmp_path):

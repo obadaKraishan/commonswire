@@ -1,0 +1,29 @@
+{
+  "by_license": {
+    "CC-BY-2.5": 432,
+    "held:license date not placed": 387
+  },
+  "files": {
+    "articles": {
+      "bytes": 1346418,
+      "checked": true,
+      "md5": "bc08d7fadd86b6a5bdfffa2cc9bf9c8f"
+    },
+    "stubs": {
+      "bytes": 2242278,
+      "checked": true,
+      "md5": "3ec8ab8dae485dd42725d247b15f1f82"
+    }
+  },
+  "held": 387,
+  "kept": 819,
+  "run": "2026-11-25",
+  "skipped": {
+    "empty_text": 1,
+    "not_an_article_namespace": 2356,
+    "not_marked_published": 31,
+    "redirect": 66
+  },
+  "source_id": "wikinews_ko",
+  "validate_errors": 0
+}

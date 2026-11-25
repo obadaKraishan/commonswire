@@ -233,3 +233,96 @@ Please cite the version you used, and credit the newsrooms as each row's credit 
 ```
 
 Version 0.2.0, collected up to 2026-11-14. Code: https://github.com/obadaKraishan/commonswire (Apache-2.0).
+
+---
+
+# DRAFT for version 0.3.0 (not the published card)
+
+**DRAFT.** These numbers come from a local test build (never uploaded) of the published
+0.2.2 plus the two new sources, with every page of both read. The real 0.3.0 is built at
+release time from the latest published 0.2.N, so it also holds what the weekly updates add
+until then.
+
+## Changes since 0.2.x (planned)
+- **Two new sources, read from their article pages** (their APIs do not give their articles):
+  - **SciDev.Net** (news on science and development, CC BY 2.0): 10,571 rows, 2001-05-15 to
+    2026-11-16. Its republishing box asks republishers to "credit our authors", so a page
+    with no byline is held (2,607 rows). Its "Supported content" pages are kept only with
+    SciDev.Net's own byline, the site's license line and no other holder named (101 of 107).
+    78 pieces that say they first appeared elsewhere, 1 with another holder's copyright line
+    and the 6 other supported-content pages are left out.
+  - **Africa Is a Country** (essays and news analysis, CC BY 4.0): 2,485 rows, 2009-08-06 to
+    2026-11-13. 30 pieces that say they first appeared elsewhere are left out.
+- **A new license version in `by`: CC BY 2.0** (SciDev.Net). The `by` configuration then
+  holds CC BY 2.0, 2.5, 3.0 and 4.0, each article with its own.
+- **A weekly route for the two new sources:** SciDev.Net's newest sitemap (the articles
+  changed since the previous version) and Africa Is a Country's listing pages 1 and 2 (the
+  stories the previous version does not have). Each page is read once.
+- **New columns, the variables that need no model** (read from each article as its
+  publisher gave it):
+  - `publisher_section`, `publisher_categories`, `publisher_tags`: the publisher's own
+    labels, as written (the WordPress archives' tags were read once, apart from their text).
+  - `n_links`, `n_links_external`, `link_hosts`: the body's links that lead to a web page,
+    those to other sites, and every host once (lower case, without `www.`). They are null
+    where the body is not known.
+  - `other_versions`: the addresses of the article's versions in other languages, as the
+    publisher links them.
+  - `original_url`: for a translation, the version it was made from, set only where exactly
+    one version of the story credits no translator (the English version is not assumed to be
+    the original).
+- **`language` per row:** Factly's Telugu stories, labelled `en` in 0.1.0 to 0.2.2, are `te`,
+  from Factly's own "Telugu" category. They stay Factly rows.
+- **Other languages.** Each language edition is a source of its own, ruled on its own pages:
+  - **Balkan Diskurs in Bosnian**, under its own Bosnian attribution policy (CC BY);
+  - **Global Voices' language sites** (CC BY 3.0, the footer of each site and the publisher's
+    policy for "our sites"), under **the Lingua rule**: a row is released only when its
+    English version is a released row of this dataset, because the English pages are where
+    republished partner pieces are detected. Every other row of these sites is held and
+    counted, by site. The English version is found from the links and images a translation
+    keeps from it;
+  - **Wikinews' language editions** whose copyright page dates its licenses: each article
+    carries the license of its creation date, and an article the page's dates do not place is
+    held.
+
+  Editions whose license statement could not be read with confidence, or whose pages leave a
+  question, stay out; `sources.csv` gives each one's question.
+- **The record of changes, `changes.csv`:** one line per article and version where something
+  happened (new, changed, removed at the source, taken down on request), with the date. It
+  holds ids only.
+- **SciDev.Net's checks hold for every section:** a page that lacks the site's license line,
+  or names another license outside an image's caption, is left out.
+- **The rights audit.** `sources.csv` gains a `reason_code` column (one code from a fixed list
+  for every publisher's status), and the registry holds 66 publishers: 13 include, 36 pending,
+  17 exclude. How each was read, and how this compares with the Common Pile's news sources
+  and Open Newswire's tags, is in the repository's `docs/rights-audit.md`.
+
+## Test build 3 (2026-11-25, with the language editions)
+Built from the published 0.2.3 with every page of the new editions read; never uploaded.
+
+| | 0.2.3 (published) | 0.3.0 test build 3 |
+|---|---|---|
+| Rows | 149,220 | 298,498 |
+| `by` / `by-sa` / `pd` | 144,501 / 2,765 / 1,954 | 293,120 / 3,037 / 2,341 |
+| CC BY 2.0 / 2.5 / 3.0 / 4.0 | 0 / 18,466 / 108,277 / 17,758 | 10,563 / 56,537 / 205,507 / 20,513 |
+| Sources | 7 | 62 |
+| Languages | 1 (`en`) | 50 |
+| Words | 55.2 million | 142.3 million |
+| First and last day | 2004-10-27 to 2026-11-23 | 2001-05-15 to 2026-11-24 |
+| Held back | 272 | 44,144 (40,516 by the Lingua rule) |
+| Third-party pieces left out | 2,477 | 2,678 |
+| Size | 220.3 MB | 715.6 MB |
+
+- **Global Voices' 46 language sites:** 96,359 rows released. Held by the Lingua rule: 31,691
+  with no English version found and 8,825 whose English version is held or left out; 179 more
+  name no author.
+- **Wikinews' six language editions:** 39,000 rows (French 18,276, Chinese 10,151, Arabic
+  5,891, Greek 3,029, Romanian 1,221, Korean 432), each with the license of its creation date:
+  CC BY 2.5 for most, CC BY-SA 4.0 or CC BY 4.0 after each edition's change, public domain for
+  French before 2005-09-24. Held: 504 whose date the edition's table does not place, 61 with
+  a notice of their own that differs.
+- **Balkan Diskurs in Bosnian:** 871 rows.
+- **Factly's Telugu stories** are `te` (4,532 rows).
+- **Other-language versions:** every released language-site row lists its English version;
+  29% of the English Global Voices rows list a version in another language.
+
+The `by`, `by-sa` and `pd` counts are those of `release check`, which passed on test build 3.

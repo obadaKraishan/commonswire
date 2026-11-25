@@ -17,6 +17,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from commonswire.html import article_text
 from commonswire.http import PoliteClient, Response
@@ -225,7 +226,30 @@ class Fetcher(ABC):
             authors=item.authors,
             translators=item.translators,
             section=item.section,
+            **self.variables(item),
         )
+
+    def variables(self, item: Item) -> dict[str, object]:
+        """The variables that need no model (``commonswire.variables``), from the item."""
+        from commonswire.variables import html_link_hosts, link_stats, wiki_link_hosts
+
+        own = urlsplit(self.source.homepage).hostname or ""
+        hosts: list[str] | None = None
+        if item.hints.get("wikitext") is not None:
+            hosts = wiki_link_hosts(str(item.hints["wikitext"]), own)
+        elif item.body_text is None:
+            hosts = html_link_hosts(item.body_html, item.url)
+        out: dict[str, object] = {
+            "publisher_section": str(item.hints.get("publisher_section", item.section) or ""),
+            "publisher_categories": tuple(item.hints.get("categories") or ()),  # type: ignore[call-overload]
+            "publisher_tags": tuple(item.hints.get("tags") or ()),  # type: ignore[call-overload]
+            "original_url": str(item.hints.get("original_url") or ""),
+            "other_versions": tuple(item.hints.get("other_versions") or ()),  # type: ignore[call-overload]
+        }
+        if hosts is not None:
+            n, ext, uniq = link_stats(hosts, own)
+            out.update(n_links=n, n_links_external=ext, link_hosts=uniq)
+        return out
 
 
 def run_sample(fetcher: Fetcher, limit: int = SAMPLE_CAP) -> SampleResult:

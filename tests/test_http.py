@@ -228,6 +228,19 @@ def test_max_bytes_cuts_a_large_answer_and_logs_it(tmp_path):
     assert log_rows(tmp_path)[-1]["note"] == "truncated"
 
 
+def test_a_request_budget_counts_every_attempt_and_stops_before_the_next(tmp_path):
+    from commonswire.http import BudgetExceeded
+
+    t = FakeTransport().add(f"{SITE}/robots.txt", (404, "")).add(f"{SITE}/a", (200, "a"))
+    t.add(f"{SITE}/b", (200, "b"))
+    client, _ = make_test_client(tmp_path, t, request_budget=2)
+    client.get(f"{SITE}/a")  # robots.txt and the page: two requests
+    assert client.requests_sent == 2
+    with pytest.raises(BudgetExceeded, match="request budget of 2 requests"):
+        client.get(f"{SITE}/b")
+    assert len(t.calls) == 2
+
+
 def test_parse_robots_records_ai_crawlers_shut_out_of_the_site():
     rule = parse_robots(
         "x.org", 200, "User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n"

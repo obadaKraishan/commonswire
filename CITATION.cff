@@ -14,6 +14,7 @@ authors:
   - family-names: Kraishan
     given-names: Obada
     affiliation: "College of Media and Communication, Texas Tech University"
+    orcid: "https://orcid.org/0009-0007-7180-8620"
 license: Apache-2.0
 doi: 10.5281/zenodo.24231835
 identifiers:
@@ -31,13 +32,14 @@ keywords:
   - open licenses
 preferred-citation:
   type: data
-  title: "CommonsWire: a full-text corpus of openly licensed news"
+  title: "CommonsWire: A full-text corpus of openly licensed news"
   version: "0.2.0"
   date-released: "2026-11-14"
   authors:
     - family-names: Kraishan
       given-names: Obada
       affiliation: "College of Media and Communication, Texas Tech University"
+      orcid: "https://orcid.org/0009-0007-7180-8620"
   publisher:
     name: "Hugging Face"
   url: "https://huggingface.co/datasets/obadakr/commonswire"

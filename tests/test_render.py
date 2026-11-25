@@ -150,3 +150,8 @@ def test_the_reason_code_is_shown_when_the_registry_has_one():
     assert "**Status: include.** Reason code `license_allows`." in paragraph(coded)
     legacy = parse_row({k: v for k, v in row().items() if k != "reason_code"})
     assert "Reason code" not in paragraph(legacy)
+
+
+def test_the_summary_table_shows_the_reason_code():
+    md = render_sources_md([parse_row(row())])
+    assert "| include (`license_allows`) |" in md

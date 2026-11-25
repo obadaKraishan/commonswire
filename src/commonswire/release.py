@@ -52,6 +52,76 @@ SERIES: dict[tuple[int, int], tuple[str, ...]] = {
         "altnews",
         "globalvoices",
     ),
+    # Series 0.3 adds the publishers read from their article pages (rights audit of
+    # 2026-11-16): SciDev.Net and Africa Is a Country.
+    (0, 3): (
+        "wikinews_en",
+        "360info",
+        "thepublicrecord",
+        "balkandiskurs",
+        "factly",
+        "altnews",
+        "globalvoices",
+        "scidevnet",
+        "africasacountry",
+        # The language editions collected in 2026-11 (the rights audit's answers of
+        # 2026-11-23): Balkan Diskurs in Bosnian, 46 Global Voices language sites under the
+        # Lingua rule (Spanish waits), and six Wikinews editions with their license-by-date
+        # tables (Russian and Swedish wait).
+        "balkandiskurs_bs",
+        "globalvoices_ar",
+        "globalvoices_aym",
+        "globalvoices_bg",
+        "globalvoices_bn",
+        "globalvoices_ca",
+        "globalvoices_cs",
+        "globalvoices_da",
+        "globalvoices_de",
+        "globalvoices_el",
+        "globalvoices_eo",
+        "globalvoices_fa",
+        "globalvoices_fil",
+        "globalvoices_fr",
+        "globalvoices_he",
+        "globalvoices_hi",
+        "globalvoices_hr",
+        "globalvoices_hu",
+        "globalvoices_id",
+        "globalvoices_it",
+        "globalvoices_jp",
+        "globalvoices_kk",
+        "globalvoices_km",
+        "globalvoices_ko",
+        "globalvoices_ku",
+        "globalvoices_mg",
+        "globalvoices_mk",
+        "globalvoices_my",
+        "globalvoices_ne",
+        "globalvoices_nl",
+        "globalvoices_or",
+        "globalvoices_pa",
+        "globalvoices_pl",
+        "globalvoices_pt",
+        "globalvoices_ro",
+        "globalvoices_ru",
+        "globalvoices_sq",
+        "globalvoices_sr",
+        "globalvoices_sv",
+        "globalvoices_sw",
+        "globalvoices_tet",
+        "globalvoices_tr",
+        "globalvoices_uk",
+        "globalvoices_ur",
+        "globalvoices_uz",
+        "globalvoices_zhs",
+        "globalvoices_zht",
+        "wikinews_ar",
+        "wikinews_el",
+        "wikinews_fr",
+        "wikinews_ko",
+        "wikinews_ro",
+        "wikinews_zh",
+    ),
 }
 #: The first series whose rows carry ``translators`` (after ``authors``); older series keep
 #: the columns they were published with.
@@ -120,13 +190,35 @@ def _series(version: str) -> tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
+#: The variables that need no model (``commonswire.variables``), released from series 0.3.
+VARIABLE_COLUMNS = (
+    "publisher_section",
+    "publisher_categories",
+    "publisher_tags",
+    "n_links",
+    "n_links_external",
+    "link_hosts",
+    "original_url",
+    "other_versions",
+)
+VARIABLES_FROM = (0, 3)
+#: The variables released as lists.
+LIST_VARIABLES = frozenset(
+    {"publisher_categories", "publisher_tags", "link_hosts", "other_versions"}
+)
+
+
 def columns(version: str) -> tuple[str, ...]:
     """The released columns of a version, in order: series 0.2 and later add ``translators``
-    after ``authors``; series 0.1 keeps the 18 columns version 0.1.0 was published with."""
+    after ``authors``; series 0.3 and later add the variables that need no model at the end;
+    series 0.1 keeps the 18 columns version 0.1.0 was published with."""
     if _series(version) < TRANSLATORS_FROM:
         return COLUMNS
     i = COLUMNS.index("authors") + 1
-    return (*COLUMNS[:i], "translators", *COLUMNS[i:])
+    cols = (*COLUMNS[:i], "translators", *COLUMNS[i:])
+    if _series(version) >= VARIABLES_FROM:
+        cols = (*cols, *VARIABLE_COLUMNS)
+    return cols
 
 
 def series_sources(version: str) -> tuple[str, ...]:
@@ -169,6 +261,13 @@ class Checks:
     duplicate_ids: list[str] = field(default_factory=list)
     removed_ids: list[str] = field(default_factory=list)
     taken_down_ids: list[str] = field(default_factory=list)
+    #: Held rows by (source, reason): the card's tables by site (an update or build-from sets
+    #: it from every held row it carries).
+    held_pairs: Counter[tuple[str, str]] = field(default_factory=Counter)
+    #: Series 0.3 on: rows left out as copies of another source's rows (third-party), by
+    #: source, and their ids (:data:`REPUBLISHED_COPIES`).
+    copies: Counter[str] = field(default_factory=Counter)
+    copy_ids: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -208,12 +307,38 @@ class Release:
         }
 
 
-def _flags(rows: dict[str, Row], kept: list[str], threshold: float) -> tuple[dict, int]:
-    pairs, _ = near_duplicates(rows, kept)
+#: Series 0.3 on: a source that republished another's articles, and that other source. A row
+#: of the first whose near-duplicate (at the release's threshold) is a row of the second, held
+#: or released, is a copy: it is left out as third-party material and counted, and the other
+#: row follows its own rules (Arabic Wikinews carried Global Voices' Arabic translations).
+REPUBLISHED_COPIES: dict[str, str] = {"wikinews_ar": "globalvoices_ar"}
+COPIES_FROM = (0, 3)
+
+
+def copies_of(pairs: list, threshold: float) -> dict[str, str]:
+    """The rows that are copies of another source's rows (:data:`REPUBLISHED_COPIES`): copy id
+    -> its source id."""
+    out: dict[str, str] = {}
+    for a, b, sa, sb, j, _t in pairs:
+        if j < threshold:
+            continue
+        if REPUBLISHED_COPIES.get(sa) == sb:
+            out[a] = sa
+        elif REPUBLISHED_COPIES.get(sb) == sa:
+            out[b] = sb
+    return out
+
+
+def _flags(
+    pairs: list, threshold: float, left_out: Iterable[str] = ()
+) -> tuple[dict[str, list[str]], int]:
+    """The near-duplicate flags across sources, and the pairs counted, without the rows left
+    out."""
+    gone = set(left_out)
     flags: dict[str, list[str]] = defaultdict(list)
     n = 0
     for a, b, sa, sb, j, _t in pairs:
-        if sa != sb and j >= threshold:
+        if sa != sb and j >= threshold and a not in gone and b not in gone:
             flags[a].append(b)
             flags[b].append(a)
             n += 1
@@ -263,6 +388,7 @@ def collect(
         raise ReleaseError(f"{', '.join(unknown)} not in the registry (data/sources.csv)")
     checks = Checks()
     with_translators = "translators" in columns(version)
+    with_variables = "n_links" in columns(version)
     data: dict[str, dict] = {}
     by_id: dict[str, Row] = {}
     order = sorted(sources)
@@ -297,24 +423,72 @@ def collect(
     exact = exact_duplicates(by_id.values(), order)
     checks.exact_duplicates.update(exact.dropped_by)
     checks.duplicate_ids = sorted(exact.dropped)
-    flags, n_pairs = _flags(by_id, exact.kept_ids, threshold)
+    pairs, _ = near_duplicates(by_id, exact.kept_ids)
+    copies: dict[str, str] = {}
+    if _series(version) >= COPIES_FROM:
+        copies = {r: s for r, s in copies_of(pairs, threshold).items() if s in sources}
+    checks.copies.update(copies.values())
+    checks.copy_ids = sorted(copies)
+    flags, n_pairs = _flags(pairs, threshold, copies)
     grouped: dict[str, list[dict]] = {c: [] for c in CONFIGURATIONS}
-    for rid in exact.kept_ids:
+
+    def hold(rid: str, d: dict, why: str) -> None:
+        reason = why.split(":", 1)[0]
+        checks.held[d["source_id"]] += 1
+        checks.held_reasons[reason] += 1
+        checks.held_pairs[(d["source_id"], reason)] += 1
+        checks.held_ids[rid] = {
+            "source_id": d["source_id"],
+            "published_on": d["published_at"][:10],
+            "reason": reason,
+        }
+
+    # The Lingua rule (``commonswire.lingua``): an edition marked with its reason code is
+    # released only where its English version is released, so its rows come last.
+    from commonswire.lingua import (
+        ENGLISH_NOT_RELEASED,
+        ENGLISH_SOURCE,
+        NO_ENGLISH,
+        RULE_CODE,
+        english_version,
+    )
+    from commonswire.schema import article_id
+
+    ruled = {s for s in sources if registry[s].reason_code == RULE_CODE}
+    if ruled and ENGLISH_SOURCE not in sources:
+        raise ReleaseError(
+            f"{', '.join(sorted(ruled))} are released only with their English versions, but "
+            f"series {version} has no {ENGLISH_SOURCE}"
+        )
+    kept = [r for r in exact.kept_ids if data[r]["source_id"] not in ruled and r not in copies]
+    kept += [r for r in exact.kept_ids if data[r]["source_id"] in ruled and r not in copies]
+    english_released: set[str] | None = None
+    for rid in kept:
         d = data[rid]
         src = registry[d["source_id"]]
         if rid in takedowns:
             checks.taken_down[d["source_id"]] += 1
             checks.taken_down_ids.append(rid)
             continue
+        if d["source_id"] in ruled:
+            # The rule comes first: a row it holds is counted under it, whatever else the
+            # row lacks (its listing page may not have been read, by the plan).
+            if english_released is None:
+                english_released = {
+                    r["id"]
+                    for rows in grouped.values()
+                    for r in rows
+                    if r["source_id"] == ENGLISH_SOURCE
+                }
+            english = english_version(d.get("other_versions") or ())
+            if not english:
+                hold(rid, d, NO_ENGLISH)
+                continue
+            if article_id(english) not in english_released:
+                hold(rid, d, ENGLISH_NOT_RELEASED)
+                continue
         if not d.get("releasable", True):
-            reason = (d.get("hold_reason") or "held").split(":", 1)[0]
-            checks.held[d["source_id"]] += 1
-            checks.held_reasons[reason] += 1
-            checks.held_ids[rid] = {
-                "source_id": d["source_id"],
-                "published_on": d["published_at"][:10],
-                "reason": reason,
-            }
+            hold(rid, d, d.get("hold_reason") or "held")
             continue
         if d.get("third_party"):
             checks.third_party.append(rid)
@@ -344,6 +518,7 @@ def collect(
         if config == CLASS_NC_ND or config not in grouped:
             checks.unreleasable_class.append(f"{rid} ({d['license']})")
             continue
+        variables_out: dict[str, object] = {}
         out = {
             "id": rid,
             "source_id": d["source_id"],
@@ -353,13 +528,26 @@ def collect(
         }
         if with_translators:
             out["translators"] = translators
+        language = d["language"]
+        if with_variables:
+            from commonswire.variables import row_language
+
+            language = row_language(d["source_id"], d.get("publisher_categories") or (), language)
+            for col in VARIABLE_COLUMNS:
+                value = d.get(col)
+                if col in LIST_VARIABLES:
+                    value = list(value or [])
+                elif col in ("publisher_section", "original_url"):
+                    value = value or ""
+                variables_out[col] = value
         grouped[config].append(
             {
                 **out,
+                **variables_out,
                 "published_at": _ts(d["published_at"]),
                 "updated_at": _ts(d.get("updated_at")),
                 "retrieved_at": _ts(d["retrieved_at"]),
-                "language": d["language"],
+                "language": language,
                 "section": d.get("section", ""),
                 "url": d["url"],
                 "license": d["license"],
@@ -387,11 +575,18 @@ def _schema(cols: tuple[str, ...] = COLUMNS):  # type: ignore[no-untyped-def]
         "authors": pa.list_(text),
         "translators": pa.list_(text),
         "near_duplicates": pa.list_(text),
+        "publisher_categories": pa.list_(text),
+        "publisher_tags": pa.list_(text),
+        "link_hosts": pa.list_(text),
+        "other_versions": pa.list_(text),
+        "n_links": pa.int64(),
+        "n_links_external": pa.int64(),
         "published_at": ts,
         "updated_at": ts,
         "retrieved_at": ts,
     }
-    return pa.schema([pa.field(c, types.get(c, text), nullable=c == "updated_at") for c in cols])
+    nullable = ("updated_at", "n_links", "n_links_external")
+    return pa.schema([pa.field(c, types.get(c, text), nullable=c in nullable) for c in cols])
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -466,9 +661,11 @@ def write_release(
     card: str,
     licenses_md: str,
     extra: Mapping[str, object] | None = None,
+    extra_files: Mapping[str, bytes] | None = None,
 ) -> dict[str, object]:
     """Write the files of a checked release under ``out`` and return the manifest. ``extra``
-    adds keys to the manifest (an update's counts), before the list of files."""
+    adds keys to the manifest (an update's counts), before the list of files; ``extra_files``
+    adds files (series 0.3: ``changes.csv``)."""
     if not release.checks.ok:
         raise ReleaseError("the checks failed: " + "; ".join(release.checks.problems()))
     files: dict[str, bytes] = {}
@@ -504,6 +701,7 @@ def write_release(
     files["sources.csv"] = registry_path.read_bytes()
     files["LICENSES.md"] = licenses_md.encode("utf-8")
     files["README.md"] = card.encode("utf-8")
+    files.update(extra_files or {})
     all_rows = [r for config in release.rows.values() for r in config]
     as_of = max((r["retrieved_at"] for r in all_rows), default=None)
     out.mkdir(parents=True, exist_ok=True)
@@ -523,6 +721,12 @@ def write_release(
         "exact_duplicates_dropped": dict(sorted(release.checks.exact_duplicates.items())),
         "near_duplicate_threshold": NEAR_DUPLICATE_THRESHOLD,
         "near_duplicate_pairs_across_sources": release.near_duplicate_pairs,
+        # Series 0.3 on (an older version's manifest keeps the keys it was published with).
+        **(
+            {"copies_left_out": dict(sorted(release.checks.copies.items()))}
+            if _series(release.version) >= COPIES_FROM
+            else {}
+        ),
         **(extra or {}),
         "files": [
             {"path": name, "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()}
@@ -531,6 +735,18 @@ def write_release(
     }
     _write_atomic(out / "manifest.json", (json.dumps(manifest, indent=2) + "\n").encode())
     return manifest
+
+
+_FENCE = re.compile(r"^(```|~~~).*?^\1", re.M | re.S)
+_CODE_SPAN = re.compile(r"`[^`\n]*`")
+_HTML = re.compile(r"<!--|</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?/?>")
+
+
+def raw_html(markdown: str) -> list[str]:
+    """The raw HTML tags (and comments) of a Markdown text outside code blocks and code
+    spans; an autolink such as ``<https://example.org>`` is not one."""
+    text = _CODE_SPAN.sub("", _FENCE.sub("", markdown))
+    return [m.group(0)[:40] for m in _HTML.finditer(text)]
 
 
 def verify(
@@ -561,6 +777,10 @@ def verify(
             problems.append(f"{rel_path} is not in the manifest")
     from commonswire.sources import load_sources
 
+    card_path = out / "README.md"
+    if card_path.exists():
+        for tag in raw_html(card_path.read_text(encoding="utf-8")):
+            problems.append(f"README.md: raw HTML outside code ({tag!r}); write it in Markdown")
     registry = load_sources(out / "sources.csv")
     seen: set[str] = set()
     by_source: Counter[str] = Counter()

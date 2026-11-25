@@ -285,6 +285,8 @@ class DumpArticle:
     published_at: datetime
     last_edit: datetime | None
     text: str
+    #: The page's wikitext, for the variables that need no model (categories, links).
+    wikitext: str = ""
 
 
 def _local(tag: str) -> str:
@@ -339,6 +341,7 @@ def read_dump(stream: BinaryIO, skipped: Counter[str]) -> Iterator[DumpArticle]:
             published_at=published,
             last_edit=last_edit,
             text=text,
+            wikitext=wikitext,
         )
 
 
@@ -356,7 +359,7 @@ def md5_of(path: Path) -> str:
 
 def expected_md5(md5sums: str, name: str = DUMP_NAME) -> str | None:
     """The md5 the dump's own md5sums file gives for ``name`` (the ``latest`` alias resolved)."""
-    suffix = name.replace("enwikinews-latest-", "")
+    suffix = name.split("-latest-", 1)[-1]
     for line in md5sums.splitlines():
         parts = line.split()
         if len(parts) == 2 and parts[1].endswith(suffix):

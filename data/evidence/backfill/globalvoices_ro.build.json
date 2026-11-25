@@ -1,0 +1,27 @@
+{
+  "credited_to_source": 0,
+  "daily_replayed": {
+    "changed": 0,
+    "days": 0,
+    "dropped": {},
+    "files": 0,
+    "new": 0,
+    "removed": 0,
+    "unchanged_modified": 0
+  },
+  "dropped": {},
+  "first": "2014-02-17",
+  "kept": 780,
+  "last": "2026-10-26",
+  "raw_bytes": 12128541,
+  "raw_files": 12,
+  "releasable": 769,
+  "releasable_after_daily": 769,
+  "rows_after_daily": 780,
+  "rows_bytes": 7140636,
+  "run": "2026-11-23",
+  "seen": 780,
+  "source_id": "globalvoices_ro",
+  "validate_errors": 0,
+  "validate_warnings": 0
+}

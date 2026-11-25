@@ -64,6 +64,7 @@ def fact(lst, sid, tag, **over):
         "documents": "",
         "named_in": "card;code;data" if lst == "common_pile" else "English",
         "active": "" if lst == "common_pile" else "1",
+        "data_date": "2024-05-27" if lst == "common_pile" else "2025-11-11",
         "read_from": "https://lists.example/x",
         "read_at": T,
     }
@@ -124,6 +125,7 @@ def test_compare_says_what_each_list_gives_and_whether_it_agrees(tmp_path):
     a, b, g, d = rows["alpha"], rows["beta"], rows["gamma"], rows["delta"]
     assert a["common_pile_tag"] == "CC-BY" and a["common_pile_documents"] == "120"
     assert a["common_pile_named_in"] == "card;code;data" and a["lists_agree"] == "yes"
+    assert a["common_pile_data_date"] == "2024-05-27"
     assert b["open_newswire_tag"] == "CC BY-ND" and b["open_newswire_active"] == "0"
     assert b["class_here"] == "nc-nd" and b["lists_agree"] == "no"
     assert g["class_here"] == "none" and g["lists_agree"] == "unread"
@@ -151,6 +153,7 @@ def test_compare_says_what_each_list_gives_and_whether_it_agrees(tmp_path):
         ({"source_id": "omega"}, "'omega' is not in the registry"),
         ({"documents": "many"}, "documents must be a whole number"),
         ({"read_at": "yesterday"}, "read_at must be a time"),
+        ({"data_date": "2024"}, "data_date must be a day"),
     ],
 )
 def test_other_lists_are_checked_line_by_line(tmp_path, over, message):

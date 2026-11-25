@@ -1,0 +1,33 @@
+{
+  "bytes_fetched": 0,
+  "credits_from_later_sighting": 0,
+  "end": "page 1448 would start past the last post (the plan)",
+  "http_status": {},
+  "labels_known": true,
+  "last_page": 1447,
+  "long_waits": 0,
+  "pages_already_saved": 1447,
+  "pages_fetched": 0,
+  "pages_skipped": 0,
+  "run": "2026-11-23",
+  "seen_again": 4,
+  "source_id": "globalvoices_fr",
+  "stopped": "",
+  "stories": 21698,
+  "stories_seen": 21702,
+  "translated": 20234,
+  "translators_not_a_person": 3,
+  "why_none": {
+    "no_byline": 4,
+    "not_a_person": 131
+  },
+  "with_writer": 21563,
+  "without_writer": 135,
+  "writers_per_story": {
+    "0": 135,
+    "1": 21194,
+    "2": 309,
+    "3": 37,
+    "4": 23
+  }
+}
