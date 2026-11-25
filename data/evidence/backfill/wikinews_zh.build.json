@@ -2,7 +2,8 @@
   "by_license": {
     "CC-BY-2.5": 9983,
     "CC-BY-4.0": 266,
-    "held:own notice differs": 2
+    "held:own notice differs (a third party's copyright)": 1,
+    "held:own notice differs (another license)": 1
   },
   "files": {
     "articles": {
