@@ -727,6 +727,10 @@ preferred-citation:
         ),
         ({"license": "MIT"}, "the license ('mit') differs from CITATION.cff"),
         ({"license": ""}, "license is missing"),
+        (
+            {"creators": [{**GOOD_ZENODO["creators"][0], "orcid": "0000-0000-0000-0000"}]},
+            "the ORCID iD ('0000-0000-0000-0000') differs from CITATION.cff",
+        ),
     ],
 )
 def test_check_zenodo_json(tmp_path, change, message):

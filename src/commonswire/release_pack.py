@@ -443,8 +443,8 @@ def zenodo_folder(
 
 
 def _citation_fields(text: str) -> dict[str, str]:
-    """The top-level title and license of a CITATION.cff, and its first author's names and
-    affiliation (enough to compare with .zenodo.json; no YAML parser needed)."""
+    """The top-level title and license of a CITATION.cff, and its first author's names,
+    affiliation and ORCID iD (enough to compare with .zenodo.json; no YAML parser needed)."""
     out: dict[str, str] = {}
     in_authors = False
     for line in text.splitlines():
@@ -456,7 +456,9 @@ def _citation_fields(text: str) -> dict[str, str]:
         m = re.match(r"^(title|license):\s*\"?(.*?)\"?\s*$", line)
         if m and top:
             out[m.group(1)] = m.group(2)
-        m = re.match(r"^\s*-?\s*(family-names|given-names|affiliation):\s*\"?(.*?)\"?\s*$", line)
+        m = re.match(
+            r"^\s*-?\s*(family-names|given-names|affiliation|orcid):\s*\"?(.*?)\"?\s*$", line
+        )
         if m and in_authors:
             out.setdefault(m.group(1), m.group(2))
     return out
@@ -521,6 +523,12 @@ def check_zenodo_json(repo: Path) -> list[str]:
                 "affiliation",
                 cff.get("affiliation", ""),
                 creator.get("affiliation", "") if isinstance(creator, dict) else "",
+            ),
+            (
+                # CITATION.cff gives the ORCID iD as a URL, Zenodo as the bare iD.
+                "ORCID iD",
+                cff.get("orcid", "").removeprefix("https://orcid.org/"),
+                creator.get("orcid", "") if isinstance(creator, dict) else "",
             ),
         )
         for field_name, want, got in pairs:
